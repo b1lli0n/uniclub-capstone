@@ -1,0 +1,20 @@
+.layout-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.student-layout {
+  background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+}
+
+.admin-layout {
+  background: linear-gradient(180deg, #f7f7f8 0%, #eceff3 100%);
+}
+
+.layout-role-switcher {
+  position: sticky;
+  top: 0;
+  z-index: 1040;
+  backdrop-filter: blur(8px);
+}
