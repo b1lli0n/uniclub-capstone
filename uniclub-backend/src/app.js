@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-const routes = require("./routes");
+const authRoutes = require("./routes/auth");
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
 
@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
-app.use("/api/v1", routes);
+app.use("/api/v1/auth", authRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
