@@ -1,4 +1,15 @@
+const mongoose = require("mongoose");
 const clubMembershipService = require("../../services/member/clubMembership.service");
+
+const throwBadRequest = (message) => {
+  throw Object.assign(new Error(message), { statusCode: 400 });
+};
+
+const assertValidObjectId = (id, label) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throwBadRequest(`Invalid ${label}`);
+  }
+};
 
 const getUserId = (req) => {
   const userId = req.user?._id;
@@ -26,6 +37,24 @@ const getMyClubs = async (req, res, next) => {
   }
 };
 
+const leaveClub = async (req, res, next) => {
+  try {
+    const { clubId } = req.params;
+    assertValidObjectId(clubId, "clubId");
+
+    const membership = await clubMembershipService.leaveClub(getUserId(req), clubId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Left club successfully",
+      data: membership
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
-  getMyClubs
+  getMyClubs,
+  leaveClub
 };
