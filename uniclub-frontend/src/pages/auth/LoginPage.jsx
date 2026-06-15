@@ -6,9 +6,10 @@ function FptLogo() {
   return <img src={fptUniversityLogo} alt="FPT University" className="login-fpt-logo" />
 }
 
-export default function LoginPage({ onLogin }) {
+export default function LoginPage() {
   function handleLogin() {
-    onLogin?.()
+    window.location.href =
+    'http://localhost:5000/api/auth/google'
   }
 
   return (

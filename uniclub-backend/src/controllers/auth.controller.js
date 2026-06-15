@@ -31,27 +31,6 @@ const login = (req, res) => {
   });
 };
 
-/**
- * Controller chỉ nhận request, gọi service xử lý nghiệp vụ và trả response.
- */
-const googleLogin = async (req, res, next) => {
-  try {
-    const { idToken } = req.body;
-    const result = await authService.handleGoogleLogin(idToken);
-
-    return res.status(200).json({
-      success: true,
-      message: "Google login successful",
-      data: {
-        token: result.token,
-        user: result.user,
-        isFirstLogin: result.isFirstLogin
-      }
-    });
-  } catch (error) {
-    return next(error);
-  }
-};
 
 /**
  * Route test quyền admin.

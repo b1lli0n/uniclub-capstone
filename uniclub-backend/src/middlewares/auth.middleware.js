@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const env = require("../config/env");
 
-const secret = process.env.JWT_SECRET || "your-secret-key";
+const secret = env.jwtSecret;
 
 /**
  * Verify JWT token từ Authorization header
