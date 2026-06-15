@@ -54,7 +54,25 @@ const leaveClub = async (req, res, next) => {
   }
 };
 
+const getClubMembers = async (req, res, next) => {
+  try {
+    const { clubId } = req.params;
+    assertValidObjectId(clubId, "clubId");
+
+    const members = await clubMembershipService.getClubMembers(getUserId(req), clubId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Club members retrieved successfully",
+      data: members
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getMyClubs,
-  leaveClub
+  leaveClub,
+  getClubMembers
 };
