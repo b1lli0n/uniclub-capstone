@@ -87,7 +87,24 @@ const submitJoinRequest = async (userId, clubId, formId, answers) => {
   ]);
 };
 
+const getMyJoinRequests = async (userId, { status } = {}) => {
+  const query = { user_id: userId };
+
+  if (status) {
+    query.status = status;
+  }
+
+  return JoinRequest.find(query)
+    .sort({ create_at: -1 })
+    .populate("club_id", "_id name logo_url category")
+    .populate("form_id", "_id title")
+    .select(
+      "_id club_id form_id answers status review_note reviewed_at create_at"
+    );
+};
+
 module.exports = {
   getClubJoinForm,
-  submitJoinRequest
+  submitJoinRequest,
+  getMyJoinRequests
 };

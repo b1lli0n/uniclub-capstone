@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const clubMembershipService = require("../services/clubMembership.service");
+const { JOIN_REQUEST_STATUS } = require("../utils/constants");
 
 const throwBadRequest = (message) => {
   throw Object.assign(new Error(message), { statusCode: 400 });
@@ -74,7 +75,33 @@ const submitJoinRequest = async (req, res, next) => {
   }
 };
 
+const getMyJoinRequests = async (req, res, next) => {
+  try {
+    const { status } = req.query;
+
+    if (status && !Object.values(JOIN_REQUEST_STATUS).includes(status)) {
+      throwBadRequest(
+        "Invalid status. Allowed values: pending, approved, rejected, cancelled"
+      );
+    }
+
+    const joinRequests = await clubMembershipService.getMyJoinRequests(
+      getUserId(req),
+      { status }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Join request list retrieved successfully",
+      data: joinRequests
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getClubJoinForm,
-  submitJoinRequest
+  submitJoinRequest,
+  getMyJoinRequests
 };
