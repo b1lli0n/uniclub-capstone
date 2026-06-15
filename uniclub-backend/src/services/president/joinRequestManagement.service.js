@@ -5,7 +5,7 @@ const {
   CLUB_MEMBER_STATUS
 } = require("../../utils/constants");
 
-const getJoinRequestList = async (userId, clubId, { status } = {}) => {
+const assertPresident = async (userId, clubId) => {
   const presidentMembership = await ClubMember.findOne({
     user_id: userId,
     club_id: clubId,
@@ -18,6 +18,10 @@ const getJoinRequestList = async (userId, clubId, { status } = {}) => {
       statusCode: 403
     });
   }
+};
+
+const getJoinRequestList = async (userId, clubId, { status } = {}) => {
+  await assertPresident(userId, clubId);
 
   const query = { club_id: clubId };
 
@@ -32,6 +36,25 @@ const getJoinRequestList = async (userId, clubId, { status } = {}) => {
     .select("_id user_id form_id answers status review_note reviewed_at create_at");
 };
 
+const getJoinRequestDetail = async (userId, clubId, requestId) => {
+  await assertPresident(userId, clubId);
+
+  const joinRequest = await JoinRequest.findOne({
+    _id: requestId,
+    club_id: clubId
+  })
+    .populate("user_id", "_id full_name email avatar_url")
+    .populate("form_id", "_id title description questions")
+    .populate("reviewed_by", "_id full_name");
+
+  if (!joinRequest) {
+    throw Object.assign(new Error("Join request not found"), { statusCode: 404 });
+  }
+
+  return joinRequest;
+};
+
 module.exports = {
-  getJoinRequestList
+  getJoinRequestList,
+  getJoinRequestDetail
 };

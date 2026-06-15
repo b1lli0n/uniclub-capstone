@@ -53,6 +53,30 @@ const getJoinRequestList = async (req, res, next) => {
   }
 };
 
+const getJoinRequestDetail = async (req, res, next) => {
+  try {
+    const { clubId, requestId } = req.params;
+
+    assertValidObjectId(clubId, "clubId");
+    assertValidObjectId(requestId, "requestId");
+
+    const joinRequest = await joinRequestManagementService.getJoinRequestDetail(
+      getUserId(req),
+      clubId,
+      requestId
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Join request detail retrieved successfully",
+      data: joinRequest
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
-  getJoinRequestList
+  getJoinRequestList,
+  getJoinRequestDetail
 };
