@@ -119,9 +119,35 @@ const getJoinRequestDetail = async (userId, requestId) => {
   return joinRequest;
 };
 
+const cancelJoinRequest = async (userId, requestId) => {
+  const joinRequest = await JoinRequest.findOne({
+    _id: requestId,
+    user_id: userId
+  });
+
+  if (!joinRequest) {
+    throw Object.assign(new Error("Join request not found"), { statusCode: 404 });
+  }
+
+  if (joinRequest.status !== JOIN_REQUEST_STATUS.PENDING) {
+    throw Object.assign(new Error("Can only cancel pending join requests"), {
+      statusCode: 400
+    });
+  }
+
+  joinRequest.status = JOIN_REQUEST_STATUS.CANCELLED;
+  await joinRequest.save();
+
+  return joinRequest.populate([
+    { path: "club_id", select: "_id name logo_url" },
+    { path: "form_id", select: "_id title" }
+  ]);
+};
+
 module.exports = {
   getClubJoinForm,
   submitJoinRequest,
   getMyJoinRequests,
-  getJoinRequestDetail
+  getJoinRequestDetail,
+  cancelJoinRequest
 };
