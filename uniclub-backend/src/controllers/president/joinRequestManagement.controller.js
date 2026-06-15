@@ -76,7 +76,61 @@ const getJoinRequestDetail = async (req, res, next) => {
   }
 };
 
+const approveJoinRequest = async (req, res, next) => {
+  try {
+    const { clubId, requestId } = req.params;
+
+    assertValidObjectId(clubId, "clubId");
+    assertValidObjectId(requestId, "requestId");
+
+    const joinRequest = await joinRequestManagementService.approveJoinRequest(
+      getUserId(req),
+      clubId,
+      requestId
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Join request approved successfully",
+      data: joinRequest
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const rejectJoinRequest = async (req, res, next) => {
+  try {
+    const { clubId, requestId } = req.params;
+    const { review_note: reviewNote } = req.body;
+
+    assertValidObjectId(clubId, "clubId");
+    assertValidObjectId(requestId, "requestId");
+
+    if (reviewNote !== undefined && typeof reviewNote !== "string") {
+      throwBadRequest("review_note must be a string");
+    }
+
+    const joinRequest = await joinRequestManagementService.rejectJoinRequest(
+      getUserId(req),
+      clubId,
+      requestId,
+      reviewNote || ""
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Join request rejected successfully",
+      data: joinRequest
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getJoinRequestList,
-  getJoinRequestDetail
+  getJoinRequestDetail,
+  approveJoinRequest,
+  rejectJoinRequest
 };
