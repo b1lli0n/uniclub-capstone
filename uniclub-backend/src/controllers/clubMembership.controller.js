@@ -100,8 +100,29 @@ const getMyJoinRequests = async (req, res, next) => {
   }
 };
 
+const getJoinRequestDetail = async (req, res, next) => {
+  try {
+    const { requestId } = req.params;
+    assertValidObjectId(requestId, "requestId");
+
+    const joinRequest = await clubMembershipService.getJoinRequestDetail(
+      getUserId(req),
+      requestId
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Join request detail retrieved successfully",
+      data: joinRequest
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getClubJoinForm,
   submitJoinRequest,
-  getMyJoinRequests
+  getMyJoinRequests,
+  getJoinRequestDetail
 };

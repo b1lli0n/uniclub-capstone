@@ -103,8 +103,25 @@ const getMyJoinRequests = async (userId, { status } = {}) => {
     );
 };
 
+const getJoinRequestDetail = async (userId, requestId) => {
+  const joinRequest = await JoinRequest.findOne({
+    _id: requestId,
+    user_id: userId
+  })
+    .populate("club_id", "_id name logo_url category description")
+    .populate("form_id", "_id title description questions")
+    .populate("reviewed_by", "_id full_name");
+
+  if (!joinRequest) {
+    throw Object.assign(new Error("Join request not found"), { statusCode: 404 });
+  }
+
+  return joinRequest;
+};
+
 module.exports = {
   getClubJoinForm,
   submitJoinRequest,
-  getMyJoinRequests
+  getMyJoinRequests,
+  getJoinRequestDetail
 };
