@@ -4,6 +4,7 @@ const morgan = require("morgan");
 const passport = require("passport");
 
 const authRoutes = require("./routes/auth.routes");
+const clubDiscoveryRoutes = require("./routes/clubDiscovery.routes");
 require("./config/passport");
 
 const notFound = require("./middlewares/notFound");
@@ -26,6 +27,7 @@ app.use(morgan("dev"));
 app.use(passport.initialize());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/clubs", clubDiscoveryRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
