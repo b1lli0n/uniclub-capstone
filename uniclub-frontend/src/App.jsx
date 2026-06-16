@@ -1,48 +1,130 @@
-import { useMemo, useState } from 'react'
-import Button from 'react-bootstrap/Button'
-import ButtonGroup from 'react-bootstrap/ButtonGroup'
-import Container from 'react-bootstrap/Container'
-import { AdminLayout, StudentLayout } from './layouts'
-import { APP_ROLES, APP_ROUTES } from './routes/appRoutes'
+import { useState } from 'react'
 import './App.css'
 import './styles/layouts.css'
 import './styles/pages.css'
+import LoginPage from './pages/auth/LoginPage'
+import HomeLayout from './layouts/HomeLayout'
+import HomePage from './pages/home/HomePage'
+import MyProfilePage from './pages/home/MyProfilePage'
+import CreateClubPage from './pages/home/CreateClubPage'
+import ClubsPage from './pages/home/ClubsPage'
+import ClubDetailPage from './pages/home/ClubDetailPage'
+import ClubRankingPage from './pages/home/ClubRankingPage'
+import { CURRENT_USER } from './data/mockData'
 
 function App() {
-  const [activeRole, setActiveRole] = useState(APP_ROLES.STUDENT)
+  const [view, setView] = useState('login')
+  const [selectedClubId, setSelectedClubId] = useState(null)
+  const [detailBackView, setDetailBackView] = useState('home')
 
-  const ActivePage = APP_ROUTES[activeRole].component
-  const ActiveLayout = useMemo(
-    () => (activeRole === APP_ROLES.ADMIN ? AdminLayout : StudentLayout),
-    [activeRole],
-  )
+  function handleLogin() {
+    setView('home')
+  }
+
+  function handleLogout() {
+    setView('login')
+    setSelectedClubId(null)
+    setDetailBackView('home')
+  }
+
+  function openClubDetail(clubId, backView = view) {
+    setSelectedClubId(clubId)
+    setDetailBackView(backView)
+    setView('club-detail')
+  }
+
+  function handleNavigate(screen) {
+    if (screen === 'profile') {
+      setView('profile')
+      return
+    }
+
+    if (screen === 'create-club') {
+      setView('create-club')
+      return
+    }
+
+    if (screen === 'clubs') {
+      setView('clubs')
+      return
+    }
+
+    if (screen === 'club-detail') {
+      setView('club-detail')
+      return
+    }
+
+    if (screen === 'club-ranking') {
+      setView('club-ranking')
+      return
+    }
+
+    if (screen === 'home') {
+      setView('home')
+      return
+    }
+
+    setView('home')
+  }
+
+  function renderContent() {
+    if (view === 'profile') {
+      return <MyProfilePage currentUser={CURRENT_USER} />
+    }
+
+    if (view === 'create-club') {
+      return (
+        <CreateClubPage
+          onCancel={() => setView('home')}
+          onSubmit={() => setView('home')}
+        />
+      )
+    }
+
+    if (view === 'clubs') {
+      return <ClubsPage onSelectClub={(clubId) => openClubDetail(clubId, 'clubs')} />
+    }
+
+    if (view === 'club-detail') {
+      return (
+        <ClubDetailPage
+          clubId={selectedClubId}
+          onBack={() => setView(detailBackView)}
+        />
+      )
+    }
+
+    if (view === 'club-ranking') {
+      return <ClubRankingPage clubId={selectedClubId} />
+    }
+
+    return (
+      <HomePage
+        onCreateClub={() => setView('create-club')}
+        onSelectClub={(clubId) => openClubDetail(clubId, 'home')}
+        onViewAll={() => setView('clubs')}
+      />
+    )
+  }
+
+  if (view === 'login') {
+    return <LoginPage onLogin={handleLogin} />
+  }
 
   return (
-    <>
-      <div className="layout-role-switcher border-bottom bg-white bg-opacity-75">
-        <Container className="py-3 d-flex justify-content-between align-items-center gap-3 flex-wrap">
-          <div className="fw-semibold">Layout preview</div>
-          <ButtonGroup aria-label="Role switcher">
-            <Button
-              variant={activeRole === APP_ROLES.STUDENT ? 'primary' : 'outline-primary'}
-              onClick={() => setActiveRole(APP_ROLES.STUDENT)}
-            >
-              Student
-            </Button>
-            <Button
-              variant={activeRole === APP_ROLES.ADMIN ? 'dark' : 'outline-dark'}
-              onClick={() => setActiveRole(APP_ROLES.ADMIN)}
-            >
-              Admin
-            </Button>
-          </ButtonGroup>
-        </Container>
-      </div>
-
-      <ActiveLayout>
-        <ActivePage />
-      </ActiveLayout>
-    </>
+    <HomeLayout
+      activeItem={
+        view === 'clubs' || view === 'club-detail' || view === 'club-ranking'
+          ? 'clubs'
+          : null
+      }
+      pageId={view}
+      currentUser={CURRENT_USER}
+      onNavigate={handleNavigate}
+      onLogout={handleLogout}
+    >
+      {renderContent()}
+    </HomeLayout>
   )
 }
 
