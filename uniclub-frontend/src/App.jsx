@@ -8,10 +8,14 @@ import HomePage from './pages/home/HomePage'
 import MyProfilePage from './pages/home/MyProfilePage'
 import CreateClubPage from './pages/home/CreateClubPage'
 import ClubsPage from './pages/home/ClubsPage'
+import ClubDetailPage from './pages/home/ClubDetailPage'
+import ClubRankingPage from './pages/home/ClubRankingPage'
 import { CURRENT_USER } from './data/mockData'
 
 function App() {
   const [view, setView] = useState('login')
+  const [selectedClubId, setSelectedClubId] = useState(null)
+  const [detailBackView, setDetailBackView] = useState('home')
 
   function handleLogin() {
     setView('home')
@@ -19,6 +23,14 @@ function App() {
 
   function handleLogout() {
     setView('login')
+    setSelectedClubId(null)
+    setDetailBackView('home')
+  }
+
+  function openClubDetail(clubId, backView = view) {
+    setSelectedClubId(clubId)
+    setDetailBackView(backView)
+    setView('club-detail')
   }
 
   function handleNavigate(screen) {
@@ -34,6 +46,16 @@ function App() {
 
     if (screen === 'clubs') {
       setView('clubs')
+      return
+    }
+
+    if (screen === 'club-detail') {
+      setView('club-detail')
+      return
+    }
+
+    if (screen === 'club-ranking') {
+      setView('club-ranking')
       return
     }
 
@@ -60,13 +82,26 @@ function App() {
     }
 
     if (view === 'clubs') {
-      return <ClubsPage onSelectClub={() => {}} />
+      return <ClubsPage onSelectClub={(clubId) => openClubDetail(clubId, 'clubs')} />
+    }
+
+    if (view === 'club-detail') {
+      return (
+        <ClubDetailPage
+          clubId={selectedClubId}
+          onBack={() => setView(detailBackView)}
+        />
+      )
+    }
+
+    if (view === 'club-ranking') {
+      return <ClubRankingPage clubId={selectedClubId} />
     }
 
     return (
       <HomePage
         onCreateClub={() => setView('create-club')}
-        onSelectClub={() => {}}
+        onSelectClub={(clubId) => openClubDetail(clubId, 'home')}
         onViewAll={() => setView('clubs')}
       />
     )
@@ -78,7 +113,11 @@ function App() {
 
   return (
     <HomeLayout
-      activeItem={view === 'clubs' ? 'clubs' : null}
+      activeItem={
+        view === 'clubs' || view === 'club-detail' || view === 'club-ranking'
+          ? 'clubs'
+          : null
+      }
       pageId={view}
       currentUser={CURRENT_USER}
       onNavigate={handleNavigate}
