@@ -6,6 +6,7 @@ import LoginPage from './pages/auth/LoginPage'
 import HomeLayout from './layouts/HomeLayout'
 import HomePage from './pages/home/HomePage'
 import MyProfilePage from './pages/home/MyProfilePage'
+import MyRequestsPage from './pages/home/MyRequestsPage'
 import CreateClubPage from './pages/home/CreateClubPage'
 import ClubsPage from './pages/home/ClubsPage'
 import ClubDetailPage from './pages/home/ClubDetailPage'
@@ -36,6 +37,11 @@ function App() {
   function handleNavigate(screen) {
     if (screen === 'profile') {
       setView('profile')
+      return
+    }
+
+    if (screen === 'requests') {
+      setView('requests')
       return
     }
 
@@ -70,6 +76,10 @@ function App() {
   function renderContent() {
     if (view === 'profile') {
       return <MyProfilePage currentUser={CURRENT_USER} />
+    }
+
+    if (view === 'requests') {
+      return <MyRequestsPage />
     }
 
     if (view === 'create-club') {
