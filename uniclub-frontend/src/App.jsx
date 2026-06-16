@@ -6,6 +6,7 @@ import LoginPage from './pages/auth/LoginPage'
 import HomeLayout from './layouts/HomeLayout'
 import HomePage from './pages/home/HomePage'
 import MyProfilePage from './pages/home/MyProfilePage'
+import CreateClubPage from './pages/home/CreateClubPage'
 import { CURRENT_USER } from './data/mockData'
 
 function App() {
@@ -25,12 +26,40 @@ function App() {
       return
     }
 
+    if (screen === 'create-club') {
+      setView('create-club')
+      return
+    }
+
     if (screen === 'home') {
       setView('home')
       return
     }
 
     setView('home')
+  }
+
+  function renderContent() {
+    if (view === 'profile') {
+      return <MyProfilePage currentUser={CURRENT_USER} />
+    }
+
+    if (view === 'create-club') {
+      return (
+        <CreateClubPage
+          onCancel={() => setView('home')}
+          onSubmit={() => setView('home')}
+        />
+      )
+    }
+
+    return (
+      <HomePage
+        onCreateClub={() => setView('create-club')}
+        onSelectClub={() => {}}
+        onViewAll={() => {}}
+      />
+    )
   }
 
   if (view === 'login') {
@@ -45,15 +74,7 @@ function App() {
       onNavigate={handleNavigate}
       onLogout={handleLogout}
     >
-      {view === 'profile' ? (
-        <MyProfilePage currentUser={CURRENT_USER} />
-      ) : (
-        <HomePage
-          onCreateClub={() => {}}
-          onSelectClub={() => {}}
-          onViewAll={() => {}}
-        />
-      )}
+      {renderContent()}
     </HomeLayout>
   )
 }
