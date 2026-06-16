@@ -7,6 +7,7 @@ import HomeLayout from './layouts/HomeLayout'
 import HomePage from './pages/home/HomePage'
 import MyProfilePage from './pages/home/MyProfilePage'
 import CreateClubPage from './pages/home/CreateClubPage'
+import ClubsPage from './pages/home/ClubsPage'
 import { CURRENT_USER } from './data/mockData'
 
 function App() {
@@ -28,6 +29,11 @@ function App() {
 
     if (screen === 'create-club') {
       setView('create-club')
+      return
+    }
+
+    if (screen === 'clubs') {
+      setView('clubs')
       return
     }
 
@@ -53,11 +59,15 @@ function App() {
       )
     }
 
+    if (view === 'clubs') {
+      return <ClubsPage onSelectClub={() => {}} />
+    }
+
     return (
       <HomePage
         onCreateClub={() => setView('create-club')}
         onSelectClub={() => {}}
-        onViewAll={() => {}}
+        onViewAll={() => setView('clubs')}
       />
     )
   }
@@ -68,7 +78,7 @@ function App() {
 
   return (
     <HomeLayout
-      activeItem={null}
+      activeItem={view === 'clubs' ? 'clubs' : null}
       pageId={view}
       currentUser={CURRENT_USER}
       onNavigate={handleNavigate}
