@@ -11,3 +11,4 @@ coverage/
 *.log
 uploads/*
 !uploads/.gitkeep
+scripts/

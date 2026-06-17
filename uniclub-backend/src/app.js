@@ -4,6 +4,8 @@ const morgan = require("morgan");
 const passport = require("passport");
 
 const authRoutes = require("./routes/auth.routes");
+const clubMemberRoutes = require("./routes/clubMember.routes");
+
 require("./config/passport");
 
 const profileRoutes = require("./routes/profile.routes");
@@ -31,6 +33,8 @@ app.use(passport.initialize());
 app.use("/api/auth", authRoutes);
 
 app.use("/api/profile", profileRoutes);
+
+app.use("/api/club-members", clubMemberRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
