@@ -6,6 +6,8 @@ import AuthCallbackPage from '../pages/auth/AuthCallbackPage'
 import HomeLayout from '../layouts/HomeLayout'
 import HomePage from '../pages/home/HomePage'
 
+import MyProfilePage from '../pages/home/MyProfilePage'
+
 // import { CURRENT_USER } from '../data/mockData'
 
 function AppRouter() {
@@ -42,6 +44,7 @@ function AppRouter() {
                 onSelectClub={() => {}}
                 onViewAll={() => {}}
               />
+              
             </HomeLayout>
           ) : (
             <Navigate to="/login" replace />
@@ -51,6 +54,8 @@ function AppRouter() {
 
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
+      <Route path="/profile" element={<MyProfilePage currentUser={null} />} />
+      
       <Route path="*" element={<Navigate to="/" replace />} />
 
     </Routes>

@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const MENU_ITEMS = [
-  { id: 'profile', label: 'My Profile', href: '#profile', screen: 'profile' },
+  { id: 'profile', label: 'My Profile', href: '/profile'},
   { id: 'clubs', label: 'My Clubs', href: '#my-clubs' },
   { id: 'events', label: 'My Events', href: '#my-events' },
   { id: 'requests', label: 'My Requests', href: '#my-requests', screen: 'requests' },
@@ -10,6 +11,7 @@ const MENU_ITEMS = [
 
 function HomeUserMenuDropdown({ open, onClose, anchorRef, onNavigate }) {
   const panelRef = useRef(null)
+   const navigate = useNavigate()
 
   useEffect(() => {
     if (!open) return undefined
@@ -56,7 +58,7 @@ function HomeUserMenuDropdown({ open, onClose, anchorRef, onNavigate }) {
               onClick={(event) => {
                 if (item.screen) {
                   event.preventDefault()
-                  onNavigate?.(item.screen)
+                  navigate(item.href)
                 }
                 onClose?.()
               }}
