@@ -489,7 +489,14 @@ export const MY_REQUEST_ITEMS = [
 ]
 
 // Club ranking data
-export const CLUB_RANKING_PERIOD = 'March 2026'
+export const CLUB_RANKING_PERIOD_OPTIONS = [
+  { value: '2026-03', label: 'March 2026' },
+  { value: '2026-04', label: 'April 2026' },
+  { value: '2026-05', label: 'May 2026' },
+  { value: '2026-06', label: 'June 2026' },
+]
+
+export const CLUB_RANKING_PERIOD = CLUB_RANKING_PERIOD_OPTIONS[0].label
 
 export const RANKING_MEMBERS = [
   { id: 'm1', name: 'Mac Thi Ro', achievements: 12, contribution: 860, tone: '#6b8a9a' },
@@ -510,14 +517,121 @@ export const ADMIN_NAV_ITEMS = [
   { id: 'notifications', label: 'Notifications', icon: 'notifications' },
 ]
 
+const ADMIN_MEMBER_POOL = [
+  { name: 'Pham Huong D', email: 'phamhuongd@fpt.edu.vn', role: 'Leader' },
+  { name: 'Cao Thi H', email: 'caothih@fpt.edu.vn', role: 'Vice leader' },
+  { name: 'Ta Van Manh', email: 'tavanmanh@fpt.edu.vn', role: 'Secretary' },
+  { name: 'Chu Thi Nhi', email: 'chuthinhi@fpt.edu.vn', role: 'Treasurer' },
+  { name: 'Hoang Van G', email: 'hoangvang@fpt.edu.vn', role: 'Member' },
+  { name: 'Ha Van On', email: 'havanon@fpt.edu.vn', role: 'Member' },
+  { name: 'Nguyen Van A', email: 'nguyenvana@fpt.edu.vn', role: 'Member' },
+  { name: 'Mac Thi Ro', email: 'macthiro@fpt.edu.vn', role: 'Member' },
+  { name: 'Nong Van Son', email: 'nongvanson@fpt.edu.vn', role: 'Member' },
+  { name: 'Phan Thi Tam', email: 'phanthitam@fpt.edu.vn', role: 'Member' },
+  { name: 'Hoang Van Son', email: 'hoangvanson@fpt.edu.vn', role: 'Member' },
+  { name: 'Mai Thi An', email: 'maithian@fpt.edu.vn', role: 'Member' },
+  { name: 'Do Minh Khoa', email: 'dominhkhoa@fpt.edu.vn', role: 'Member' },
+  { name: 'Le Bao Tran', email: 'lebaotran@fpt.edu.vn', role: 'Member' },
+  { name: 'Tran Quoc Bao', email: 'tranquocbao@fpt.edu.vn', role: 'Member' },
+  { name: 'Dang Minh Anh', email: 'dangminhanh@fpt.edu.vn', role: 'Member' },
+  { name: 'Bui Gia Han', email: 'buigiahan@fpt.edu.vn', role: 'Member' },
+  { name: 'Vo Thanh Dat', email: 'vothanhdat@fpt.edu.vn', role: 'Member' },
+]
+
+export const ADMIN_ACTIVE_CLUBS = ALL_CLUBS.slice(0, 10).map((club, index) => ({
+  id: club.id,
+  clubName: club.name,
+  leader: [
+    'Pham Huong D',
+    'Cao Thi H',
+    'Ta Van Manh',
+    'Chu Thi Nhi',
+    'Hoang Van G',
+    'Nguyen Van A',
+    'Mac Thi Ro',
+    'Nong Van Son',
+    'Phan Thi Tam',
+    'Hoang Van Son',
+  ][index] || 'Unknown',
+  members: club.members,
+  events: club.events,
+  status: 'active',
+  category: club.categoryLabel,
+  createdAt: Date.UTC(2026, 2, 26 - index),
+  createdDate: `${26 - index}/3/2026`,
+  description: club.description,
+  memberList: ADMIN_MEMBER_POOL.slice(0, club.members).map((member, memberIndex) => ({
+    id: `${club.id}-member-${memberIndex + 1}`,
+    ...member,
+    joinDate: `${26 - index}/3/2026`,
+  })),
+  logoText: club.logoText || club.name.split(' ').map((word) => word[0]).join('').slice(0, 2),
+}))
+
 export const ADMIN_REGISTRATION_REQUESTS = [
   {
-    id: 'REQ-240328',
-    clubName: 'CLB New',
-    sender: 'Quynh',
-    sentDate: '28/3/2026',
+    id: 'REQ-ENV-260326',
+    clubName: 'Environmental Club',
+    sender: 'Unknown',
+    leader: 'Nguyen Van A',
+    sentDate: '26/3/2026',
     status: 'pending',
-    logoText: 'CLB',
+    category: 'Events',
+    memberCount: 0,
+    description: 'Create a green community for environmental activities and student awareness campaigns.',
+    logoText: 'EC',
+    logoUrl: '',
+  },
+  {
+    id: 'REQ-GAM-260326',
+    clubName: 'Gaming Club',
+    sender: 'Unknown',
+    leader: 'Mac Thi Ro',
+    sentDate: '26/3/2026',
+    status: 'pending',
+    category: 'Sports',
+    memberCount: 0,
+    description: 'Create a club for campus gaming activities, esports practice, and friendly tournaments.',
+    logoText: 'GC',
+    logoUrl: '',
+  },
+  {
+    id: 'REQ-SCI-260326',
+    clubName: 'Science Club',
+    sender: 'Unknown',
+    leader: 'Pham Huong D',
+    sentDate: '24/3/2026',
+    status: 'approved',
+    category: 'Academic',
+    memberCount: 0,
+    description: 'Create a science club for research sharing, experiments, and academic discussion.',
+    logoText: 'SC',
+    logoUrl: '',
+  },
+  {
+    id: 'REQ-DAN-260326',
+    clubName: 'Dance Club',
+    sender: 'Unknown',
+    leader: 'Cao Thi H',
+    sentDate: '23/3/2026',
+    status: 'rejected',
+    category: 'Arts',
+    memberCount: 0,
+    description: 'Create a dance club for choreography practice, showcases, and campus performances.',
+    logoText: 'DC',
+    logoUrl: '',
+  },
+  {
+    id: 'REQ-ENG-260326',
+    clubName: 'English Club',
+    sender: 'Unknown',
+    leader: 'Ta Van Manh',
+    sentDate: '22/3/2026',
+    status: 'pending',
+    category: 'Academic',
+    memberCount: 0,
+    description: 'Create an English club for communication practice, language exchange, and speaking workshops.',
+    logoText: 'EC',
     logoUrl: '',
   },
 ]

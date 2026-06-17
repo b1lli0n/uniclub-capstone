@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import '../../styles/home.css'
 import '../../styles/admin-dashboard.css'
 // Mock data import: replace with API data when BE is ready.
-import { ADMIN_NAV_ITEMS, ADMIN_REGISTRATION_REQUESTS } from '../../data/mockData'
+import { ADMIN_ACTIVE_CLUBS, ADMIN_NAV_ITEMS, ADMIN_REGISTRATION_REQUESTS } from '../../data/mockData'
 import fptUniversityLogo from '../../assets/Logo-Dai-hoc-FPT.webp'
 
 const ADMIN_SORT_OPTIONS = [
@@ -13,7 +13,14 @@ const ADMIN_SORT_OPTIONS = [
   { value: 'rejected', label: 'Status: Rejected' },
 ]
 
+const ADMIN_CLUB_SORT_OPTIONS = [
+  { value: 'name-asc', label: 'Name A-Z' },
+  { value: 'newest', label: 'Newest' },
+  { value: 'oldest', label: 'Oldest' },
+]
+
 const ADMIN_PAGE_SIZE = 10
+const MEMBER_ROLE_OPTIONS = ['Leader', 'Vice leader', 'Secretary', 'Treasurer', 'Member']
 
 function formatStatusLabel(status = '') {
   if (!status) return 'Pending'
@@ -137,13 +144,25 @@ function AdminTopbar() {
 }
 
 function AdminDashboardPage({ onLogout }) {
+  const [activeView, setActiveView] = useState('registrations')
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
   const [sortMode, setSortMode] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [clubSortMenuOpen, setClubSortMenuOpen] = useState(false)
+  const [clubSortMode, setClubSortMode] = useState('')
+  const [clubSearchQuery, setClubSearchQuery] = useState('')
   const [detailRequest, setDetailRequest] = useState(null)
+  const [selectedActiveClub, setSelectedActiveClub] = useState(null)
+  const [isManagingMembers, setIsManagingMembers] = useState(false)
+  const [memberRoleFilter, setMemberRoleFilter] = useState('all')
+  const [openRoleDropdown, setOpenRoleDropdown] = useState(null)
+  const [activeClubs, setActiveClubs] = useState(ADMIN_ACTIVE_CLUBS)
   const [currentPage, setCurrentPage] = useState(1)
+  const [clubCurrentPage, setClubCurrentPage] = useState(1)
   const sortRef = useRef(null)
+  const clubSortRef = useRef(null)
   const selectedSort = ADMIN_SORT_OPTIONS.find((option) => option.value === sortMode)
+  const selectedClubSort = ADMIN_CLUB_SORT_OPTIONS.find((option) => option.value === clubSortMode)
   const visibleRequests = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
     const requests = ADMIN_REGISTRATION_REQUESTS.filter((item) => {
@@ -175,10 +194,40 @@ function AdminDashboardPage({ onLogout }) {
     const startIndex = (currentPage - 1) * ADMIN_PAGE_SIZE
     return visibleRequests.slice(startIndex, startIndex + ADMIN_PAGE_SIZE)
   }, [currentPage, visibleRequests])
+  const visibleClubs = useMemo(() => {
+    const query = clubSearchQuery.trim().toLowerCase()
+    const clubs = activeClubs.filter((item) => {
+      if (!query) return true
+      return item.clubName.toLowerCase().includes(query)
+    })
+
+    if (clubSortMode === 'newest') {
+      return clubs.sort((a, b) => b.createdAt - a.createdAt)
+    }
+
+    if (clubSortMode === 'oldest') {
+      return clubs.sort((a, b) => a.createdAt - b.createdAt)
+    }
+
+    if (clubSortMode === 'name-asc') {
+      return clubs.sort((a, b) => a.clubName.localeCompare(b.clubName))
+    }
+
+    return clubs
+  }, [activeClubs, clubSearchQuery, clubSortMode])
+  const clubPageCount = Math.max(1, Math.ceil(visibleClubs.length / ADMIN_PAGE_SIZE))
+  const paginatedClubs = useMemo(() => {
+    const startIndex = (clubCurrentPage - 1) * ADMIN_PAGE_SIZE
+    return visibleClubs.slice(startIndex, startIndex + ADMIN_PAGE_SIZE)
+  }, [clubCurrentPage, visibleClubs])
 
   useEffect(() => {
     setCurrentPage(1)
   }, [searchQuery, sortMode])
+
+  useEffect(() => {
+    setClubCurrentPage(1)
+  }, [clubSearchQuery, clubSortMode])
 
   useEffect(() => {
     if (currentPage > pageCount) {
@@ -187,11 +236,20 @@ function AdminDashboardPage({ onLogout }) {
   }, [currentPage, pageCount])
 
   useEffect(() => {
-    if (!sortMenuOpen) return undefined
+    if (clubCurrentPage > clubPageCount) {
+      setClubCurrentPage(clubPageCount)
+    }
+  }, [clubCurrentPage, clubPageCount])
+
+  useEffect(() => {
+    if (!sortMenuOpen && !clubSortMenuOpen) return undefined
 
     function handlePointerDown(event) {
       if (!sortRef.current?.contains(event.target)) {
         setSortMenuOpen(false)
+      }
+      if (!clubSortRef.current?.contains(event.target)) {
+        setClubSortMenuOpen(false)
       }
     }
 
@@ -206,22 +264,467 @@ function AdminDashboardPage({ onLogout }) {
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [sortMenuOpen])
+  }, [sortMenuOpen, clubSortMenuOpen])
+
+  useEffect(() => {
+    if (!openRoleDropdown) return undefined
+
+    function handlePointerDown(event) {
+      if (!event.target.closest('.admin-role-dropdown')) {
+        setOpenRoleDropdown(null)
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setOpenRoleDropdown(null)
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [openRoleDropdown])
 
   function handleAdminNavigate(itemId) {
     if (itemId === 'registrations') {
+      setActiveView('registrations')
       setDetailRequest(null)
+      setSelectedActiveClub(null)
+      setIsManagingMembers(false)
+      return
     }
+
+    if (itemId === 'clubs') {
+      setActiveView('clubs')
+      setDetailRequest(null)
+      setSelectedActiveClub(null)
+      setIsManagingMembers(false)
+    }
+  }
+
+  function handleDeleteClub(clubId) {
+    setActiveClubs((items) => items.filter((item) => item.id !== clubId))
+    if (selectedActiveClub?.id === clubId) {
+      setSelectedActiveClub(null)
+      setIsManagingMembers(false)
+    }
+  }
+
+  function getRoleClass(role) {
+    return String(role).toLowerCase().replace(/\s+/g, '-')
+  }
+
+  function renderRoleDropdown({ id, value, options, onChange, ariaLabel }) {
+    const selectedOption = options.find((option) => option.value === value) || options[0]
+    const isOpen = openRoleDropdown === id
+
+    return (
+      <div className={`admin-role-dropdown admin-role-dropdown--${getRoleClass(value)}${isOpen ? ' is-open' : ''}`}>
+        <button
+          type="button"
+          className="admin-role-dropdown__button"
+          aria-label={ariaLabel}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          onClick={() => setOpenRoleDropdown((current) => (current === id ? null : id))}
+        >
+          <span>{selectedOption.label}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+            <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+
+        {isOpen ? (
+          <ul className="admin-role-dropdown__menu" role="listbox">
+            {options.map((option) => (
+              <li key={option.value} role="none">
+                <button
+                  type="button"
+                  className={`admin-role-dropdown__option admin-role-dropdown__option--${getRoleClass(option.value)}`}
+                  role="option"
+                  aria-selected={option.value === value}
+                  onClick={() => {
+                    onChange(option.value)
+                    setOpenRoleDropdown(null)
+                  }}
+                >
+                  {option.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    )
+  }
+
+  function updateMemberRole(memberId, nextRole) {
+    setActiveClubs((clubs) =>
+      clubs.map((club) => {
+        if (club.id !== selectedActiveClub.id) return club
+
+        return {
+          ...club,
+          memberList: club.memberList.map((member) =>
+            member.id === memberId ? { ...member, role: nextRole } : member
+          ),
+        }
+      })
+    )
+
+    setSelectedActiveClub((club) => ({
+      ...club,
+      memberList: club.memberList.map((member) =>
+        member.id === memberId ? { ...member, role: nextRole } : member
+      ),
+    }))
+  }
+
+  function renderMemberManagement() {
+    const memberRows = selectedActiveClub.memberList || []
+    const filterRoleOptions = [
+      { value: 'all', label: 'All' },
+      ...MEMBER_ROLE_OPTIONS.map((role) => ({ value: role, label: role })),
+    ]
+    const memberRoleOptions = MEMBER_ROLE_OPTIONS.map((role) => ({ value: role, label: role }))
+    const visibleMembers =
+      memberRoleFilter === 'all'
+        ? memberRows
+        : memberRows.filter((member) => member.role === memberRoleFilter)
+
+    return (
+      <div className="admin-detail-card admin-member-management-card">
+        <div className="admin-detail-header">
+          <button
+            type="button"
+            className="admin-detail-back"
+            aria-label="Back to club details"
+            onClick={() => setIsManagingMembers(false)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <div>
+            <h2>Member Management</h2>
+            <p>
+              {selectedActiveClub.clubName} - {memberRows.length} members
+            </p>
+          </div>
+        </div>
+
+        <div className="admin-member-toolbar">
+          <span>Role</span>
+          {renderRoleDropdown({
+            id: 'member-role-filter',
+            value: memberRoleFilter,
+            options: filterRoleOptions,
+            ariaLabel: 'Filter members by role',
+            onChange: setMemberRoleFilter,
+          })}
+        </div>
+
+        <div className="admin-members-table admin-members-table--full" role="table" aria-label="Full club member list">
+          <div className="admin-members-table__row admin-members-table__row--head" role="row">
+            <span>Member name</span>
+            <span>Email</span>
+            <span>Role</span>
+            <span>Join date</span>
+            <span>Actions</span>
+          </div>
+          {visibleMembers.map((member) => (
+            <div className="admin-members-table__row" role="row" key={member.id}>
+              <span>{member.name}</span>
+              <span>{member.email}</span>
+              {renderRoleDropdown({
+                id: `member-role-${member.id}`,
+                value: member.role,
+                options: memberRoleOptions,
+                ariaLabel: `Change ${member.name} role`,
+                onChange: (nextRole) => updateMemberRole(member.id, nextRole),
+              })}
+              <span>{member.joinDate}</span>
+              <button type="button" className="admin-member-badge-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M12 3 14.5 8l5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2l.9-5.5-4-3.9L9.5 8 12 3Z" strokeLinejoin="round" />
+                </svg>
+                Add badge
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {visibleMembers.length === 0 ? (
+          <p className="admin-table__empty">No members match this role.</p>
+        ) : null}
+      </div>
+    )
+  }
+
+  function renderActiveClubDetail() {
+    const memberRows = (selectedActiveClub.memberList || []).slice(0, 5)
+
+    return (
+      <div className="admin-detail-card admin-club-detail-card">
+        <div className="admin-detail-header">
+          <button
+            type="button"
+            className="admin-detail-back"
+            aria-label="Back to club management"
+            onClick={() => setSelectedActiveClub(null)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <div>
+            <h2>Club Details</h2>
+            <p>View detailed club information.</p>
+          </div>
+        </div>
+
+        <div className="admin-detail-panel">
+          <h3>General information</h3>
+          <div className="admin-detail-grid">
+            <div className="admin-detail-field">
+              <span>Club name</span>
+              <strong>{selectedActiveClub.clubName}</strong>
+            </div>
+            <div className="admin-detail-field">
+              <span>Leader</span>
+              <strong>{selectedActiveClub.leader}</strong>
+            </div>
+            <div className="admin-detail-field">
+              <span>Category</span>
+              <strong>{selectedActiveClub.category}</strong>
+            </div>
+            <div className="admin-detail-field">
+              <span>Created date</span>
+              <strong>{selectedActiveClub.createdDate}</strong>
+            </div>
+            <div className="admin-detail-field">
+              <span>Total members</span>
+              <strong>{selectedActiveClub.members}</strong>
+            </div>
+            <div className="admin-detail-field">
+              <span>Status</span>
+              <strong className="admin-active-status">Active</strong>
+            </div>
+            <div className="admin-detail-field admin-detail-field--wide">
+              <span>Description</span>
+              <strong>{selectedActiveClub.description}</strong>
+            </div>
+          </div>
+
+          <div className="admin-members-section">
+            <div className="admin-members-section__header">
+              <h3>Members</h3>
+              <button
+                type="button"
+                className="admin-members-section__view-all"
+                onClick={() => {
+                  setMemberRoleFilter('all')
+                  setIsManagingMembers(true)
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" strokeLinecap="round" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" strokeLinecap="round" />
+                </svg>
+                View all members
+              </button>
+            </div>
+
+            <div className="admin-members-table" role="table" aria-label="Club members">
+              <div className="admin-members-table__row admin-members-table__row--head" role="row">
+                <span>Member name</span>
+                <span>Email</span>
+                <span>Role</span>
+                <span>Join date</span>
+              </div>
+              {memberRows.map((member) => (
+                <div className="admin-members-table__row" role="row" key={member.id}>
+                  <span>{member.name}</span>
+                  <span>{member.email}</span>
+                  <strong className={`admin-preview-member-role admin-preview-member-role--${member.role.toLowerCase().replace(/\s+/g, '-')}`}>
+                    {member.role}
+                  </strong>
+                  <span>{member.joinDate}</span>
+                </div>
+              ))}
+            </div>
+            <p className="admin-members-section__meta">
+              Showing {memberRows.length} of {selectedActiveClub.members} members
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  function renderClubManagement() {
+    if (selectedActiveClub && isManagingMembers) {
+      return renderMemberManagement()
+    }
+
+    if (selectedActiveClub) {
+      return renderActiveClubDetail()
+    }
+
+    return (
+      <div className="admin-card">
+        <div className="admin-card__header">
+          <div>
+            <h2>Club Management</h2>
+            <p>Manage active clubs after approved registration requests.</p>
+          </div>
+          <div className="admin-sort" ref={clubSortRef}>
+            <button
+              type="button"
+              className="admin-sort-btn"
+              aria-haspopup="listbox"
+              aria-expanded={clubSortMenuOpen}
+              onClick={() => setClubSortMenuOpen((value) => !value)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M3 6h18M7 12h10M10 18h4" strokeLinecap="round" />
+              </svg>
+              {selectedClubSort?.label || 'Sort'}
+            </button>
+
+            {clubSortMenuOpen ? (
+              <ul className="admin-sort__menu" role="listbox">
+                {ADMIN_CLUB_SORT_OPTIONS.map((option) => (
+                  <li key={option.value} role="none">
+                    <button
+                      type="button"
+                      className="admin-sort__option"
+                      role="option"
+                      aria-selected={option.value === clubSortMode}
+                      onClick={() => {
+                        setClubSortMode(option.value)
+                        setClubSortMenuOpen(false)
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="admin-card__tools">
+          <label className="admin-card__search">
+            <span aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-3-3" strokeLinecap="round" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              placeholder="Search clubs"
+              aria-label="Search active clubs"
+              value={clubSearchQuery}
+              onChange={(event) => setClubSearchQuery(event.target.value)}
+            />
+          </label>
+        </div>
+
+        <div className="admin-table admin-table--clubs" role="table" aria-label="Active clubs">
+          <div className="admin-table__row admin-table__row--head admin-table__row--club-head" role="row">
+            <span>Club name</span>
+            <span>Leader</span>
+            <span>Members</span>
+            <span>Status</span>
+            <span aria-label="Actions" />
+          </div>
+
+          {paginatedClubs.map((item) => (
+            <div className="admin-table__row admin-table__row--body admin-table__row--club" role="row" key={item.id}>
+              <strong className="admin-club-name-text">{item.clubName}</strong>
+              <span>{item.leader}</span>
+              <span>{item.members}</span>
+              <span>
+                <strong className="admin-active-status">Active</strong>
+              </span>
+              <span className="admin-row-actions">
+                <button
+                  type="button"
+                  className="admin-delete-btn"
+                  aria-label={`Delete ${item.clubName}`}
+                  onClick={() => handleDeleteClub(item.id)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className="admin-view-btn"
+                  aria-label={`View ${item.clubName}`}
+                  onClick={() => {
+                    setSelectedActiveClub(item)
+                    setIsManagingMembers(false)
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                    <circle cx="12" cy="12" r="2.6" />
+                  </svg>
+                </button>
+              </span>
+            </div>
+          ))}
+
+          {visibleClubs.length === 0 ? (
+            <p className="admin-table__empty">No active clubs match your search.</p>
+          ) : null}
+        </div>
+
+        <div className="admin-pagination" aria-label="Club pagination">
+          <button
+            type="button"
+            aria-label="Previous page"
+            disabled={clubCurrentPage === 1}
+            onClick={() => setClubCurrentPage((page) => Math.max(1, page - 1))}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+              <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <span>{clubCurrentPage}</span>
+          <button
+            type="button"
+            aria-label="Next page"
+            disabled={clubCurrentPage === clubPageCount}
+            onClick={() => setClubCurrentPage((page) => Math.min(clubPageCount, page + 1))}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+              <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="home-shell admin-home-shell">
-      <AdminSidebar activeItem="registrations" onNavigate={handleAdminNavigate} onLogout={onLogout} />
+      <AdminSidebar activeItem={activeView} onNavigate={handleAdminNavigate} onLogout={onLogout} />
       <main className="home-shell__main admin-main">
         <AdminTopbar />
 
         <section className="admin-page">
-          {detailRequest ? (
+          {activeView === 'clubs' ? renderClubManagement() : detailRequest ? (
             <div className="admin-detail-card">
               <div className="admin-detail-header">
                 <button
@@ -248,8 +751,8 @@ function AdminDashboardPage({ onLogout }) {
                     <strong>{detailRequest.clubName}</strong>
                   </div>
                   <div className="admin-detail-field">
-                    <span>Sender</span>
-                    <strong>{detailRequest.sender}</strong>
+                    <span>Leader</span>
+                    <strong>{detailRequest.leader || detailRequest.sender || 'Unknown'}</strong>
                   </div>
                   <div className="admin-detail-field">
                     <span>Sent date</span>
@@ -356,7 +859,7 @@ function AdminDashboardPage({ onLogout }) {
             <div className="admin-table" role="table" aria-label="Registration requests">
               <div className="admin-table__row admin-table__row--head" role="row">
                 <span>Club name</span>
-                <span>Sender</span>
+                <span>Leader</span>
                 <span>Sent date</span>
                 <span>Status</span>
                 <span aria-label="Actions" />
@@ -367,7 +870,7 @@ function AdminDashboardPage({ onLogout }) {
                   <div className="admin-club-cell">
                     <strong>{item.clubName}</strong>
                   </div>
-                  <span>{item.sender}</span>
+                  <span>{item.leader || item.sender || 'Unknown'}</span>
                   <span>{item.sentDate}</span>
                   <span className="admin-status-actions">
                     <button type="button" className="admin-status-actions__approve" aria-label="Approve request">
