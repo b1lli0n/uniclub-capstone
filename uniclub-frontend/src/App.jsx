@@ -11,12 +11,19 @@ import CreateClubPage from './pages/home/CreateClubPage'
 import ClubsPage from './pages/home/ClubsPage'
 import ClubDetailPage from './pages/home/ClubDetailPage'
 import ClubRankingPage from './pages/home/ClubRankingPage'
+import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 import { CURRENT_USER } from './data/mockData'
 
 function App() {
   const [view, setView] = useState('login')
   const [selectedClubId, setSelectedClubId] = useState(null)
   const [detailBackView, setDetailBackView] = useState('home')
+
+  const routePath = `${window.location.pathname}${window.location.hash}`.toLowerCase()
+  const isAdminRoute =
+    routePath === '/admin' ||
+    routePath.startsWith('/admin/') ||
+    routePath.includes('#/admin')
 
   function handleLogin() {
     setView('home')
@@ -26,6 +33,11 @@ function App() {
     setView('login')
     setSelectedClubId(null)
     setDetailBackView('home')
+  }
+
+  function handleAdminLogout() {
+    window.history.pushState({}, '', '/')
+    handleLogout()
   }
 
   function openClubDetail(clubId, backView = view) {
@@ -115,6 +127,10 @@ function App() {
         onViewAll={() => setView('clubs')}
       />
     )
+  }
+
+  if (isAdminRoute) {
+    return <AdminDashboardPage onLogout={handleAdminLogout} />
   }
 
   if (view === 'login') {

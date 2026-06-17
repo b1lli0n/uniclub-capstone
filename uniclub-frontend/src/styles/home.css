@@ -828,8 +828,9 @@ button.home-carousel-card:focus-visible {
 
 .home-bottom-dock__item:hover,
 .home-bottom-dock__item.is-active {
-  background: #ffe6f0;
-  color: #d84f8f;
+  background: #fff1de;
+  color: #F57C00;
+  box-shadow: inset 0 0 0 1px rgba(245, 124, 0, 0.14);
 }
 
 .home-bottom-dock__item:active {
