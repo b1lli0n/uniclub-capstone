@@ -7,6 +7,7 @@ import HomeLayout from './layouts/HomeLayout'
 import HomePage from './pages/home/HomePage'
 import MyProfilePage from './pages/home/MyProfilePage'
 import MyRequestsPage from './pages/home/MyRequestsPage'
+import MyClubsPage from './pages/home/MyClubsPage'
 import CreateClubPage from './pages/home/CreateClubPage'
 import ClubsPage from './pages/home/ClubsPage'
 import ClubDetailPage from './pages/home/ClubDetailPage'
@@ -57,6 +58,11 @@ function App() {
       return
     }
 
+    if (screen === 'my-clubs') {
+      setView('my-clubs')
+      return
+    }
+
     if (screen === 'create-club') {
       setView('create-club')
       return
@@ -92,6 +98,14 @@ function App() {
 
     if (view === 'requests') {
       return <MyRequestsPage />
+    }
+
+    if (view === 'my-clubs') {
+      return (
+        <MyClubsPage
+          onSelectClub={(clubId) => openClubDetail(clubId, 'my-clubs')}
+        />
+      )
     }
 
     if (view === 'create-club') {
@@ -140,7 +154,10 @@ function App() {
   return (
     <HomeLayout
       activeItem={
-        view === 'clubs' || view === 'club-detail' || view === 'club-ranking'
+        view === 'clubs' ||
+        view === 'my-clubs' ||
+        view === 'club-detail' ||
+        view === 'club-ranking'
           ? 'clubs'
           : null
       }

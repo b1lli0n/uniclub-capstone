@@ -269,6 +269,31 @@ export const ALL_CLUBS = [
 
 export const CLUBS_PER_PAGE = 12
 
+// My Clubs data.
+// BE note: replace this membership list with the clubs/roles returned for CURRENT_USER.
+// The UI consumes MY_CLUB_ITEMS so joined clubs stay separate from the full public club list.
+export const MY_CLUB_MEMBERSHIPS = [
+  { clubId: 'basketball', role: 'Leader', joinedDate: '26/3/2026' },
+  { clubId: 'startup', role: 'Member', joinedDate: '26/3/2026' },
+  { clubId: 'music', role: 'Secretary', joinedDate: '26/3/2026' },
+  { clubId: 'dance', role: 'Member', joinedDate: '26/3/2026' },
+  { clubId: 'volunteer', role: 'Treasurer', joinedDate: '26/3/2026' },
+  { clubId: 'debate', role: 'Vice leader', joinedDate: '26/3/2026' },
+]
+
+export const MY_CLUB_ITEMS = MY_CLUB_MEMBERSHIPS
+  .map((membership) => {
+    const club = ALL_CLUBS.find((item) => item.id === membership.clubId)
+    if (!club) return null
+
+    return {
+      ...club,
+      membershipRole: membership.role,
+      joinedDate: membership.joinedDate,
+    }
+  })
+  .filter(Boolean)
+
 export const CLUB_DETAIL_COPY = {
   slogan: 'Connect passion, ideas, and student experiences.',
   descriptionSuffix:
@@ -304,6 +329,9 @@ export const CLUB_MEMBERS = [
   { id: 'm2', name: 'Hoang Van Son', role: 'Mentor', tone: '#3d2e24' },
   { id: 'm3', name: 'Pham Thi Tam', role: 'Member', tone: '#ff8e0b' },
   { id: 'm4', name: 'Nguyen Viet Quy', role: 'Secretary', tone: '#f5b87a' },
+  { id: 'm5', name: 'Cao Thi H', role: 'Vice leader', tone: '#7b8fa4' },
+  { id: 'm6', name: 'Chu Thi Nhi', role: 'Treasurer', tone: '#c9714d' },
+  { id: 'm7', name: 'Nong Van Son', role: 'Member', tone: '#8f6f4e' },
 ]
 
 export const JOIN_FORM_QUESTIONS = [

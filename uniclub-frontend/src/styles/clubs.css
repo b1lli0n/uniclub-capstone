@@ -339,6 +339,81 @@
   background: #ffce96;
 }
 
+/* My Clubs */
+.my-clubs-shell {
+  border-color: rgba(245, 124, 0, 0.22);
+}
+
+.my-clubs-kicker {
+  margin: 0 0 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f57c00;
+}
+
+.my-clubs-card__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-bottom: 0.35rem;
+}
+
+.my-clubs-card__heading .clubs-card__name {
+  margin-bottom: 0;
+}
+
+.my-clubs-role {
+  flex-shrink: 0;
+  max-width: 110px;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: #fff8f2;
+  border: 1px solid rgba(245, 124, 0, 0.22);
+  color: #bf360c;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.my-clubs-role--leader {
+  background: #fff1df;
+  color: #2f7a3e;
+}
+
+.my-clubs-role--vice-leader {
+  background: #fff8f2;
+  color: #5b7ee8;
+}
+
+.my-clubs-role--secretary {
+  background: #fff8f2;
+  color: #8a6be8;
+}
+
+.my-clubs-role--treasurer {
+  background: #fff1df;
+  color: #d64c3b;
+}
+
+.my-clubs-role--member {
+  background: #ffffff;
+  color: #3d2e24;
+}
+
+.my-clubs-empty {
+  padding: 1.25rem;
+  border: 1px dashed rgba(245, 124, 0, 0.35);
+  border-radius: 16px;
+  background: #fff8f2;
+}
+
 .clubs-empty {
   margin: 2rem 0 0;
   text-align: center;
