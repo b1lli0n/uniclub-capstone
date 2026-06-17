@@ -6,6 +6,9 @@ const passport = require("passport");
 const authRoutes = require("./routes/auth.routes");
 require("./config/passport");
 
+const profileRoutes = require("./routes/profile.routes");
+
+
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
 const env = require("./config/env");
@@ -26,6 +29,8 @@ app.use(morgan("dev"));
 app.use(passport.initialize());
 
 app.use("/api/auth", authRoutes);
+
+app.use("/api/profile", profileRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
