@@ -27,6 +27,44 @@ const getFeedbackEvent = async (userId, eventId) => {
   };
 };
 
+const createFeedbackEvent = async (userId, eventId, { rating, comment }) => {
+  const event = await Event.findById(eventId).select("_id title status progress_status");
+
+  if (!event) {
+    throw getStatusError("Event not found", 404);
+  }
+
+  if (event.status === "cancelled") {
+    throw getStatusError("Cannot submit feedback for cancelled event", 400);
+  }
+
+  if (event.progress_status !== "completed" && event.status !== "closed") {
+    throw getStatusError("Event is not available for feedback yet", 400);
+  }
+
+  const existingFeedback = await Feedback.findOne({
+    event_id: eventId,
+    user_id: userId
+  });
+
+  if (existingFeedback) {
+    throw getStatusError("You have already submitted feedback for this event", 409);
+  }
+
+  const feedback = await Feedback.create({
+    event_id: eventId,
+    user_id: userId,
+    rating,
+    comment
+  });
+
+  return feedback.populate([
+    { path: "event_id", select: "_id title" },
+    { path: "user_id", select: "_id full_name avatar_url" }
+  ]);
+};
+
 module.exports = {
-  getFeedbackEvent
+  getFeedbackEvent,
+  createFeedbackEvent
 };
