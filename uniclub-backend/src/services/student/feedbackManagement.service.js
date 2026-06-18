@@ -20,8 +20,8 @@ const assertEventAvailableForFeedback = async (eventId) => {
   return event;
 };
 
-const getFeedbackEvent = async (userId, eventId) => {  const event = await Event.findById(eventId).select(
-    "_id club_id title description start_time end_time location status progress_status feedback_summary"
+const getFeedbackEvent = async (userId, eventId) => {
+  const event = await Event.findById(eventId).select(    "_id club_id title description start_time end_time location status progress_status feedback_summary"
   );
 
   if (!event) {
@@ -97,8 +97,24 @@ const updateFeedbackEvent = async (userId, eventId, { rating, comment }) => {
   ]);
 };
 
+const deleteFeedbackEvent = async (userId, eventId) => {
+  await assertEventAvailableForFeedback(eventId);
+
+  const feedback = await Feedback.findOneAndDelete({
+    event_id: eventId,
+    user_id: userId
+  });
+
+  if (!feedback) {
+    throw getStatusError("Feedback not found", 404);
+  }
+
+  return feedback;
+};
+
 module.exports = {
   getFeedbackEvent,
   createFeedbackEvent,
-  updateFeedbackEvent
+  updateFeedbackEvent,
+  deleteFeedbackEvent
 };
