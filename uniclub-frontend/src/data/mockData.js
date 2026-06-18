@@ -540,9 +540,6 @@ export const ADMIN_NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
   { id: 'registrations', label: 'Registrations', icon: 'registrations' },
   { id: 'clubs', label: 'Club Management', icon: 'clubs' },
-  { id: 'rewards', label: 'Rewards', icon: 'rewards' },
-  { id: 'badges', label: 'Badges', icon: 'badges' },
-  { id: 'notifications', label: 'Notifications', icon: 'notifications' },
 ]
 
 const ADMIN_MEMBER_POOL = [
