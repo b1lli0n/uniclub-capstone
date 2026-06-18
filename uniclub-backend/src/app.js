@@ -1,12 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-const passport = require("passport");
 
-const authRoutes = require("./routes/auth.routes");
-require("./config/passport");
-
-const profileRoutes = require("./routes/profile.routes");
+const feedbackManagementRoutes = require("./routes/student/feedbackManagement.routes");
 
 
 const notFound = require("./middlewares/notFound");
@@ -26,11 +22,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
-app.use(passport.initialize());
-
-app.use("/api/auth", authRoutes);
-
-app.use("/api/profile", profileRoutes);
+app.use("/api/student/feedback-management", feedbackManagementRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
