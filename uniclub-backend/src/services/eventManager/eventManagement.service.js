@@ -99,8 +99,72 @@ const createEvent = async (clubId, userId, payload) => {
     );
 };
 
+const updateEvent = async (clubId, eventId, payload) => {
+  const event = await Event.findOne({
+    _id: eventId,
+    club_id: clubId,
+  });
+
+  if (!event) {
+    throw getStatusError("Event not found", 404);
+  }
+
+  if (event.status === "cancelled") {
+    throw getStatusError("Cannot update cancelled event", 400);
+  }
+
+  const startTime = payload.start_time ?? event.start_time;
+  const endTime = payload.end_time ?? event.end_time;
+
+  if (startTime >= endTime) {
+    throw getStatusError("start_time must be before end_time", 400);
+  }
+
+  Object.assign(event, payload);
+  await event.save();
+
+  return Event.findById(event._id)
+    .populate("club_id", "_id name logo_url category status")
+    .populate("created_by", "_id full_name email avatar_url")
+    .select(
+      "_id club_id created_by title description content category start_time end_time location is_public capacity multiplier status progress_status check_in_status media_uris created_at updated_at"
+    );
+};
+
+const cancelEvent = async (clubId, eventId) => {
+  const event = await Event.findOne({
+    _id: eventId,
+    club_id: clubId,
+  });
+
+  if (!event) {
+    throw getStatusError("Event not found", 404);
+  }
+
+  if (event.status === "cancelled") {
+    throw getStatusError("Event is already cancelled", 400);
+  }
+
+  if (event.status === "closed") {
+    throw getStatusError("Cannot cancel closed event", 400);
+  }
+
+  event.status = "cancelled";
+  event.check_in_status = "closed";
+  await event.save();
+
+  return Event.findById(event._id)
+    .populate("club_id", "_id name logo_url category status")
+    .populate("created_by", "_id full_name email avatar_url")
+    .select(
+      "_id club_id created_by title description content category start_time end_time location is_public capacity multiplier status progress_status check_in_status media_uris created_at updated_at"
+    );
+};
+
 module.exports = {
   getEvents,
   getEventDetail,
   createEvent,
+  updateEvent,
+  cancelEvent,
 };

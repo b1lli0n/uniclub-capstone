@@ -5,6 +5,8 @@ const {
   getEvents,
   getEventDetail,
   createEvent,
+  updateEvent,
+  cancelEvent,
 } = require("../../controllers/eventManager/eventManagement.controller");
 
 const router = express.Router();
@@ -26,6 +28,18 @@ router.post(
   verifyToken,
   requireClubRole(["event_manager"], "clubId"),
   createEvent
+);
+router.patch(
+  "/:clubId/events/:eventId",
+  verifyToken,
+  requireClubRole(["event_manager"], "clubId"),
+  updateEvent
+);
+router.patch(
+  "/:clubId/events/:eventId/cancel",
+  verifyToken,
+  requireClubRole(["event_manager"], "clubId"),
+  cancelEvent
 );
 
 module.exports = router;

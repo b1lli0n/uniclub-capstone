@@ -23,6 +23,94 @@ const parseDate = (value, fieldName) => {
   return date;
 };
 
+const parseUpdateEventPayload = (body) => {
+  const updates = {};
+
+  if (body.title !== undefined) {
+    updates.title = parseRequiredString(body.title, "title");
+  }
+
+  if (body.description !== undefined) {
+    updates.description = parseRequiredString(body.description, "description");
+  }
+
+  if (body.content !== undefined) {
+    updates.content = parseRequiredString(body.content, "content");
+  }
+
+  if (body.category !== undefined) {
+    updates.category = parseRequiredString(body.category, "category");
+  }
+
+  if (body.location !== undefined) {
+    updates.location = parseRequiredString(body.location, "location");
+  }
+
+  if (body.start_time !== undefined) {
+    updates.start_time = parseDate(body.start_time, "start_time");
+  }
+
+  if (body.end_time !== undefined) {
+    updates.end_time = parseDate(body.end_time, "end_time");
+  }
+
+  if (body.capacity !== undefined) {
+    const capacity = Number(body.capacity);
+
+    if (!Number.isInteger(capacity) || capacity <= 0) {
+      throw getStatusError("capacity must be a positive integer", 400);
+    }
+
+    updates.capacity = capacity;
+  }
+
+  if (body.multiplier !== undefined) {
+    const multiplier = Number(body.multiplier);
+
+    if (!Number.isFinite(multiplier) || multiplier <= 0) {
+      throw getStatusError("multiplier must be a positive number", 400);
+    }
+
+    updates.multiplier = multiplier;
+  }
+
+  if (body.is_public !== undefined) {
+    if (typeof body.is_public !== "boolean") {
+      throw getStatusError("is_public must be a boolean", 400);
+    }
+
+    updates.is_public = body.is_public;
+  }
+
+  if (body.progress_status !== undefined) {
+    if (!ALLOWED_CREATE_PROGRESS_STATUS.includes(body.progress_status)) {
+      throw getStatusError("Invalid progress_status. Allowed values: draft, completed", 400);
+    }
+
+    updates.progress_status = body.progress_status;
+  }
+
+  if (body.media_uris !== undefined) {
+    if (!Array.isArray(body.media_uris)) {
+      throw getStatusError("media_uris must be an array", 400);
+    }
+
+    updates.media_uris = body.media_uris.map((uri, index) => {
+      if (typeof uri !== "string" || !uri.trim()) {
+        throw getStatusError(`media_uris[${index}] must be a non-empty string`, 400);
+      }
+
+      return uri.trim();
+    });
+  }
+
+  if (!Object.keys(updates).length) {
+    throw getStatusError("At least one field is required to update", 400);
+  }
+
+  return updates;
+};
+
 const parseCreateEventPayload = (body) => {
   const title = parseRequiredString(body.title, "title");
   const description = parseRequiredString(body.description, "description");
@@ -178,8 +266,59 @@ const createEvent = async (req, res, next) => {
   }
 };
 
+const updateEvent = async (req, res, next) => {
+  try {
+    const { clubId, eventId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(clubId)) {
+      return next(getStatusError("Invalid clubId", 400));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return next(getStatusError("Invalid eventId", 400));
+    }
+
+    const payload = parseUpdateEventPayload(req.body);
+    const data = await eventManagementService.updateEvent(clubId, eventId, payload);
+
+    return res.status(200).json({
+      success: true,
+      message: "Event updated successfully",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const cancelEvent = async (req, res, next) => {
+  try {
+    const { clubId, eventId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(clubId)) {
+      return next(getStatusError("Invalid clubId", 400));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return next(getStatusError("Invalid eventId", 400));
+    }
+
+    const data = await eventManagementService.cancelEvent(clubId, eventId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Event cancelled successfully",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getEvents,
   getEventDetail,
   createEvent,
+  updateEvent,
+  cancelEvent,
 };
