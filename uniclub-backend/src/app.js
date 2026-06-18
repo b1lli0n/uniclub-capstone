@@ -4,6 +4,8 @@ const morgan = require("morgan");
 const passport = require("passport");
 
 const authRoutes = require("./routes/auth.routes");
+const clubManagementRoutes = require("./routes/clubManagement.routes");
+
 require("./config/passport");
 
 const profileRoutes = require("./routes/profile.routes");
@@ -22,6 +24,8 @@ app.use(
   })
 );
 
+
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
@@ -31,6 +35,9 @@ app.use(passport.initialize());
 app.use("/api/auth", authRoutes);
 
 app.use("/api/profile", profileRoutes);
+
+app.use("/api/club-management", clubManagementRoutes);
+
 
 app.get("/", (req, res) => {
   res.status(200).json({
