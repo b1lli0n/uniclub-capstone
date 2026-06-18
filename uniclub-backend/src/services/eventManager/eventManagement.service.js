@@ -1,4 +1,5 @@
 const Event = require("../../models/event.model");
+const { getStatusError } = require("../../utils/error");
 
 const EVENT_SELECT =
   "_id club_id title description category start_time end_time location status progress_status is_public capacity media_uris created_at updated_at";
@@ -50,6 +51,23 @@ const getEvents = async (clubId, { progress_status } = {}) => {
   };
 };
 
+const getEventDetail = async (clubId, eventId) => {
+  const event = await Event.findOne({
+    _id: eventId,
+    club_id: clubId,
+  })
+    .populate("club_id", "_id name logo_url category status description")
+    .populate("created_by", "_id full_name email avatar_url")
+    .select("_id club_id created_by title description content category start_time end_time location is_public capacity multiplier status progress_status check_in_status media_uris feedback_summary created_at updated_at");
+
+  if (!event) {
+    throw getStatusError("Event not found", 404);
+  }
+
+  return event;
+};
+
 module.exports = {
   getEvents,
+  getEventDetail,
 };

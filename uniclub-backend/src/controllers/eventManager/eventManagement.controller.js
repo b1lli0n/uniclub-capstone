@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const eventManagementService = require("../../services/eventManager/eventManagement.service");
 const { getStatusError } = require("../../utils/error");
 
@@ -27,6 +28,31 @@ const getEvents = async (req, res, next) => {
   }
 };
 
+const getEventDetail = async (req, res, next) => {
+  try {
+    const { clubId, eventId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(clubId)) {
+      return next(getStatusError("Invalid clubId", 400));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return next(getStatusError("Invalid eventId", 400));
+    }
+
+    const data = await eventManagementService.getEventDetail(clubId, eventId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Event detail retrieved successfully",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getEvents,
+  getEventDetail,
 };

@@ -1,14 +1,20 @@
 const express = require("express");
 const { verifyToken } = require("../../middlewares/auth.middleware");
 const { requireClubRole } = require("../../middlewares/clubAuth.middleware");
-const { getEvents } = require("../../controllers/eventManager/eventManagement.controller");
+const { getEvents, getEventDetail } = require("../../controllers/eventManager/eventManagement.controller");
 
 const router = express.Router();
 
 router.get(
+  "/:clubId/events/:eventId",
+  verifyToken,
+  requireClubRole(["event_manager"], "clubId"),
+  getEventDetail
+);
+router.get(
   "/:clubId/events",
   verifyToken,
-  requireClubRole(["event_manager", "president"], "clubId"),
+  requireClubRole(["event_manager"], "clubId"),
   getEvents
 );
 
