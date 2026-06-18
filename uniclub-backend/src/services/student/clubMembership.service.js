@@ -1,9 +1,9 @@
-const JoinForm = require("../models/joinForm.model");
-const JoinRequest = require("../models/joinRequest.model");
+const JoinForm = require("../../models/joinForm.model");
+const JoinRequest = require("../../models/joinRequest.model");
 const {
   JOIN_FORM_STATUS,
   JOIN_REQUEST_STATUS
-} = require("../utils/constants");
+} = require("../../utils/constants");
 
 const getClubJoinForm = async (clubId) => {
   const form = await JoinForm.findOne({

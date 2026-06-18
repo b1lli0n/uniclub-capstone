@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
-const clubMembershipService = require("../services/clubMembership.service");
-const { JOIN_REQUEST_STATUS } = require("../utils/constants");
+const clubMembershipService = require("../../services/student/clubMembership.service");
+const { JOIN_REQUEST_STATUS } = require("../../utils/constants");
 
 const throwBadRequest = (message) => {
   throw Object.assign(new Error(message), { statusCode: 400 });
@@ -13,7 +13,7 @@ const assertValidObjectId = (id, label) => {
 };
 
 const getUserId = (req) => {
-  const userId = req.user?._id ;
+  const userId = req.user?._id;
 
   if (!userId) {
     throw Object.assign(new Error("User ID is required. "), {

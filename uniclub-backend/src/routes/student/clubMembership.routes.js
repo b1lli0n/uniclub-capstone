@@ -5,7 +5,7 @@ const {
   getMyJoinRequests,
   getJoinRequestDetail,
   cancelJoinRequest
-} = require("../controllers/clubMembership.controller");
+} = require("../../controllers/student/clubMembership.controller");
 
 const router = express.Router();
 
