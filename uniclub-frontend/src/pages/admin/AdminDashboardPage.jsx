@@ -435,7 +435,6 @@ function AdminDashboardPage({ onLogout }) {
             <span>Email</span>
             <span>Role</span>
             <span>Join date</span>
-            <span>Actions</span>
           </div>
           {visibleMembers.map((member) => (
             <div className="admin-members-table__row" role="row" key={member.id}>
@@ -449,12 +448,6 @@ function AdminDashboardPage({ onLogout }) {
                 onChange: (nextRole) => updateMemberRole(member.id, nextRole),
               })}
               <span>{member.joinDate}</span>
-              <button type="button" className="admin-member-badge-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <path d="M12 3 14.5 8l5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2l.9-5.5-4-3.9L9.5 8 12 3Z" strokeLinejoin="round" />
-                </svg>
-                Add badge
-              </button>
             </div>
           ))}
         </div>
