@@ -1,4 +1,5 @@
 const Event = require("../../models/event.model");
+const Club = require("../../models/club.model");
 const { getStatusError } = require("../../utils/error");
 
 const EVENT_SELECT =
@@ -67,7 +68,39 @@ const getEventDetail = async (clubId, eventId) => {
   return event;
 };
 
+const assertActiveClub = async (clubId) => {
+  const club = await Club.findById(clubId).select("_id status");
+
+  if (!club) {
+    throw getStatusError("Club not found", 404);
+  }
+
+  if (club.status !== "active") {
+    throw getStatusError("Club is not active", 400);
+  }
+
+  return club;
+};
+
+const createEvent = async (clubId, userId, payload) => {
+  await assertActiveClub(clubId);
+
+  const event = await Event.create({
+    club_id: clubId,
+    created_by: userId,
+    ...payload,
+  });
+
+  return Event.findById(event._id)
+    .populate("club_id", "_id name logo_url category status")
+    .populate("created_by", "_id full_name email avatar_url")
+    .select(
+      "_id club_id created_by title description content category start_time end_time location is_public capacity multiplier status progress_status check_in_status media_uris created_at updated_at"
+    );
+};
+
 module.exports = {
   getEvents,
   getEventDetail,
+  createEvent,
 };

@@ -3,6 +3,107 @@ const eventManagementService = require("../../services/eventManager/eventManagem
 const { getStatusError } = require("../../utils/error");
 
 const ALLOWED_PROGRESS_STATUS = ["completed", "draft"];
+const ALLOWED_CREATE_PROGRESS_STATUS = ["draft", "completed"];
+
+const parseRequiredString = (value, fieldName) => {
+  if (typeof value !== "string" || !value.trim()) {
+    throw getStatusError(`${fieldName} is required`, 400);
+  }
+
+  return value.trim();
+};
+
+const parseDate = (value, fieldName) => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    throw getStatusError(`Invalid ${fieldName}`, 400);
+  }
+
+  return date;
+};
+
+const parseCreateEventPayload = (body) => {
+  const title = parseRequiredString(body.title, "title");
+  const description = parseRequiredString(body.description, "description");
+  const content = parseRequiredString(body.content, "content");
+  const category = parseRequiredString(body.category, "category");
+  const location = parseRequiredString(body.location, "location");
+
+  const startTime = parseDate(body.start_time, "start_time");
+  const endTime = parseDate(body.end_time, "end_time");
+
+  if (startTime >= endTime) {
+    throw getStatusError("start_time must be before end_time", 400);
+  }
+
+  const capacity = Number(body.capacity);
+
+  if (!Number.isInteger(capacity) || capacity <= 0) {
+    throw getStatusError("capacity must be a positive integer", 400);
+  }
+
+  let multiplier = 1;
+
+  if (body.multiplier !== undefined && body.multiplier !== null && body.multiplier !== "") {
+    multiplier = Number(body.multiplier);
+
+    if (!Number.isFinite(multiplier) || multiplier <= 0) {
+      throw getStatusError("multiplier must be a positive number", 400);
+    }
+  }
+
+  let isPublic = true;
+
+  if (body.is_public !== undefined) {
+    if (typeof body.is_public !== "boolean") {
+      throw getStatusError("is_public must be a boolean", 400);
+    }
+
+    isPublic = body.is_public;
+  }
+
+  let progressStatus = "draft";
+
+  if (body.progress_status !== undefined) {
+    if (!ALLOWED_CREATE_PROGRESS_STATUS.includes(body.progress_status)) {
+      throw getStatusError("Invalid progress_status. Allowed values: draft, completed", 400);
+    }
+
+    progressStatus = body.progress_status;
+  }
+
+  let mediaUris = [];
+
+  if (body.media_uris !== undefined) {
+    if (!Array.isArray(body.media_uris)) {
+      throw getStatusError("media_uris must be an array", 400);
+    }
+
+    mediaUris = body.media_uris.map((uri, index) => {
+      if (typeof uri !== "string" || !uri.trim()) {
+        throw getStatusError(`media_uris[${index}] must be a non-empty string`, 400);
+      }
+
+      return uri.trim();
+    });
+  }
+
+  return {
+    title,
+    description,
+    content,
+    category,
+    start_time: startTime,
+    end_time: endTime,
+    location,
+    is_public: isPublic,
+    capacity,
+    multiplier,
+    progress_status: progressStatus,
+    media_uris: mediaUris,
+  };
+};
 
 const getEvents = async (req, res, next) => {
   try {
@@ -52,7 +153,33 @@ const getEventDetail = async (req, res, next) => {
   }
 };
 
+const createEvent = async (req, res, next) => {
+  try {
+    const { clubId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(clubId)) {
+      return next(getStatusError("Invalid clubId", 400));
+    }
+
+    if (!req.user?.id) {
+      return next(getStatusError("User not authenticated", 401));
+    }
+
+    const payload = parseCreateEventPayload(req.body);
+    const data = await eventManagementService.createEvent(clubId, req.user.id, payload);
+
+    return res.status(201).json({
+      success: true,
+      message: "Event created successfully",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getEvents,
   getEventDetail,
+  createEvent,
 };

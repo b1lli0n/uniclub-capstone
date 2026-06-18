@@ -1,7 +1,11 @@
 const express = require("express");
 const { verifyToken } = require("../../middlewares/auth.middleware");
 const { requireClubRole } = require("../../middlewares/clubAuth.middleware");
-const { getEvents, getEventDetail } = require("../../controllers/eventManager/eventManagement.controller");
+const {
+  getEvents,
+  getEventDetail,
+  createEvent,
+} = require("../../controllers/eventManager/eventManagement.controller");
 
 const router = express.Router();
 
@@ -16,6 +20,12 @@ router.get(
   verifyToken,
   requireClubRole(["event_manager"], "clubId"),
   getEvents
+);
+router.post(
+  "/:clubId/events",
+  verifyToken,
+  requireClubRole(["event_manager"], "clubId"),
+  createEvent
 );
 
 module.exports = router;
