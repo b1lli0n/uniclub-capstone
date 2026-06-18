@@ -59,7 +59,54 @@ const createFeedbackEvent = async (req, res, next) => {
   }
 };
 
+const updateFeedbackEvent = async (req, res, next) => {
+  try {
+    const { eventId } = req.params;
+    const { rating, comment } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return next(getStatusError("Invalid eventId", 400));
+    }
+
+    if (rating === undefined && comment === undefined) {
+      return next(getStatusError("At least one of rating or comment is required", 400));
+    }
+
+    if (rating !== undefined && rating !== null) {
+      const parsedRating = Number(rating);
+
+      if (!Number.isInteger(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+        return next(getStatusError("rating must be an integer from 1 to 5", 400));
+      }
+    }
+
+    if (comment !== undefined) {
+      if (typeof comment !== "string" || !comment.trim()) {
+        return next(getStatusError("comment cannot be empty", 400));
+      }
+    }
+
+    const feedback = await feedbackManagementService.updateFeedbackEvent(
+      req.user.id,
+      eventId,
+      {
+        ...(rating !== undefined && rating !== null ? { rating: Number(rating) } : {}),
+        ...(comment !== undefined ? { comment: comment.trim() } : {})
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Feedback updated successfully",
+      data: feedback
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getFeedbackEvent,
-  createFeedbackEvent
+  createFeedbackEvent,
+  updateFeedbackEvent
 };

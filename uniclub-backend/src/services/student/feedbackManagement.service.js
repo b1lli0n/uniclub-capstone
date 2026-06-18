@@ -2,8 +2,25 @@ const Event = require("../../models/event.model");
 const Feedback = require("../../models/feedback.model");
 const { getStatusError } = require("../../utils/error");
 
-const getFeedbackEvent = async (userId, eventId) => {
-  const event = await Event.findById(eventId).select(
+const assertEventAvailableForFeedback = async (eventId) => {
+  const event = await Event.findById(eventId).select("_id title status progress_status");
+
+  if (!event) {
+    throw getStatusError("Event not found", 404);
+  }
+
+  if (event.status === "cancelled") {
+    throw getStatusError("Cannot submit feedback for cancelled event", 400);
+  }
+
+  if (event.progress_status !== "completed" && event.status !== "closed") {
+    throw getStatusError("Event is not available for feedback yet", 400);
+  }
+
+  return event;
+};
+
+const getFeedbackEvent = async (userId, eventId) => {  const event = await Event.findById(eventId).select(
     "_id club_id title description start_time end_time location status progress_status feedback_summary"
   );
 
@@ -28,19 +45,7 @@ const getFeedbackEvent = async (userId, eventId) => {
 };
 
 const createFeedbackEvent = async (userId, eventId, { rating, comment }) => {
-  const event = await Event.findById(eventId).select("_id title status progress_status");
-
-  if (!event) {
-    throw getStatusError("Event not found", 404);
-  }
-
-  if (event.status === "cancelled") {
-    throw getStatusError("Cannot submit feedback for cancelled event", 400);
-  }
-
-  if (event.progress_status !== "completed" && event.status !== "closed") {
-    throw getStatusError("Event is not available for feedback yet", 400);
-  }
+  await assertEventAvailableForFeedback(eventId);
 
   const existingFeedback = await Feedback.findOne({
     event_id: eventId,
@@ -64,7 +69,36 @@ const createFeedbackEvent = async (userId, eventId, { rating, comment }) => {
   ]);
 };
 
+const updateFeedbackEvent = async (userId, eventId, { rating, comment }) => {
+  await assertEventAvailableForFeedback(eventId);
+
+  const feedback = await Feedback.findOne({
+    event_id: eventId,
+    user_id: userId
+  });
+
+  if (!feedback) {
+    throw getStatusError("Feedback not found", 404);
+  }
+
+  if (rating !== undefined) {
+    feedback.rating = rating;
+  }
+
+  if (comment !== undefined) {
+    feedback.comment = comment;
+  }
+
+  await feedback.save();
+
+  return feedback.populate([
+    { path: "event_id", select: "_id title" },
+    { path: "user_id", select: "_id full_name avatar_url" }
+  ]);
+};
+
 module.exports = {
   getFeedbackEvent,
-  createFeedbackEvent
+  createFeedbackEvent,
+  updateFeedbackEvent
 };
