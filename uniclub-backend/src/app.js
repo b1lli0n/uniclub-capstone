@@ -1,13 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-const passport = require("passport");
 
-const authRoutes = require("./routes/auth.routes");
-require("./config/passport");
-
-const profileRoutes = require("./routes/profile.routes");
-
+const eventManagerRoutes = require("./routes/eventManager/eventManagement.routes");
 
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
@@ -26,11 +21,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
-app.use(passport.initialize());
-
-app.use("/api/auth", authRoutes);
-
-app.use("/api/profile", profileRoutes);
+app.use("/api/event-manager/event-management", eventManagerRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
