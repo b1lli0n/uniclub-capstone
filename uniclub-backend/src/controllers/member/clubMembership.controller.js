@@ -1,36 +1,14 @@
-const mongoose = require("mongoose");
 const clubMembershipService = require("../../services/member/clubMembership.service");
-
-const throwBadRequest = (message) => {
-  throw Object.assign(new Error(message), { statusCode: 400 });
-};
-
-const assertValidObjectId = (id, label) => {
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throwBadRequest(`Invalid ${label}`);
-  }
-};
-
-const getUserId = (req) => {
-  const userId = req.user?._id;
-
-  if (!userId) {
-    throw Object.assign(new Error("User ID is required. "), {
-      statusCode: 401
-    });
-  }
-
-  return userId;
-};
+const { getStatusError } = require("../../utils/error");
 
 const getMyClubs = async (req, res, next) => {
   try {
-    const memberships = await clubMembershipService.getMyClubs(getUserId(req));
+    const data = await clubMembershipService.getMyClubs(req.user.id);
 
     return res.status(200).json({
       success: true,
       message: "My clubs retrieved successfully",
-      data: memberships
+      data,
     });
   } catch (error) {
     next(error);
@@ -39,15 +17,12 @@ const getMyClubs = async (req, res, next) => {
 
 const leaveClub = async (req, res, next) => {
   try {
-    const { clubId } = req.params;
-    assertValidObjectId(clubId, "clubId");
-
-    const membership = await clubMembershipService.leaveClub(getUserId(req), clubId);
+    const data = await clubMembershipService.leaveClub(req.clubMembership);
 
     return res.status(200).json({
       success: true,
       message: "Left club successfully",
-      data: membership
+      data,
     });
   } catch (error) {
     next(error);
@@ -56,15 +31,12 @@ const leaveClub = async (req, res, next) => {
 
 const getClubMembers = async (req, res, next) => {
   try {
-    const { clubId } = req.params;
-    assertValidObjectId(clubId, "clubId");
-
-    const members = await clubMembershipService.getClubMembers(getUserId(req), clubId);
+    const data = await clubMembershipService.getClubMembers(req.params.clubId);
 
     return res.status(200).json({
       success: true,
       message: "Club members retrieved successfully",
-      data: members
+      data,
     });
   } catch (error) {
     next(error);
@@ -74,5 +46,5 @@ const getClubMembers = async (req, res, next) => {
 module.exports = {
   getMyClubs,
   leaveClub,
-  getClubMembers
+  getClubMembers,
 };

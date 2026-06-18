@@ -4,7 +4,7 @@ const morgan = require("morgan");
 const routes = require("./routes");
 
 const { getHealth } = require("./controllers/health.controller");
-const memberClubMembershipRoutes = require("./routes/member/clubMembership.routes");
+const clubMembershipRoutes = require("./routes/member/clubMembership.routes");
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
 
@@ -25,7 +25,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/v1/health", getHealth);
-app.use("/api/member/clubs-membership", memberClubMembershipRoutes);
+app.use("/api/member/clubs-membership", clubMembershipRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
