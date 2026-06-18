@@ -34,6 +34,31 @@ body:has(.home-shell) #root {
   -webkit-overflow-scrolling: touch;
   transition: background-color 0.2s, background-image 0.2s;
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: #e58330 #fff1de;
+}
+
+.home-shell__main::-webkit-scrollbar {
+  width: 12px;
+}
+
+.home-shell__main::-webkit-scrollbar-track {
+  background: #fff1de;
+  border-left: 1px solid rgba(245, 124, 0, 0.14);
+}
+
+.home-shell__main::-webkit-scrollbar-thumb {
+  min-height: 72px;
+  border: 3px solid #fff1de;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f5a04a 0%, #e58330 48%, #d96d00 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 2px 8px rgba(229, 131, 48, 0.2);
+}
+
+.home-shell__main::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #ffad56 0%, #f57c00 100%);
 }
 
 .home-shell__main--clubs,
@@ -42,7 +67,7 @@ body:has(.home-shell) #root {
 }
 
 .home-shell__main--create-club {
-  background: #fff8f2;
+  background: #eef1f5;
 }
 
 .home-shell__main--home,
@@ -305,6 +330,7 @@ body:has(.home-shell) #root {
   background: #fff8f2;
   box-shadow: 0 2px 8px rgba(245, 124, 0, 0.1);
   transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  cursor: pointer;
 }
 
 .home-user-wrap:has(.home-user-menu__caret-btn[aria-expanded='true']) .home-user-menu,
@@ -828,8 +854,9 @@ button.home-carousel-card:focus-visible {
 
 .home-bottom-dock__item:hover,
 .home-bottom-dock__item.is-active {
-  background: #ffe6f0;
-  color: #d84f8f;
+  background: #fff1de;
+  color: #F57C00;
+  box-shadow: inset 0 0 0 1px rgba(245, 124, 0, 0.14);
 }
 
 .home-bottom-dock__item:active {

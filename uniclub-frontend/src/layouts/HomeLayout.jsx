@@ -9,7 +9,7 @@ import '../styles/home.css'
 function HomeLayout({ children, activeItem, pageId, onNavigate, onLogout, currentUser }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
-  const userMenuBtnRef = useRef(null)
+  const userMenuRef = useRef(null)
   const mainRef = useRef(null)
   const userName = currentUser?.fullName || 'User'
   const userInitial = currentUser?.avatarInitial || userName.slice(0, 1).toUpperCase()
@@ -76,19 +76,25 @@ function HomeLayout({ children, activeItem, pageId, onNavigate, onLogout, curren
 
             <div className="home-topbar__actions">
               <div className="home-user-wrap">
-                <div className="home-user-menu">
+                <div
+                  ref={userMenuRef}
+                  className="home-user-menu"
+                  onClick={() => setUserMenuOpen((prev) => !prev)}
+                >
                   <span className="home-user-menu__avatar" style={avatarStyle} aria-hidden="true">
                     {currentUser?.avatarUrl ? null : userInitial}
                   </span>
                   <span className="home-user-menu__name">{userName}</span>
                   <button
-                    ref={userMenuBtnRef}
                     type="button"
                     className="home-user-menu__caret-btn"
                     aria-label="Mở menu tài khoản"
                     aria-expanded={userMenuOpen}
                     aria-haspopup="menu"
-                    onClick={() => setUserMenuOpen((prev) => !prev)}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setUserMenuOpen((prev) => !prev)
+                    }}
                   >
                     <span className="home-user-menu__caret" aria-hidden="true">
                       <svg viewBox="0 0 12 8" fill="currentColor">
@@ -100,7 +106,7 @@ function HomeLayout({ children, activeItem, pageId, onNavigate, onLogout, curren
                 <HomeUserMenuDropdown
                   open={userMenuOpen}
                   onClose={() => setUserMenuOpen(false)}
-                  anchorRef={userMenuBtnRef}
+                  anchorRef={userMenuRef}
                   onNavigate={onNavigate}
                 />
               </div>
