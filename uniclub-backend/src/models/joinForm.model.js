@@ -1,23 +1,26 @@
 const mongoose = require("mongoose");
-const { JOIN_FORM_STATUS } = require("../utils/constants");
+const Schema = mongoose.Schema;
 
-const joinFormSchema = new mongoose.Schema(
+const joinFormSchema = Schema(
   {
     club_id: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "Club",
-      required: true
+      required: true,
     },
+
     title: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
+
     description: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
+
     questions: {
       type: [String],
       required: true,
@@ -25,23 +28,25 @@ const joinFormSchema = new mongoose.Schema(
         validator(value) {
           return Array.isArray(value) && value.length > 0;
         },
-        message: "Form must have at least one question"
-      }
+        message: "Form must have at least one question",
+      },
     },
+
     status: {
       type: String,
-      enum: Object.values(JOIN_FORM_STATUS),
       required: true,
-      default: JOIN_FORM_STATUS.ACTIVE
+      enum: ["active", "inactive"],
+      default: "active",
     },
+
     created_by: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
-      required: true
-    }
+      required: true,
+    },
   },
   {
-    timestamps: { createdAt: "created_at", updatedAt: "update_at" }
+    timestamps: { createdAt: "created_at", updatedAt: "update_at" },
   }
 );
 

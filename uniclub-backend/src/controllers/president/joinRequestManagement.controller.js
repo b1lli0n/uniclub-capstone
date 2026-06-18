@@ -1,52 +1,33 @@
 const mongoose = require("mongoose");
 const joinRequestManagementService = require("../../services/president/joinRequestManagement.service");
-const { JOIN_REQUEST_STATUS } = require("../../utils/constants");
+const { getStatusError } = require("../../utils/error");
 
-const throwBadRequest = (message) => {
-  throw Object.assign(new Error(message), { statusCode: 400 });
-};
-
-const assertValidObjectId = (id, label) => {
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throwBadRequest(`Invalid ${label}`);
-  }
-};
-
-const getUserId = (req) => {
-  const userId = req.user?._id;
-
-  if (!userId) {
-    throw Object.assign(new Error("User ID is required. "), {
-      statusCode: 401
-    });
-  }
-
-  return userId;
-};
+const ALLOWED_JOIN_REQUEST_STATUS = ["pending", "approved", "rejected", "cancelled"];
 
 const getJoinRequestList = async (req, res, next) => {
   try {
     const { clubId } = req.params;
     const { status } = req.query;
 
-    assertValidObjectId(clubId, "clubId");
+    if (!mongoose.Types.ObjectId.isValid(clubId)) {
+      return next(getStatusError("Invalid clubId", 400));
+    }
 
-    if (status && !Object.values(JOIN_REQUEST_STATUS).includes(status)) {
-      throwBadRequest(
-        "Invalid status. Allowed values: pending, approved, rejected, cancelled"
+    if (status && !ALLOWED_JOIN_REQUEST_STATUS.includes(status)) {
+      return next(
+        getStatusError(
+          "Invalid status. Allowed values: pending, approved, rejected, cancelled",
+          400
+        )
       );
     }
 
-    const joinRequests = await joinRequestManagementService.getJoinRequestList(
-      getUserId(req),
-      clubId,
-      { status }
-    );
+    const data = await joinRequestManagementService.getJoinRequestList(clubId, { status });
 
     return res.status(200).json({
       success: true,
       message: "Join request list retrieved successfully",
-      data: joinRequests
+      data,
     });
   } catch (error) {
     next(error);
@@ -57,19 +38,20 @@ const getJoinRequestDetail = async (req, res, next) => {
   try {
     const { clubId, requestId } = req.params;
 
-    assertValidObjectId(clubId, "clubId");
-    assertValidObjectId(requestId, "requestId");
+    if (!mongoose.Types.ObjectId.isValid(clubId)) {
+      return next(getStatusError("Invalid clubId", 400));
+    }
 
-    const joinRequest = await joinRequestManagementService.getJoinRequestDetail(
-      getUserId(req),
-      clubId,
-      requestId
-    );
+    if (!mongoose.Types.ObjectId.isValid(requestId)) {
+      return next(getStatusError("Invalid requestId", 400));
+    }
+
+    const data = await joinRequestManagementService.getJoinRequestDetail(clubId, requestId);
 
     return res.status(200).json({
       success: true,
       message: "Join request detail retrieved successfully",
-      data: joinRequest
+      data,
     });
   } catch (error) {
     next(error);
@@ -80,11 +62,16 @@ const approveJoinRequest = async (req, res, next) => {
   try {
     const { clubId, requestId } = req.params;
 
-    assertValidObjectId(clubId, "clubId");
-    assertValidObjectId(requestId, "requestId");
+    if (!mongoose.Types.ObjectId.isValid(clubId)) {
+      return next(getStatusError("Invalid clubId", 400));
+    }
 
-    const joinRequest = await joinRequestManagementService.approveJoinRequest(
-      getUserId(req),
+    if (!mongoose.Types.ObjectId.isValid(requestId)) {
+      return next(getStatusError("Invalid requestId", 400));
+    }
+
+    const data = await joinRequestManagementService.approveJoinRequest(
+      req.user.id,
       clubId,
       requestId
     );
@@ -92,7 +79,7 @@ const approveJoinRequest = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: "Join request approved successfully",
-      data: joinRequest
+      data,
     });
   } catch (error) {
     next(error);
@@ -104,15 +91,20 @@ const rejectJoinRequest = async (req, res, next) => {
     const { clubId, requestId } = req.params;
     const { review_note: reviewNote } = req.body;
 
-    assertValidObjectId(clubId, "clubId");
-    assertValidObjectId(requestId, "requestId");
-
-    if (reviewNote !== undefined && typeof reviewNote !== "string") {
-      throwBadRequest("review_note must be a string");
+    if (!mongoose.Types.ObjectId.isValid(clubId)) {
+      return next(getStatusError("Invalid clubId", 400));
     }
 
-    const joinRequest = await joinRequestManagementService.rejectJoinRequest(
-      getUserId(req),
+    if (!mongoose.Types.ObjectId.isValid(requestId)) {
+      return next(getStatusError("Invalid requestId", 400));
+    }
+
+    if (reviewNote !== undefined && typeof reviewNote !== "string") {
+      return next(getStatusError("review_note must be a string", 400));
+    }
+
+    const data = await joinRequestManagementService.rejectJoinRequest(
+      req.user.id,
       clubId,
       requestId,
       reviewNote || ""
@@ -121,7 +113,7 @@ const rejectJoinRequest = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: "Join request rejected successfully",
-      data: joinRequest
+      data,
     });
   } catch (error) {
     next(error);
@@ -132,5 +124,5 @@ module.exports = {
   getJoinRequestList,
   getJoinRequestDetail,
   approveJoinRequest,
-  rejectJoinRequest
+  rejectJoinRequest,
 };
