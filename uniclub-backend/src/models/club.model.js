@@ -1,41 +1,46 @@
 const mongoose = require("mongoose");
-const { CLUB_STATUS } = require("../utils/constants");
+const Schema = mongoose.Schema;
 
-const clubSchema = new mongoose.Schema(
+const clubSchema = Schema(
   {
     name: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
+
     description: {
       type: String,
-      trim: true
+      trim: true,
     },
+
     logo_url: {
       type: String,
       required: true,
-      default: ""
+      default: "",
     },
+
     category: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
+
     status: {
       type: String,
-      enum: Object.values(CLUB_STATUS),
       required: true,
-      default: CLUB_STATUS.ACTIVE
+      enum: ["active", "inactive"],
+      default: "active",
     },
+
     created_by: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
-      required: true
-    }
+      required: true,
+    },
   },
   {
-    timestamps: { createdAt: "created_at", updatedAt: "update_at" }
+    timestamps: { createdAt: "created_at", updatedAt: "update_at" },
   }
 );
 

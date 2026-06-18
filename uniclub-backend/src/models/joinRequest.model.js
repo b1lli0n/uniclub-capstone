@@ -1,49 +1,56 @@
 const mongoose = require("mongoose");
-const { JOIN_REQUEST_STATUS } = require("../utils/constants");
+const Schema = mongoose.Schema;
 
-const joinRequestSchema = new mongoose.Schema(
+const joinRequestSchema = Schema(
   {
     user_id: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
     },
+
     club_id: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "Club",
-      required: true
+      required: true,
     },
+
     form_id: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "JoinForm",
-      required: true
+      required: true,
     },
+
     answers: {
       type: [String],
-      required: true
+      required: true,
     },
+
     status: {
       type: String,
-      enum: Object.values(JOIN_REQUEST_STATUS),
       required: true,
-      default: JOIN_REQUEST_STATUS.PENDING
+      enum: ["pending", "approved", "rejected", "cancelled"],
+      default: "pending",
     },
+
     reviewed_by: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
-      default: null
+      default: null,
     },
+
     review_note: {
       type: String,
-      default: ""
+      default: "",
     },
+
     reviewed_at: {
       type: Date,
-      default: null
-    }
+      default: null,
+    },
   },
   {
-    timestamps: { createdAt: "create_at", updatedAt: false }
+    timestamps: { createdAt: "create_at", updatedAt: false },
   }
 );
 
