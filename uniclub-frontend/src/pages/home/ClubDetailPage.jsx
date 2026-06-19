@@ -27,10 +27,13 @@ function ClubDetailPage({ clubId, onBack }) {
   const [joinModalOpen, setJoinModalOpen] = useState(false)
   const [leaveModalOpen, setLeaveModalOpen] = useState(false)
   const [membersModalOpen, setMembersModalOpen] = useState(false)
+  const [memberRows, setMemberRows] = useState(CLUB_MEMBERS)
   const club = ALL_CLUBS.find((item) => item.id === clubId) || CLUB_DETAIL_FALLBACK
-  const isClubMember = MY_CLUB_MEMBERSHIPS.some((membership) => membership.clubId === club.id)
+  const currentMembership = MY_CLUB_MEMBERSHIPS.find((membership) => membership.clubId === club.id)
+  const isClubMember = Boolean(currentMembership)
+  const canManageMembers = currentMembership?.role?.toLowerCase() === 'leader'
   const detailDescription = `${club.description}. ${CLUB_DETAIL_COPY.descriptionSuffix}`
-  const previewMembers = CLUB_MEMBERS.slice(0, 4)
+  const previewMembers = memberRows.slice(0, 4)
 
   function handleJoinSubmit(event) {
     event.preventDefault()
@@ -40,6 +43,11 @@ function ClubDetailPage({ clubId, onBack }) {
   function handleLeaveConfirm() {
     // BE hook: call leave-club API here, then refresh membership data.
     setLeaveModalOpen(false)
+  }
+
+  function handleRemoveMember(memberId) {
+    // BE hook: call remove-member API here, then refresh member data.
+    setMemberRows((members) => members.filter((member) => member.id !== memberId))
   }
 
   return (
@@ -73,7 +81,7 @@ function ClubDetailPage({ clubId, onBack }) {
             <p>{detailDescription}</p>
             <div className="club-product-card__meta">
               <div>
-                <strong>{club.members}</strong>
+                <strong>{memberRows.length}</strong>
                 <small>Members</small>
               </div>
               <div>
@@ -208,21 +216,32 @@ function ClubDetailPage({ clubId, onBack }) {
             <div className="club-members-modal__header">
               <div>
                 <h2 id="club-members-title">All members</h2>
-                <p>{club.name} - {CLUB_MEMBERS.length} members</p>
+                <p>{club.name} - {memberRows.length} members</p>
               </div>
               <button type="button" onClick={() => setMembersModalOpen(false)}>Close</button>
             </div>
 
             <div className="club-members-modal__list">
-              {CLUB_MEMBERS.map((member) => (
+              {memberRows.map((member) => (
                 <article key={member.id} className="club-members-modal__item" style={{ '--member-tone': member.tone }}>
-                  <div className="club-members-modal__avatar">
-                    {member.name.slice(0, 1)}
+                  <div className="club-members-modal__member-info">
+                    <div className="club-members-modal__avatar">
+                      {member.name.slice(0, 1)}
+                    </div>
+                    <div>
+                      <strong>{member.name}</strong>
+                      <span>{member.role}</span>
+                    </div>
                   </div>
-                  <div>
-                    <strong>{member.name}</strong>
-                    <span>{member.role}</span>
-                  </div>
+                  {canManageMembers && member.role !== 'Leader' ? (
+                    <button
+                      type="button"
+                      className="club-members-modal__remove"
+                      onClick={() => handleRemoveMember(member.id)}
+                    >
+                      Remove
+                    </button>
+                  ) : null}
                 </article>
               ))}
             </div>
