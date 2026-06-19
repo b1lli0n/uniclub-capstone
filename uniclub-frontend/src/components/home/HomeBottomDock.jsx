@@ -22,26 +22,43 @@ const dockItems = [
       </svg>
     ),
   },
+  {
+    id: 'member-approval',
+    label: 'Member Approval',
+    leaderOnly: true,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" strokeLinecap="round" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="m17 11 2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
 ]
 
-function HomeBottomDock({ pageId, onNavigate }) {
+function HomeBottomDock({ pageId, onNavigate, canManageMembers = false }) {
+  const visibleDockItems = dockItems.filter((item) => !item.leaderOnly || canManageMembers)
+
   function handleClick(itemId) {
     if (itemId === 'overview') {
       onNavigate?.('club-detail')
     } else if (itemId === 'ranking') {
       onNavigate?.('club-ranking')
+    } else if (itemId === 'member-approval') {
+      onNavigate?.('member-approval')
     }
   }
 
   function isActive(itemId) {
     if (itemId === 'overview') return pageId === 'club-detail'
     if (itemId === 'ranking') return pageId === 'club-ranking'
+    if (itemId === 'member-approval') return pageId === 'member-approval'
     return false
   }
 
   return (
     <nav className="home-bottom-dock" aria-label="Quick club navigation">
-      {dockItems.map((item) => (
+      {visibleDockItems.map((item) => (
         <button
           key={item.id}
           type="button"
