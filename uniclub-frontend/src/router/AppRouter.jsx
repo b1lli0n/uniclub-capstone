@@ -1,26 +1,29 @@
-import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 
-import LoginPage from '../pages/auth/LoginPage'
-import AuthCallbackPage from '../pages/auth/AuthCallbackPage'
+import LoginPage from '../pages/auth/LoginPage';
+import AuthCallbackPage from '../pages/auth/AuthCallbackPage';
 
-import HomeLayout from '../layouts/HomeLayout'
-import HomePage from '../pages/home/HomePage'
-import MyProfilePage from '../pages/home/MyProfilePage'
-import MyRequestsPage from '../pages/home/MyRequestsPage'
-import MyClubsPage from '../pages/home/MyClubsPage'
-import CreateClubPage from '../pages/home/CreateClubPage'
-import ClubsPage from '../pages/home/ClubsPage'
-import ClubDetailPage from '../pages/home/ClubDetailPage'
-import ClubRankingPage from '../pages/home/ClubRankingPage'
-import ClubJoinRequestsPage from '../pages/home/ClubJoinRequestsPage'
-import ClubJoinFormPage from '../pages/home/ClubJoinFormPage'
-import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
+import HomeLayout from '../layouts/HomeLayout';
+import HomePage from '../pages/home/HomePage';
+import MyProfilePage from '../pages/home/MyProfilePage';
+import MyRequestsPage from '../pages/home/MyRequestsPage';
+import MyClubsPage from '../pages/home/MyClubsPage';
+import CreateClubPage from '../pages/home/CreateClubPage';
+import ClubsPage from '../pages/home/ClubsPage';
+import EventsPage from '../pages/home/EventsPage';
+import EventDetailPage from '../pages/home/EventDetailPage';
+import ClubDetailPage from '../pages/home/ClubDetailPage';
+import ClubEventsPage from '../pages/home/ClubEventsPage';
+import ClubRankingPage from '../pages/home/ClubRankingPage';
+import ClubJoinRequestsPage from '../pages/home/ClubJoinRequestsPage';
+import ClubJoinFormPage from '../pages/home/ClubJoinFormPage';
+import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 
-import { CURRENT_USER, MY_CLUB_MEMBERSHIPS } from '../data/mockData'
+import { CURRENT_USER, MY_CLUB_MEMBERSHIPS } from '../data/mockData';
 
 function canManageClubMembers(clubId) {
-  const membership = MY_CLUB_MEMBERSHIPS.find((item) => item.clubId === clubId)
-  return membership?.role?.toLowerCase() === 'leader'
+  const membership = MY_CLUB_MEMBERSHIPS.find((item) => item.clubId === clubId);
+  return membership?.role?.toLowerCase() === 'leader';
 }
 
 function ProtectedLayout({
@@ -30,29 +33,30 @@ function ProtectedLayout({
   canManageMembers = false,
   children,
 }) {
-  const navigate = useNavigate()
-  const isAuthenticated = Boolean(localStorage.getItem('token'))
+  const navigate = useNavigate();
+  const isAuthenticated = Boolean(localStorage.getItem('token'));
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    navigate('/login', { replace: true })
-  }
+    localStorage.removeItem('token');
+    navigate('/login', { replace: true });
+  };
 
   const handleNavigate = (screen) => {
-    if (screen === 'profile') navigate('/profile')
-    else if (screen === 'requests') navigate('/my-requests')
-    else if (screen === 'my-clubs') navigate('/my-clubs')
-    else if (screen === 'create-club') navigate('/create-club')
-    else if (screen === 'clubs') navigate('/clubs')
-    else if (screen === 'club-detail') navigate(clubId ? `/clubs/${clubId}` : '/clubs')
-    else if (screen === 'club-ranking') navigate(clubId ? `/clubs/${clubId}/ranking` : '/club-ranking')
-    else if (screen === 'member-approval' && clubId) navigate(`/clubs/${clubId}/join-requests`)
-    else if (screen === 'join-form' && clubId) navigate(`/clubs/${clubId}/join-form`)
-    else navigate('/')
-  }
+    if (screen === 'profile') navigate('/profile');
+    else if (screen === 'requests') navigate('/my-requests');
+    else if (screen === 'my-clubs') navigate('/my-clubs');
+    else if (screen === 'create-club') navigate('/create-club');
+    else if (screen === 'clubs') navigate('/clubs');
+    else if (screen === 'events') navigate('/events');
+    else if (screen === 'club-detail') navigate(clubId ? `/clubs/${clubId}` : '/clubs');
+    else if (screen === 'club-ranking') navigate(clubId ? `/clubs/${clubId}/ranking` : '/club-ranking');
+    else if (screen === 'member-approval' && clubId) navigate(`/clubs/${clubId}/join-requests`);
+    else if (screen === 'join-form' && clubId) navigate(`/clubs/${clubId}/join-form`);
+    else navigate('/');
+  };
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" replace />;
   }
 
   return (
@@ -66,13 +70,13 @@ function ProtectedLayout({
     >
       {children}
     </HomeLayout>
-  )
+  );
 }
 
 function ClubDetailRoute() {
-  const { clubId } = useParams()
-  const navigate = useNavigate()
-  const canManageMembers = canManageClubMembers(clubId)
+  const { clubId } = useParams();
+  const navigate = useNavigate();
+  const canManageMembers = canManageClubMembers(clubId);
 
   return (
     <ProtectedLayout
@@ -87,12 +91,12 @@ function ClubDetailRoute() {
         onBack={() => navigate('/clubs')}
       />
     </ProtectedLayout>
-  )
+  );
 }
 
 function ClubRankingRoute() {
-  const { clubId } = useParams()
-  const canManageMembers = canManageClubMembers(clubId)
+  const { clubId } = useParams();
+  const canManageMembers = canManageClubMembers(clubId);
 
   return (
     <ProtectedLayout
@@ -103,15 +107,15 @@ function ClubRankingRoute() {
     >
       <ClubRankingPage clubId={clubId} />
     </ProtectedLayout>
-  )
+  );
 }
 
 function ClubJoinRequestsRoute() {
-  const { clubId } = useParams()
-  const canManageMembers = canManageClubMembers(clubId)
+  const { clubId } = useParams();
+  const canManageMembers = canManageClubMembers(clubId);
 
   if (!canManageMembers) {
-    return <Navigate to={`/clubs/${clubId}`} replace />
+    return <Navigate to={`/clubs/${clubId}`} replace />;
   }
 
   return (
@@ -123,15 +127,15 @@ function ClubJoinRequestsRoute() {
     >
       <ClubJoinRequestsPage clubId={clubId} />
     </ProtectedLayout>
-  )
+  );
 }
 
 function ClubJoinFormRoute() {
-  const { clubId } = useParams()
-  const canManageMembers = canManageClubMembers(clubId)
+  const { clubId } = useParams();
+  const canManageMembers = canManageClubMembers(clubId);
 
   if (!canManageMembers) {
-    return <Navigate to={`/clubs/${clubId}`} replace />
+    return <Navigate to={`/clubs/${clubId}`} replace />;
   }
 
   return (
@@ -143,12 +147,28 @@ function ClubJoinFormRoute() {
     >
       <ClubJoinFormPage clubId={clubId} />
     </ProtectedLayout>
-  )
+  );
+}
+
+function ClubEventsRoute() {
+  const { clubId } = useParams();
+  const canManageMembers = canManageClubMembers(clubId);
+
+  return (
+    <ProtectedLayout
+      pageId="club-events"
+      activeItem="clubs"
+      clubId={clubId}
+      canManageMembers={canManageMembers}
+    >
+      <ClubEventsPage />
+    </ProtectedLayout>
+  );
 }
 
 function AppRouter() {
-  const isAuthenticated = Boolean(localStorage.getItem('token'))
-  const navigate = useNavigate()
+  const isAuthenticated = Boolean(localStorage.getItem('token'));
+  const navigate = useNavigate();
 
   return (
     <Routes>
@@ -166,7 +186,7 @@ function AppRouter() {
             <HomePage
               onCreateClub={() => navigate('/create-club')}
               onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)}
-              onViewAll={() => navigate('/clubs')}
+              onViewAll={(target) => navigate(target === 'events' ? '/events' : '/clubs')}
             />
           </ProtectedLayout>
         }
@@ -194,7 +214,9 @@ function AppRouter() {
         path="/my-clubs"
         element={
           <ProtectedLayout pageId="my-clubs" activeItem="clubs">
-            <MyClubsPage onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)} />
+            <MyClubsPage
+              onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)}
+            />
           </ProtectedLayout>
         }
       />
@@ -215,7 +237,27 @@ function AppRouter() {
         path="/clubs"
         element={
           <ProtectedLayout pageId="clubs" activeItem="clubs">
-            <ClubsPage onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)} />
+            <ClubsPage
+              onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)}
+            />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/events"
+        element={
+          <ProtectedLayout pageId="events" activeItem="events">
+            <EventsPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/events/:eventId"
+        element={
+          <ProtectedLayout pageId="event-detail" activeItem="events">
+            <EventDetailPage />
           </ProtectedLayout>
         }
       />
@@ -223,6 +265,18 @@ function AppRouter() {
       <Route path="/clubs/:clubId/ranking" element={<ClubRankingRoute />} />
       <Route path="/clubs/:clubId/join-requests" element={<ClubJoinRequestsRoute />} />
       <Route path="/clubs/:clubId/join-form" element={<ClubJoinFormRoute />} />
+
+      <Route path="/clubs/:clubId/events" element={<ClubEventsRoute />} />
+
+      <Route
+        path="/clubs/:clubId/events/:eventId"
+        element={
+          <ProtectedLayout pageId="event-detail" activeItem="clubs">
+            <EventDetailPage />
+          </ProtectedLayout>
+        }
+      />
+
       <Route path="/clubs/:clubId" element={<ClubDetailRoute />} />
 
       <Route
@@ -241,7 +295,7 @@ function AppRouter() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
 }
 
-export default AppRouter
+export default AppRouter;
