@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ClubLogo from '../../components/home/ClubLogo'
 // Mock data import: replace with API data when BE is ready.
 import {
   ALL_CLUBS,
+  ALL_EVENTS,
   CLUB_DETAIL_COPY,
-  CLUB_EVENTS,
+  CLUB_JOIN_FORM_REQUESTS,
   CLUB_MEMBERS,
   JOIN_FORM_QUESTIONS,
   MY_CLUB_MEMBERSHIPS,
@@ -24,6 +26,7 @@ function EventIcon() {
 }
 
 function ClubDetailPage({ clubId, onBack }) {
+  const navigate = useNavigate()
   const [joinModalOpen, setJoinModalOpen] = useState(false)
   const [leaveModalOpen, setLeaveModalOpen] = useState(false)
   const [membersModalOpen, setMembersModalOpen] = useState(false)
@@ -34,6 +37,16 @@ function ClubDetailPage({ clubId, onBack }) {
   const canManageMembers = currentMembership?.role?.toLowerCase() === 'leader'
   const detailDescription = `${club.description}. ${CLUB_DETAIL_COPY.descriptionSuffix}`
   const previewMembers = memberRows.slice(0, 4)
+  const activeJoinForm = CLUB_JOIN_FORM_REQUESTS.find(
+    (form) => form.clubId === club.id && form.status === 'active'
+  )
+  const joinFormQuestions = activeJoinForm?.questions || JOIN_FORM_QUESTIONS
+  const clubEvents = ALL_EVENTS.filter((event) => event.clubId === club.id)
+  const visibleClubEvents = clubEvents.filter(
+    (event) => event.visibility !== 'private' || isClubMember
+  )
+  const previewClubEvents = visibleClubEvents.slice(0, 3)
+  const hiddenPrivateEventsCount = clubEvents.length - visibleClubEvents.length
 
   function handleJoinSubmit(event) {
     event.preventDefault()
@@ -111,24 +124,53 @@ function ClubDetailPage({ clubId, onBack }) {
         <div className="club-detail-section__header">
           <div>
             <h2>Ongoing Events</h2>
-            <p>Featured activities inside this club</p>
+            <p>
+              {isClubMember
+                ? 'Public and member-only activities inside this club'
+                : 'Public activities available to all students'}
+            </p>
           </div>
-          <button type="button">View all</button>
+          <button type="button" onClick={() => navigate(`/clubs/${club.id}/events`)}>
+            View all
+          </button>
         </div>
 
         <div className="club-event-grid">
-          {CLUB_EVENTS.map((event) => (
-            <article key={event.id} className="club-event-card">
+          {previewClubEvents.map((event) => (
+            <article
+              key={event.id}
+              className="club-event-card club-event-card--clickable"
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(`/clubs/${club.id}/events/${event.id}`)}
+              onKeyDown={(keyEvent) => {
+                if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+                  keyEvent.preventDefault()
+                  navigate(`/clubs/${club.id}/events/${event.id}`)
+                }
+              }}
+            >
               <div className="club-event-card__icon">
                 <EventIcon />
               </div>
-              <span>{event.tag}</span>
-              <h3>{event.title}</h3>
+              <div className="club-event-card__badges">
+                <span className="club-event-card__tag">{event.checkinOpen ? 'Open' : 'Upcoming'}</span>
+                <span className={`club-event-card__visibility club-event-card__visibility--${event.visibility || 'public'}`}>
+                  {event.visibility === 'private' ? 'Private' : 'Public'}
+                </span>
+              </div>
+              <h3>{event.name}</h3>
               <p>{event.description}</p>
-              <small>{event.meta}</small>
+              <small>{event.date} - {event.location || 'Campus'}</small>
             </article>
           ))}
         </div>
+
+        {hiddenPrivateEventsCount > 0 ? (
+          <p className="club-event-private-note">
+            {hiddenPrivateEventsCount} private event{hiddenPrivateEventsCount > 1 ? 's are' : ' is'} visible to club members only.
+          </p>
+        ) : null}
       </section>
 
       <section className="club-detail-section">
@@ -165,7 +207,7 @@ function ClubDetailPage({ clubId, onBack }) {
               <button type="button" onClick={() => setJoinModalOpen(false)} aria-label="Close">X</button>
             </div>
 
-            {JOIN_FORM_QUESTIONS.map((question) => (
+            {joinFormQuestions.map((question) => (
               <label key={question.id} className="club-join-modal__field">
                 <span>{question.label}</span>
                 <textarea placeholder={question.placeholder} rows={3} />
