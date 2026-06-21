@@ -1,23 +1,41 @@
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-const routes = require("./routes");
+const passport = require("passport");
+
+const authRoutes = require("./routes/auth.routes");
+require("./config/passport");
+
+const profileRoutes = require("./routes/profile.routes");
+
+
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
+const env = require("./config/env");
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: env.frontendURL,
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
-app.use("/api/v1", routes);
+app.use(passport.initialize());
+
+app.use("/api/auth", authRoutes);
+
+app.use("/api/profile", profileRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "Welcome to Uniclub backend API"
+    message: "Welcome to Uniclub backend API",
   });
 });
 

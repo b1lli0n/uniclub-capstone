@@ -1,0 +1,513 @@
+.club-join-form-page {
+  width: min(1180px, calc(100% - 3rem));
+  margin: 0 auto;
+  padding: 1rem 0 2.75rem;
+  color: #2f2a3a;
+}
+
+.club-join-form-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 190px;
+  padding: clamp(1.2rem, 3vw, 2rem);
+  border: 1px solid rgba(240, 228, 216, 0.9);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(255, 248, 242, 0.92), transparent 32%),
+    radial-gradient(circle at 88% 16%, rgba(255, 241, 222, 0.86), transparent 30%),
+    linear-gradient(135deg, #fff1de 0%, #ffe6c9 54%, #ffd9a8 100%);
+  box-shadow: 0 18px 44px rgba(92, 64, 51, 0.11);
+}
+
+.club-join-form-hero > div {
+  min-width: 0;
+  text-align: left;
+}
+
+.club-join-form-hero span {
+  display: inline-flex;
+  margin-bottom: 0.45rem;
+  color: #6b5a4a;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.club-join-form-hero h1 {
+  margin: 0;
+  color: #151515;
+  font-size: clamp(1.75rem, 4vw, 2.55rem);
+  font-weight: 950;
+  line-height: 1.04;
+}
+
+.club-join-form-hero p {
+  max-width: 560px;
+  margin-top: 0.7rem;
+  color: #5d5267;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.club-join-form-hero button,
+.club-join-form-card__actions button,
+.club-join-form-modal__actions button,
+.club-join-form-editor__actions button {
+  min-height: 40px;
+  padding: 0 0.95rem;
+  border: none;
+  border-radius: 12px;
+  background: #3d2e24;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform 0.18s, box-shadow 0.2s, background 0.2s, color 0.2s;
+}
+
+.club-join-form-hero button:hover,
+.club-join-form-card__actions button:hover,
+.club-join-form-modal__actions button:hover,
+.club-join-form-editor__actions button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(61, 46, 36, 0.16);
+}
+
+.club-join-form-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.club-join-form-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.club-join-form-card,
+.club-join-form-preview,
+.club-join-form-empty {
+  border: 1px solid rgba(240, 228, 216, 0.95);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 10px 28px rgba(92, 64, 51, 0.07);
+}
+
+.club-join-form-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  min-height: 154px;
+  padding: 1rem 1.1rem;
+  text-align: left;
+}
+
+.club-join-form-card__topline {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.6rem;
+}
+
+.club-join-form-card__topline small {
+  color: #9a8b7e;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.club-join-form-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.club-join-form-status--active {
+  background: #e4f7e8;
+  color: #287a3e;
+}
+
+.club-join-form-status--inactive {
+  background: #fff1de;
+  color: #bf5f00;
+}
+
+.club-join-form-card h2,
+.club-join-form-preview h2 {
+  margin: 0;
+  color: #272333;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.club-join-form-card p,
+.club-join-form-preview p {
+  margin-top: 0.34rem;
+  color: #6f6676;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.club-join-form-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.club-join-form-card__meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  background: #f8f6fb;
+  color: #4d4656;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.club-join-form-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.club-join-form-card__actions button {
+  background: #f8f6fb;
+  color: #3c3548;
+  box-shadow: inset 0 0 0 1px rgba(117, 104, 136, 0.14);
+}
+
+.club-join-form-card__actions .is-activate,
+.club-join-form-modal__actions .is-activate {
+  background: #e4f7e8;
+  color: #287a3e;
+  box-shadow: inset 0 0 0 1px rgba(40, 122, 62, 0.16);
+}
+
+.club-join-form-card__actions .is-deactivate,
+.club-join-form-modal__actions .is-deactivate {
+  background: #fff1de;
+  color: #bf5f00;
+  box-shadow: inset 0 0 0 1px rgba(245, 124, 0, 0.14);
+}
+
+.club-join-form-preview {
+  position: sticky;
+  top: 1rem;
+  align-self: start;
+  padding: 1.1rem;
+  text-align: left;
+}
+
+.club-join-form-preview > span {
+  display: inline-flex;
+  margin-bottom: 0.55rem;
+  color: #bf5f00;
+  font-size: 0.74rem;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.club-join-form-preview__questions {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.club-join-form-preview__questions label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.club-join-form-preview__questions label span {
+  color: #3c3548;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.club-join-form-preview__questions textarea,
+.club-join-form-editor input,
+.club-join-form-editor textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid rgba(240, 228, 216, 0.95);
+  border-radius: 12px;
+  background: #fffdfb;
+  color: #3c3548;
+  font: inherit;
+  font-size: 0.84rem;
+}
+
+.club-join-form-preview__questions textarea {
+  resize: none;
+  padding: 0.75rem;
+}
+
+.club-join-form-empty {
+  padding: 1.6rem;
+  text-align: center;
+}
+
+.club-join-form-empty h1 {
+  margin: 0;
+  color: #151515;
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+
+.club-join-form-empty p {
+  margin-top: 0.55rem;
+  color: #6f6676;
+  font-size: 0.9rem;
+}
+
+.club-join-form-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.club-join-form-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(28, 24, 38, 0.46);
+  backdrop-filter: blur(5px);
+  cursor: pointer;
+}
+
+.club-join-form-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: min(680px, 100%);
+  max-height: min(82vh, 720px);
+  overflow: auto;
+  padding: 1.25rem;
+  border: 1px solid rgba(240, 228, 216, 0.95);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 28px 80px rgba(21, 21, 21, 0.22);
+}
+
+.club-join-form-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.club-join-form-modal__header h2 {
+  margin: 0;
+  color: #151515;
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.club-join-form-modal__header p {
+  margin-top: 0.22rem;
+  color: #6f6676;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.club-join-form-modal__header button {
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(117, 104, 136, 0.18);
+  border-radius: 10px;
+  background: #f8f6fb;
+  color: #3c3548;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.club-join-form-modal__description {
+  margin: 0 0 1rem;
+  color: #6f6676;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.club-join-form-modal__questions,
+.club-join-form-editor__questions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.club-join-form-modal__questions div,
+.club-join-form-editor__question {
+  padding: 0.8rem;
+  border: 1px solid rgba(240, 228, 216, 0.95);
+  border-radius: 14px;
+  background: #fffdfb;
+  text-align: left;
+}
+
+.club-join-form-modal__questions span,
+.club-join-form-editor__field span {
+  display: block;
+  margin-bottom: 0.32rem;
+  color: #6f6676;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.club-join-form-modal__questions strong {
+  color: #2f2a3a;
+  font-size: 0.9rem;
+}
+
+.club-join-form-modal__questions p {
+  margin: 0.28rem 0 0;
+  color: #8a7f91;
+  font-size: 0.8rem;
+}
+
+.club-join-form-modal__questions textarea,
+.club-join-form-editor__question textarea[disabled] {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.55rem;
+  resize: none;
+  border: 1.5px dashed rgba(240, 186, 125, 0.72);
+  border-radius: 12px;
+  background: #fff8f2;
+  color: #8a7f91;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: not-allowed;
+}
+
+.club-join-form-modal__questions textarea {
+  padding: 0.75rem;
+}
+
+.club-join-form-editor__question textarea[disabled] {
+  padding: 0.7rem 0.8rem;
+  opacity: 1;
+}
+
+.club-join-form-modal__actions,
+.club-join-form-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.club-join-form-editor {
+  text-align: left;
+}
+
+.club-join-form-editor__field {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+}
+
+.club-join-form-editor input {
+  min-height: 42px;
+  padding: 0 0.8rem;
+}
+
+.club-join-form-editor textarea {
+  resize: vertical;
+  padding: 0.75rem 0.8rem;
+}
+
+.club-join-form-editor input:focus,
+.club-join-form-editor textarea:focus {
+  border-color: #ff8e0b;
+  outline: 3px solid rgba(255, 142, 11, 0.14);
+}
+
+.club-join-form-editor__questions {
+  margin-top: 1rem;
+}
+
+.club-join-form-editor__question {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.club-join-form-editor__question > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.club-join-form-editor__question strong {
+  color: #2f2a3a;
+  font-size: 0.86rem;
+}
+
+.club-join-form-editor__question button {
+  min-height: 30px;
+  padding: 0 0.62rem;
+  border: none;
+  border-radius: 9px;
+  background: #fff1de;
+  color: #bf5f00;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.club-join-form-editor__actions button:first-child {
+  background: #fff1de;
+  color: #bf5f00;
+}
+
+@media (max-width: 860px) {
+  .club-join-form-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .club-join-form-preview {
+    position: static;
+  }
+}
+
+@media (max-width: 680px) {
+  .club-join-form-page {
+    width: min(100% - 1.25rem, 1180px);
+  }
+
+  .club-join-form-hero,
+  .club-join-form-card {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .club-join-form-card__actions,
+  .club-join-form-modal__actions,
+  .club-join-form-editor__actions {
+    justify-content: flex-start;
+  }
+}
