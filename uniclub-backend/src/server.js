@@ -9,7 +9,7 @@ const startServer = async () => {
   const server = http.createServer(app);
 
   server.listen(env.port, () => {
-    console.log(`Server running on port ${env.port}`);
+    console.log(`Server running on http://localhost:${env.port}`);
   });
 };
 

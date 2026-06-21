@@ -1,0 +1,12 @@
+{
+  "name": "uniclub-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix uniclub-backend\" \"npm run dev --prefix uniclub-frontend\"",
+    "start": "npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
