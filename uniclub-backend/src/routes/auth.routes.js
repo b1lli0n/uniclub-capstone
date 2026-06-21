@@ -1,6 +1,7 @@
 const express = require("express");
 const passport = require("../config/passport");
 const { createToken, verifyToken } = require("../middlewares/auth.middleware");
+const authController = require("../controllers/auth.controller");
 const env = require("../config/env");
 
 const router = express.Router();
@@ -30,6 +31,9 @@ router.get(
   }
 );
 
+router.get("/feid", authController.loginWithFeid);
+router.get("/callback", authController.feidCallback);
+
 router.get("/me", verifyToken, (req, res) => {
   res.status(200).json({
     success: true,
@@ -37,11 +41,6 @@ router.get("/me", verifyToken, (req, res) => {
   });
 });
 
-router.post("/logout", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Logout successful",
-  });
-});
+router.post('/logout', authController.logout)
 
 module.exports = router;

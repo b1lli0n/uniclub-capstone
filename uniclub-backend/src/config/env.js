@@ -16,5 +16,14 @@ module.exports = {
   googleCallbackURL: process.env.GOOGLE_CALLBACK_URL,
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
   
+  feidIssuer: process.env.FEID_ISSUER,
+  feidAuthorizationEndpoint: process.env.FEID_AUTHORIZATION_ENDPOINT,
+  feidClientId: process.env.FEID_CLIENT_ID,
+  feidCallbackURL: process.env.FEID_CALLBACK_URL,
+  feidScope: process.env.FEID_SCOPE,
+
+  feidTokenEndpoint: process.env.FEID_TOKEN_ENDPOINT,
+  feidUserInfoEndpoint: process.env.FEID_USERINFO_ENDPOINT,
+  
   universityEmailDomain: process.env.UNIVERSITY_EMAIL_DOMAIN
 };

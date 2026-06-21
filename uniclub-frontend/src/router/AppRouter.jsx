@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
-
+import axios from 'axios'
 import LoginPage from '../pages/auth/LoginPage'
 import AuthCallbackPage from '../pages/auth/AuthCallbackPage'
 
@@ -20,10 +20,23 @@ function ProtectedLayout({ pageId, activeItem = null, children }) {
   const navigate = useNavigate()
   const isAuthenticated = Boolean(localStorage.getItem('token'))
 
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    navigate('/login', { replace: true })
+
+const handleLogout = async () => {
+  try {
+    await axios.post(
+      'https://localhost:5000/api/auth/logout',
+      {},
+      { withCredentials: true }
+    )
+  } catch (error) {
+    console.error(error)
   }
+
+  localStorage.removeItem('token')
+  sessionStorage.clear()
+
+  navigate('/login', { replace: true })
+}
 
   const handleNavigate = (screen) => {
     if (screen === 'profile') navigate('/profile')

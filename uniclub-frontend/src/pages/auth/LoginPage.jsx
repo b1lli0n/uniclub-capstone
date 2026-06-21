@@ -7,9 +7,13 @@ function FptLogo() {
 }
 
 export default function LoginPage() {
-  function handleLogin() {
+  function handleLogin1() {
     window.location.href =
-    'http://localhost:5000/api/auth/google'
+    'https://localhost:5000/api/auth/google'
+  }
+  function handleLogin2() {
+    window.location.href =
+    'https://localhost:5000/api/auth/feid'
   }
 
   return (
@@ -29,7 +33,7 @@ export default function LoginPage() {
           <h1 className="login-form__title">Login</h1>
 
           <div className="login-options" aria-label="Login methods">
-            <button type="button" className="login-provider login-provider--google" onClick={handleLogin}>
+            <button type="button" className="login-provider login-provider--google" onClick={handleLogin1}>
               <span className="login-provider__icon" aria-hidden="true">
                 G+
               </span>
@@ -38,7 +42,7 @@ export default function LoginPage() {
 
             <p className="login-options__hint">For students from K19, sign in with FEID</p>
 
-            <button type="button" className="login-provider login-provider--feid" onClick={handleLogin}>
+            <button type="button" className="login-provider login-provider--feid" onClick={handleLogin2}>
               <span className="login-provider__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                   <path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm-.4 4.25-7.07 4.42a1 1 0 0 1-1.06 0L4.4 9.25A1 1 0 0 1 5.46 7.55L12 11.64l6.54-4.09a1 1 0 1 1 1.06 1.7Z" />

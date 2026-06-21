@@ -2,14 +2,17 @@ const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const User = require("../models/user.model");
 const env = require("../config/env");
-
+console.log("GOOGLE_CLIENT_ID =", env.googleClientId);
+console.log("GOOGLE_CALLBACK_URL =", env.googleCallbackURL);
 passport.use(
   new GoogleStrategy(
     {
       clientID: env.googleClientId,
       clientSecret: env.googleClientSecret,
       callbackURL: env.googleCallbackURL,
+      
     },
+    
     async (accessToken, refreshToken, profile, done) => {
       try {
         const email = profile.emails?.[0]?.value;
@@ -34,7 +37,8 @@ passport.use(
             email: email,
             avatar_url: profile.photos?.[0]?.value,
             role: "student",
-            });
+            status: "active",
+          });
         }
 
         if (user.status !== "active") {
@@ -42,7 +46,6 @@ passport.use(
             message: "Account is inactive",
           });
         }
-
         return done(null, user);
       } catch (error) {
         return done(error, null);
