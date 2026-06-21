@@ -4,7 +4,7 @@ import {
   ALL_CLUBS,
   ALL_EVENTS,
   CURRENT_USER,
-  EVENT_FEEDBACKS,
+  EVENT_TIMELINES,
   MY_CLUB_MEMBERSHIPS,
 } from '../../data/mockData'
 import '../../styles/clubs.css'
@@ -26,9 +26,24 @@ function parseEventStartDate(event) {
   return startDate
 }
 
+function parseEventEndDate(event) {
+  const endDate = parseEventDate(event.date)
+  const endTime = event.time?.split('-')[1]?.trim()
+  const timeMatch = endTime?.match(/^(\d{1,2}):(\d{2})$/)
+
+  if (timeMatch) {
+    endDate.setHours(Number(timeMatch[1]), Number(timeMatch[2]), 0, 0)
+    return endDate
+  }
+
+  endDate.setHours(23, 59, 59, 999)
+  return endDate
+}
+
 function isEventRegistrationOpen(event) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+
   return parseEventDate(event.date).getTime() >= today.getTime()
 }
 
@@ -36,25 +51,50 @@ function isBeforeEventStart(event) {
   return Date.now() < parseEventStartDate(event).getTime()
 }
 
+function isEventFeedbackOpen(event) {
+  return Date.now() > parseEventEndDate(event).getTime()
+}
+
 function getRegistrationLabel(status) {
   if (status === 'accepted') return 'Accepted'
   if (status === 'pending') return 'Pending approval'
+  if (status === 'cancelled') return 'Cancelled'
   return 'Not registered'
 }
 
 function getEventStatus(event) {
-  return isEventRegistrationOpen(event) ? 'Opening' : 'Started'
+  if (isEventRegistrationOpen(event)) return 'Opening'
+  return 'Started'
 }
 
 function buildTicketCode(eventId, userId) {
   return `${eventId}-${userId}`.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12)
 }
 
+function createTimelineDraft(eventId) {
+  return {
+    id: '',
+    eventId,
+    time: '',
+    title: '',
+    description: '',
+    location: '',
+  }
+}
+
+function canManageEventOperations(role = '') {
+  const normalizedRole = role.toLowerCase()
+  return normalizedRole === 'leader' || normalizedRole === 'event management'
+}
+
 function TicketQr({ value }) {
   const cells = Array.from({ length: 225 }, (_, index) => {
     const row = Math.floor(index / 15)
     const col = index % 15
-    const finder = (row < 5 && col < 5) || (row < 5 && col > 9) || (row > 9 && col < 5)
+    const inTopLeft = row < 5 && col < 5
+    const inTopRight = row < 5 && col > 9
+    const inBottomLeft = row > 9 && col < 5
+    const finder = inTopLeft || inTopRight || inBottomLeft
 
     if (finder) {
       const localRow = row % 10
@@ -103,23 +143,18 @@ function RatingStars({ rating, onChange, readonly = false }) {
 function EventDetailPage() {
   const { clubId, eventId } = useParams()
   const navigate = useNavigate()
-
-  const [ticketOpen, setTicketOpen] = useState(false)
-  const [registration, setRegistration] = useState(null)
-
-  const [feedbacks, setFeedbacks] = useState(EVENT_FEEDBACKS)
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
   const [editingFeedback, setEditingFeedback] = useState(null)
   const [feedbackDraft, setFeedbackDraft] = useState('')
   const [feedbackRating, setFeedbackRating] = useState(5)
-
+  const [ticketOpen, setTicketOpen] = useState(false)
+  const [timelineModalOpen, setTimelineModalOpen] = useState(false)
+  const [editingTimeline, setEditingTimeline] = useState(null)
+  const [timelineDraft, setTimelineDraft] = useState(() => createTimelineDraft(eventId || ''))
+  const [timelines, setTimelines] = useState(EVENT_TIMELINES)
+  const [registrations, setRegistrations] = useState({})
+  const [feedbacks, setFeedbacks] = useState([])
   const event = useMemo(() => ALL_EVENTS.find((item) => item.id === eventId), [eventId])
-
-  useEffect(() => {
-    setRegistration(null)
-    setTicketOpen(false)
-    setFeedbackModalOpen(false)
-  }, [eventId])
 
   useEffect(() => {
     document.body.classList.toggle('event-ticket-open', ticketOpen)
@@ -129,54 +164,113 @@ function EventDetailPage() {
     }
   }, [ticketOpen])
 
-  if (!event) {
-    return <Navigate to={clubId ? `/clubs/${clubId}/events` : '/events'} replace />
+  function getEventRegistration(targetEventId) {
+    return registrations[targetEventId] || null
   }
 
-  const isOrganizerMember = MY_CLUB_MEMBERSHIPS.some((membership) => membership.clubId === event.clubId)
+  function registerForEvent(targetEventId) {
+    setRegistrations((current) => ({
+      ...current,
+      [targetEventId]: {
+        eventId: targetEventId,
+        status: 'accepted',
+        checkedIn: false,
+        registeredAt: new Date().toLocaleString('en-GB'),
+      },
+    }))
+  }
+
+  function cancelEventRegistration(targetEventId) {
+    setRegistrations((current) => {
+      const nextRegistrations = { ...current }
+      delete nextRegistrations[targetEventId]
+      return nextRegistrations
+    })
+  }
+
+  function checkInEvent(targetEventId) {
+    setRegistrations((current) => ({
+      ...current,
+      [targetEventId]: {
+        ...current[targetEventId],
+        checkedIn: true,
+      },
+    }))
+  }
+
+  function getEventFeedbacks(targetEventId) {
+    return feedbacks.filter((feedbackItem) => feedbackItem.eventId === targetEventId)
+  }
+
+  function getMyEventFeedback(targetEventId) {
+    return feedbacks.find(
+      (feedbackItem) =>
+        feedbackItem.eventId === targetEventId &&
+        feedbackItem.userId === CURRENT_USER.id
+    )
+  }
+
+  function createEventFeedback(targetEventId, payload) {
+    setFeedbacks((current) => [
+      ...current,
+      {
+        id: `feedback-${targetEventId}-${Date.now()}`,
+        eventId: targetEventId,
+        userId: CURRENT_USER.id,
+        authorName: CURRENT_USER.fullName,
+        createdAt: new Date().toLocaleDateString('en-GB'),
+        ...payload,
+      },
+    ])
+  }
+
+  function updateEventFeedback(feedbackId, payload) {
+    setFeedbacks((current) =>
+      current.map((feedbackItem) =>
+        feedbackItem.id === feedbackId
+          ? {
+              ...feedbackItem,
+              ...payload,
+              updatedAt: new Date().toLocaleDateString('en-GB'),
+            }
+          : feedbackItem
+      )
+    )
+  }
+
+  function deleteEventFeedback(feedbackId) {
+    setFeedbacks((current) => current.filter((feedbackItem) => feedbackItem.id !== feedbackId))
+  }
+
+  if (!event) {
+    return <Navigate to="/events" replace />
+  }
+
+  const organizerMembership = MY_CLUB_MEMBERSHIPS.find((membership) => membership.clubId === event.clubId)
+  const isOrganizerMember = Boolean(organizerMembership)
+  const canManageTimeline = canManageEventOperations(organizerMembership?.role)
 
   if (event.visibility === 'private' && !isOrganizerMember) {
     return <Navigate to={`/clubs/${event.clubId}`} replace />
   }
 
-  const organizerClub = ALL_CLUBS.find((club) => club.id === event.clubId)
-  const organizerName = organizerClub?.name || 'UniClub'
-  const organizerInitial = organizerName.slice(0, 1).toUpperCase()
-
-  const eventFeedbacks = feedbacks.filter((feedback) => feedback.eventId === event.id)
-  const myFeedback = eventFeedbacks.find((feedback) => feedback.userId === CURRENT_USER.id)
-
+  const registration = getEventRegistration(event.id)
   const canCancel = Boolean(registration) && !registration.checkedIn && isBeforeEventStart(event)
   const canRegister = !registration && isEventRegistrationOpen(event)
   const canCheckIn = registration?.status === 'accepted' && event.checkinOpen && !registration.checkedIn
-
+  const statusText = getEventStatus(event)
+  const organizerClub = ALL_CLUBS.find((club) => club.id === event.clubId)
+  const organizerName = organizerClub?.name || 'UniClub'
+  const organizerInitial = organizerName.slice(0, 1).toUpperCase()
   const ticketCode = buildTicketCode(event.id, CURRENT_USER.id)
   const studentPhone = CURRENT_USER.phone || 'Not updated'
   const studentEmail = CURRENT_USER.email || 'Not updated'
-
-  function registerForEvent() {
-    setRegistration({
-      status: 'pending',
-      registeredAt: new Date().toLocaleDateString('en-GB'),
-      checkedIn: false,
-    })
-  }
-
-  function cancelEventRegistration() {
-    setRegistration(null)
-    setTicketOpen(false)
-  }
-
-  function checkInEvent() {
-    setRegistration((current) =>
-      current
-        ? {
-            ...current,
-            checkedIn: true,
-          }
-        : current
-    )
-  }
+  const eventFeedbacks = getEventFeedbacks(event.id)
+  const myFeedback = getMyEventFeedback(event.id)
+  const eventEnded = isEventFeedbackOpen(event)
+  const eventTimelines = timelines
+    .filter((timelineItem) => timelineItem.eventId === event.id)
+    .sort((firstItem, secondItem) => firstItem.time.localeCompare(secondItem.time))
 
   function openFeedbackModal(feedbackItem = null) {
     setEditingFeedback(feedbackItem)
@@ -192,49 +286,10 @@ function EventDetailPage() {
     setFeedbackRating(5)
   }
 
-  function createEventFeedback(payload) {
-    setFeedbacks((current) => [
-      {
-        id: `feedback-${event.id}-${CURRENT_USER.id}-${Date.now()}`,
-        eventId: event.id,
-        userId: CURRENT_USER.id,
-        authorName: CURRENT_USER.fullName,
-        rating: payload.rating,
-        comment: payload.comment,
-        createdAt: new Date().toLocaleDateString('en-GB'),
-        updatedAt: '',
-      },
-      ...current,
-    ])
-  }
-
-  function updateEventFeedback(feedbackId, payload) {
-    setFeedbacks((current) =>
-      current.map((feedback) =>
-        feedback.id === feedbackId && feedback.userId === CURRENT_USER.id
-          ? {
-              ...feedback,
-              rating: payload.rating,
-              comment: payload.comment,
-              updatedAt: new Date().toLocaleDateString('en-GB'),
-            }
-          : feedback
-      )
-    )
-  }
-
-  function deleteEventFeedback(feedbackId) {
-    setFeedbacks((current) =>
-      current.filter(
-        (feedback) => feedback.id !== feedbackId || feedback.userId !== CURRENT_USER.id
-      )
-    )
-  }
-
   function handleFeedbackSubmit(submitEvent) {
     submitEvent.preventDefault()
-
     const comment = feedbackDraft.trim()
+
     if (!comment) return
 
     const payload = {
@@ -245,10 +300,58 @@ function EventDetailPage() {
     if (editingFeedback) {
       updateEventFeedback(editingFeedback.id, payload)
     } else if (!myFeedback) {
-      createEventFeedback(payload)
+      createEventFeedback(event.id, payload)
     }
 
     closeFeedbackModal()
+  }
+
+  function openTimelineModal(timelineItem = null) {
+    setEditingTimeline(timelineItem)
+    setTimelineDraft(timelineItem ? { ...timelineItem } : createTimelineDraft(event.id))
+    setTimelineModalOpen(true)
+  }
+
+  function closeTimelineModal() {
+    setTimelineModalOpen(false)
+    setEditingTimeline(null)
+    setTimelineDraft(createTimelineDraft(event.id))
+  }
+
+  function updateTimelineDraft(field, value) {
+    setTimelineDraft((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  function handleTimelineSubmit(submitEvent) {
+    submitEvent.preventDefault()
+
+    const nextTimeline = {
+      ...timelineDraft,
+      id: timelineDraft.id || `timeline-${event.id}-${Date.now()}`,
+      eventId: event.id,
+      time: timelineDraft.time.trim(),
+      title: timelineDraft.title.trim(),
+      description: timelineDraft.description.trim(),
+      location: timelineDraft.location.trim(),
+    }
+
+    if (!nextTimeline.time || !nextTimeline.title || !nextTimeline.description) return
+
+    setTimelines((items) => {
+      if (editingTimeline) {
+        return items.map((item) => (item.id === editingTimeline.id ? nextTimeline : item))
+      }
+
+      return [...items, nextTimeline]
+    })
+    closeTimelineModal()
+  }
+
+  function deleteTimeline(timelineId) {
+    setTimelines((items) => items.filter((item) => item.id !== timelineId))
   }
 
   return (
@@ -262,12 +365,11 @@ function EventDetailPage() {
         <div className="event-detail-layout">
           <main className="event-detail-main">
             <section className="event-detail-hero">
-              <span className="event-detail-status">{getEventStatus(event)}</span>
+              <span className="event-detail-status">{statusText}</span>
               <div className="event-detail-title-row">
                 <h1>{event.name}</h1>
                 <span>{event.categoryLabel}</span>
               </div>
-
               <div className="event-detail-host">
                 <span className="event-detail-host__avatar" aria-hidden="true">{organizerInitial}</span>
                 <div>
@@ -277,7 +379,9 @@ function EventDetailPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (organizerClub) navigate(`/clubs/${organizerClub.id}`)
+                    if (organizerClub) {
+                      navigate(`/clubs/${organizerClub.id}`)
+                    }
                   }}
                   disabled={!organizerClub}
                 >
@@ -290,18 +394,66 @@ function EventDetailPage() {
               <h2>Event details</h2>
               <h3>1. Introduction</h3>
               <p>{event.description}</p>
-
               <h3>2. Main activities</h3>
               <ul>
                 <li>Connect with students who share the same interests.</li>
                 <li>Join activities prepared by the club organizer.</li>
-                <li>Time: {event.date} {event.time ? `- ${event.time}` : ''}</li>
+                <li>Time: {event.date}</li>
                 <li>Location: {event.location || 'Campus'}</li>
               </ul>
-
               <h3>3. Meaning</h3>
-              <p>Build new connections, experience campus life, and keep memorable moments with UniClub.</p>
+              <p>
+                Build new connections, experience campus life, and keep memorable moments with
+                UniClub.
+              </p>
             </article>
+
+            <section className="event-detail-timeline">
+              <header>
+                <div>
+                  <h2>Event Timeline</h2>
+                  <span>{eventTimelines.length} {eventTimelines.length === 1 ? 'item' : 'items'}</span>
+                </div>
+                {canManageTimeline ? (
+                  <button type="button" onClick={() => openTimelineModal()}>
+                    Add item
+                  </button>
+                ) : null}
+              </header>
+
+              {eventTimelines.length > 0 ? (
+                <div className="event-detail-timeline-list">
+                  {eventTimelines.map((timelineItem) => (
+                    <article key={timelineItem.id} className="event-detail-timeline-item">
+                      <div className="event-detail-timeline-time">
+                        <span>{timelineItem.time}</span>
+                      </div>
+                      <div className="event-detail-timeline-content">
+                        <div>
+                          <h3>{timelineItem.title}</h3>
+                          {timelineItem.location ? <small>{timelineItem.location}</small> : null}
+                        </div>
+                        <p>{timelineItem.description}</p>
+                        {canManageTimeline ? (
+                          <div className="event-detail-timeline-actions">
+                            <button type="button" onClick={() => openTimelineModal(timelineItem)}>
+                              Edit
+                            </button>
+                            <button type="button" className="is-danger" onClick={() => deleteTimeline(timelineItem.id)}>
+                              Delete
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="event-detail-empty-timeline">
+                  No timeline has been added for this event yet.
+                </div>
+              )}
+            </section>
 
             <section className="event-detail-feedback">
               <header>
@@ -319,7 +471,9 @@ function EventDetailPage() {
               </header>
 
               <p className="event-detail-feedback-note">
-                Students can share feedback for this event.
+                {eventEnded
+                  ? 'Students can share feedback for this completed event.'
+                  : 'You can draft feedback now; BE can decide final submission rules later.'}
               </p>
 
               {eventFeedbacks.length > 0 ? (
@@ -332,7 +486,6 @@ function EventDetailPage() {
                         <div className="event-detail-feedback-avatar" aria-hidden="true">
                           {feedbackItem.authorName.slice(0, 1)}
                         </div>
-
                         <div className="event-detail-feedback-content">
                           <div className="event-detail-feedback-topline">
                             <div>
@@ -345,9 +498,7 @@ function EventDetailPage() {
                             </div>
                             <RatingStars rating={feedbackItem.rating} readonly />
                           </div>
-
                           <p>{feedbackItem.comment}</p>
-
                           {isMine ? (
                             <div className="event-detail-feedback-actions">
                               <button type="button" onClick={() => openFeedbackModal(feedbackItem)}>
@@ -407,7 +558,7 @@ function EventDetailPage() {
 
             <div className="event-detail-actions">
               {canRegister ? (
-                <button type="button" className="event-detail-primary" onClick={registerForEvent}>
+                <button type="button" className="event-detail-primary" onClick={() => registerForEvent(event.id)}>
                   Register for event
                 </button>
               ) : null}
@@ -419,7 +570,11 @@ function EventDetailPage() {
               {registration ? (
                 <>
                   {canCancel ? (
-                    <button type="button" className="event-detail-secondary" onClick={cancelEventRegistration}>
+                    <button
+                      type="button"
+                      className="event-detail-secondary"
+                      onClick={() => cancelEventRegistration(event.id)}
+                    >
                       Cancel registration
                     </button>
                   ) : registration.checkedIn ? (
@@ -437,14 +592,20 @@ function EventDetailPage() {
                   ) : null}
 
                   {canCheckIn ? (
-                    <button type="button" className="event-detail-primary" onClick={checkInEvent}>
+                    <button type="button" className="event-detail-primary" onClick={() => checkInEvent(event.id)}>
                       Check in
                     </button>
                   ) : null}
 
-                  <button type="button" className="event-detail-primary" onClick={() => setTicketOpen(true)}>
-                    View registration info
-                  </button>
+                  {registration ? (
+                    <button
+                      type="button"
+                      className="event-detail-primary"
+                      onClick={() => setTicketOpen(true)}
+                    >
+                      View registration info
+                    </button>
+                  ) : null}
                 </>
               ) : null}
             </div>
@@ -462,7 +623,6 @@ function EventDetailPage() {
           />
           <section className="event-ticket">
             <div className="event-ticket__notches" aria-hidden="true" />
-
             <header className="event-ticket__header">
               <div>
                 <span>Event ticket</span>
@@ -511,7 +671,7 @@ function EventDetailPage() {
                 <TicketQr value={ticketCode} />
                 <strong>{ticketCode}</strong>
               </div>
-              <p>Show this QR code to the event leader at the check-in counter.</p>
+              <p>Show this QR code to event management at the check-in counter.</p>
             </div>
           </section>
         </div>
@@ -525,7 +685,6 @@ function EventDetailPage() {
             aria-label="Close feedback form"
             onClick={closeFeedbackModal}
           />
-
           <form className="event-feedback-modal__panel" onSubmit={handleFeedbackSubmit}>
             <header>
               <div>
@@ -561,6 +720,88 @@ function EventDetailPage() {
               </button>
               <button type="submit" className="event-detail-feedback-submit" disabled={!feedbackDraft.trim()}>
                 {editingFeedback ? 'Save changes' : 'Send feedback'}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {timelineModalOpen ? (
+        <div className="event-feedback-modal" role="dialog" aria-modal="true" aria-labelledby="event-timeline-title">
+          <button
+            type="button"
+            className="event-feedback-modal__backdrop"
+            aria-label="Close timeline form"
+            onClick={closeTimelineModal}
+          />
+          <form className="event-feedback-modal__panel event-timeline-modal__panel" onSubmit={handleTimelineSubmit}>
+            <header>
+              <div>
+                <span>{event.name}</span>
+                <h2 id="event-timeline-title">
+                  {editingTimeline ? 'Update timeline item' : 'Create timeline item'}
+                </h2>
+              </div>
+              <button type="button" onClick={closeTimelineModal} aria-label="Close timeline form">
+                X
+              </button>
+            </header>
+
+            <div className="event-timeline-modal__grid">
+              <label className="event-feedback-modal__field">
+                <span>Time *</span>
+                <input
+                  type="text"
+                  value={timelineDraft.time}
+                  onChange={(eventChange) => updateTimelineDraft('time', eventChange.target.value)}
+                  placeholder="HH:mm"
+                  maxLength={5}
+                  required
+                />
+              </label>
+              <label className="event-feedback-modal__field">
+                <span>Location</span>
+                <input
+                  type="text"
+                  value={timelineDraft.location}
+                  onChange={(eventChange) => updateTimelineDraft('location', eventChange.target.value)}
+                  placeholder="Room, hall, or checkpoint..."
+                />
+              </label>
+            </div>
+
+            <label className="event-feedback-modal__field">
+              <span>Title *</span>
+              <input
+                type="text"
+                value={timelineDraft.title}
+                onChange={(eventChange) => updateTimelineDraft('title', eventChange.target.value)}
+                placeholder="Example: Opening ceremony"
+                required
+              />
+            </label>
+
+            <label className="event-feedback-modal__field">
+              <span>Description *</span>
+              <textarea
+                value={timelineDraft.description}
+                onChange={(eventChange) => updateTimelineDraft('description', eventChange.target.value)}
+                placeholder="Describe what happens in this timeline item..."
+                rows={4}
+                required
+              />
+            </label>
+
+            <div className="event-feedback-modal__actions">
+              <button type="button" className="event-feedback-modal__cancel" onClick={closeTimelineModal}>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="event-detail-feedback-submit"
+                disabled={!timelineDraft.time.trim() || !timelineDraft.title.trim() || !timelineDraft.description.trim()}
+              >
+                {editingTimeline ? 'Save changes' : 'Create item'}
               </button>
             </div>
           </form>
