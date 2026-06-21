@@ -25,7 +25,7 @@ const dockItems = [
   {
     id: 'member-approval',
     label: 'Member Approval',
-    leaderOnly: true,
+    access: 'member-management',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" strokeLinecap="round" />
@@ -37,7 +37,7 @@ const dockItems = [
   {
     id: 'join-form',
     label: 'Join Form',
-    leaderOnly: true,
+    access: 'member-management',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
         <path d="M8 6h8M8 10h8M8 14h5" strokeLinecap="round" />
@@ -46,10 +46,44 @@ const dockItems = [
       </svg>
     ),
   },
+  {
+    id: 'manage-events',
+    label: 'Manage Events',
+    access: 'event-management',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="17" rx="2" />
+        <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
+        <path d="M8 14h4M8 18h8" strokeLinecap="round" />
+        <path d="m16 14 1.5 1.5L21 12" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    id: 'attendance',
+    label: 'Attendance',
+    access: 'event-management',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+        <path d="M9 11l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="4" y="4" width="16" height="16" rx="3" />
+        <path d="M8 2v4M16 2v4M4 9h16" strokeLinecap="round" />
+      </svg>
+    ),
+  },
 ]
 
-function HomeBottomDock({ pageId, onNavigate, canManageMembers = false }) {
-  const visibleDockItems = dockItems.filter((item) => !item.leaderOnly || canManageMembers)
+function HomeBottomDock({
+  pageId,
+  onNavigate,
+  canManageMembers = false,
+  canManageEvents = false,
+}) {
+  const visibleDockItems = dockItems.filter((item) => {
+    if (item.access === 'member-management') return canManageMembers
+    if (item.access === 'event-management') return canManageEvents
+    return true
+  })
 
   function handleClick(itemId) {
     if (itemId === 'overview') {
@@ -60,6 +94,10 @@ function HomeBottomDock({ pageId, onNavigate, canManageMembers = false }) {
       onNavigate?.('member-approval')
     } else if (itemId === 'join-form') {
       onNavigate?.('join-form')
+    } else if (itemId === 'manage-events') {
+      onNavigate?.('manage-events')
+    } else if (itemId === 'attendance') {
+      onNavigate?.('attendance')
     }
   }
 
@@ -68,6 +106,8 @@ function HomeBottomDock({ pageId, onNavigate, canManageMembers = false }) {
     if (itemId === 'ranking') return pageId === 'club-ranking'
     if (itemId === 'member-approval') return pageId === 'member-approval'
     if (itemId === 'join-form') return pageId === 'join-form'
+    if (itemId === 'manage-events') return pageId === 'manage-events'
+    if (itemId === 'attendance') return pageId === 'attendance'
     return false
   }
 

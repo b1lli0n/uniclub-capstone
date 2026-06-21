@@ -14,6 +14,7 @@ import EventsPage from '../pages/home/EventsPage'
 import EventDetailPage from '../pages/home/EventDetailPage'
 import ClubDetailPage from '../pages/home/ClubDetailPage'
 import ClubEventsPage from '../pages/home/ClubEventsPage'
+import ClubEventManagementPage from '../pages/home/ClubEventManagementPage'
 import ClubRankingPage from '../pages/home/ClubRankingPage'
 import ClubJoinRequestsPage from '../pages/home/ClubJoinRequestsPage'
 import ClubJoinFormPage from '../pages/home/ClubJoinFormPage'
@@ -26,11 +27,19 @@ function canManageClubMembers(clubId) {
   return membership?.role?.toLowerCase() === 'leader'
 }
 
+function canManageClubEvents(clubId) {
+  const membership = MY_CLUB_MEMBERSHIPS.find((item) => item.clubId === clubId)
+  const role = membership?.role?.toLowerCase()
+
+  return role === 'leader' || role === 'event management'
+}
+
 function ProtectedLayout({
   pageId,
   activeItem = null,
   clubId = null,
   canManageMembers = false,
+  canManageEvents = false,
   children,
 }) {
   const navigate = useNavigate()
@@ -52,6 +61,7 @@ function ProtectedLayout({
     else if (screen === 'club-ranking') navigate(clubId ? `/clubs/${clubId}/ranking` : '/club-ranking')
     else if (screen === 'member-approval' && clubId) navigate(`/clubs/${clubId}/join-requests`)
     else if (screen === 'join-form' && clubId) navigate(`/clubs/${clubId}/join-form`)
+    else if (screen === 'manage-events' && clubId) navigate(`/clubs/${clubId}/manage-events`)
     else navigate('/')
   }
 
@@ -67,6 +77,7 @@ function ProtectedLayout({
       onNavigate={handleNavigate}
       onLogout={handleLogout}
       canManageMembers={canManageMembers}
+      canManageEvents={canManageEvents}
     >
       {children}
     </HomeLayout>
@@ -77,6 +88,7 @@ function ClubDetailRoute() {
   const { clubId } = useParams()
   const navigate = useNavigate()
   const canManageMembers = canManageClubMembers(clubId)
+  const canManageEvents = canManageClubEvents(clubId)
 
   return (
     <ProtectedLayout
@@ -84,6 +96,7 @@ function ClubDetailRoute() {
       activeItem="clubs"
       clubId={clubId}
       canManageMembers={canManageMembers}
+      canManageEvents={canManageEvents}
     >
       <ClubDetailPage
         key={clubId}
@@ -97,6 +110,7 @@ function ClubDetailRoute() {
 function ClubRankingRoute() {
   const { clubId } = useParams()
   const canManageMembers = canManageClubMembers(clubId)
+  const canManageEvents = canManageClubEvents(clubId)
 
   return (
     <ProtectedLayout
@@ -104,6 +118,7 @@ function ClubRankingRoute() {
       activeItem="clubs"
       clubId={clubId}
       canManageMembers={canManageMembers}
+      canManageEvents={canManageEvents}
     >
       <ClubRankingPage clubId={clubId} />
     </ProtectedLayout>
@@ -113,6 +128,7 @@ function ClubRankingRoute() {
 function ClubJoinRequestsRoute() {
   const { clubId } = useParams()
   const canManageMembers = canManageClubMembers(clubId)
+  const canManageEvents = canManageClubEvents(clubId)
 
   if (!canManageMembers) {
     return <Navigate to={`/clubs/${clubId}`} replace />
@@ -124,6 +140,7 @@ function ClubJoinRequestsRoute() {
       activeItem="clubs"
       clubId={clubId}
       canManageMembers={canManageMembers}
+      canManageEvents={canManageEvents}
     >
       <ClubJoinRequestsPage clubId={clubId} />
     </ProtectedLayout>
@@ -133,6 +150,7 @@ function ClubJoinRequestsRoute() {
 function ClubJoinFormRoute() {
   const { clubId } = useParams()
   const canManageMembers = canManageClubMembers(clubId)
+  const canManageEvents = canManageClubEvents(clubId)
 
   if (!canManageMembers) {
     return <Navigate to={`/clubs/${clubId}`} replace />
@@ -144,6 +162,7 @@ function ClubJoinFormRoute() {
       activeItem="clubs"
       clubId={clubId}
       canManageMembers={canManageMembers}
+      canManageEvents={canManageEvents}
     >
       <ClubJoinFormPage clubId={clubId} />
     </ProtectedLayout>
@@ -153,6 +172,7 @@ function ClubJoinFormRoute() {
 function ClubEventsRoute() {
   const { clubId } = useParams()
   const canManageMembers = canManageClubMembers(clubId)
+  const canManageEvents = canManageClubEvents(clubId)
 
   return (
     <ProtectedLayout
@@ -160,8 +180,31 @@ function ClubEventsRoute() {
       activeItem="clubs"
       clubId={clubId}
       canManageMembers={canManageMembers}
+      canManageEvents={canManageEvents}
     >
       <ClubEventsPage />
+    </ProtectedLayout>
+  )
+}
+
+function ClubEventManagementRoute() {
+  const { clubId } = useParams()
+  const canManageMembers = canManageClubMembers(clubId)
+  const canManageEvents = canManageClubEvents(clubId)
+
+  if (!canManageEvents) {
+    return <Navigate to={`/clubs/${clubId}`} replace />
+  }
+
+  return (
+    <ProtectedLayout
+      pageId="manage-events"
+      activeItem="clubs"
+      clubId={clubId}
+      canManageMembers={canManageMembers}
+      canManageEvents={canManageEvents}
+    >
+      <ClubEventManagementPage clubId={clubId} />
     </ProtectedLayout>
   )
 }
@@ -174,7 +217,9 @@ function AppRouter() {
     <Routes>
       <Route
         path="/login"
-        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
+        element={
+          isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
+        }
       />
 
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -262,11 +307,6 @@ function AppRouter() {
         }
       />
 
-      <Route path="/clubs/:clubId/ranking" element={<ClubRankingRoute />} />
-      <Route path="/clubs/:clubId/join-requests" element={<ClubJoinRequestsRoute />} />
-      <Route path="/clubs/:clubId/join-form" element={<ClubJoinFormRoute />} />
-      <Route path="/clubs/:clubId/events" element={<ClubEventsRoute />} />
-
       <Route
         path="/clubs/:clubId/events/:eventId"
         element={
@@ -276,6 +316,11 @@ function AppRouter() {
         }
       />
 
+      <Route path="/clubs/:clubId/ranking" element={<ClubRankingRoute />} />
+      <Route path="/clubs/:clubId/join-requests" element={<ClubJoinRequestsRoute />} />
+      <Route path="/clubs/:clubId/join-form" element={<ClubJoinFormRoute />} />
+      <Route path="/clubs/:clubId/manage-events" element={<ClubEventManagementRoute />} />
+      <Route path="/clubs/:clubId/events" element={<ClubEventsRoute />} />
       <Route path="/clubs/:clubId" element={<ClubDetailRoute />} />
 
       <Route

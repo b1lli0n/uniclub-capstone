@@ -14,6 +14,7 @@ function HomeLayout({
   onLogout,
   currentUser,
   canManageMembers = false,
+  canManageEvents = false,
 }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
@@ -128,13 +129,16 @@ function HomeLayout({
         {pageId === 'club-detail' ||
         pageId === 'club-ranking' ||
         pageId === 'member-approval' ||
-        pageId === 'join-form' ? (
+        pageId === 'join-form' ||
+        pageId === 'manage-events' ||
+        pageId === 'attendance' ? (
           <>
             <div className="home-bottom-dock-spacer" aria-hidden="true" />
             <HomeBottomDock
               pageId={pageId}
               onNavigate={onNavigate}
               canManageMembers={canManageMembers}
+              canManageEvents={canManageEvents}
             />
           </>
         ) : null}
