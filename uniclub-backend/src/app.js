@@ -9,6 +9,7 @@ require("./config/passport");
 
 const profileRoutes = require("./routes/profile.routes");
 
+const clubMembershipRoutes = require("./routes/member/clubMembership.routes");
 
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
@@ -35,12 +36,15 @@ app.use("/api/auth", authRoutes);
 
 app.use("/api/profile", profileRoutes);
 
+app.use("/api/member/clubs-membership", clubMembershipRoutes);
+
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
     message: "Welcome to Uniclub backend API",
   });
 });
+
 
 app.use(notFound);
 app.use(errorHandler);

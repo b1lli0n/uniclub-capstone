@@ -32,8 +32,8 @@ const verifyToken = (req, res, next) => {
 };
 
 /**
- * Middleware để check role (admin hoặc student)
- * Usage: protect(["admin"]) hoặc protect(["admin", "student"])
+ * Middleware check role hệ thống
+ * Usage: protect(["student"]) hoặc protect(["student", "student_affairs"])
  */
 const protect = (allowedRoles = []) => {
   return (req, res, next) => {

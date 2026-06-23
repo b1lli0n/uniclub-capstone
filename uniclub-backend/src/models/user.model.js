@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
-const Schema = mongoose.Schema
+const Schema = mongoose.Schema;
 
-// Schema lưu user đăng nhập từ nhiều nhà cung cấp, ví dụ Google và FEID.
 const userSchema = Schema(
   {
     full_name: {
@@ -12,23 +11,19 @@ const userSchema = Schema(
 
     email: {
       type: String,
-      required: false,
       trim: true,
       lowercase: true,
-      unique: true,
-      sparse: true,
     },
 
     avatar_url: {
       type: String,
-      required: false,
-      default: null,
+      default: "",
     },
 
     provider: {
       type: String,
       required: true,
-      enum: ["google", "feid"],
+      enum: ["google", "feId"],
     },
 
     provider_id: {
@@ -45,17 +40,16 @@ const userSchema = Schema(
 
     status: {
       type: String,
-      required: false,
       enum: ["active", "inactive", "blocked"],
       default: "active",
     },
   },
   {
-    timestamps: true
+    timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
   }
 );
 
-// Một user chỉ được gắn duy nhất với một provider_id theo từng provider.
+userSchema.index({ email: 1 });
 userSchema.index({ provider: 1, provider_id: 1 }, { unique: true });
 
 module.exports = mongoose.model("User", userSchema);
