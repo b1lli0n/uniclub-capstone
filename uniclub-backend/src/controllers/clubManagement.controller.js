@@ -102,6 +102,79 @@ const updateClubStatus = async (req, res) => {
   }
 };
 
+// UC-13
+const getClubCreationRequestList = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const result =
+      await clubCreationRequestService.getClubCreationRequestList(
+        {
+          query: req.query,
+        }
+      );
+
+    return res.status(200).json({
+      success: true,
+      data: result.requests,
+      pagination: result.pagination,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// UC-14
+const getClubCreationRequestDetail = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const result =
+      await clubCreationRequestService.getClubCreationRequestDetail(
+        {
+          requestId: req.params.id,
+        }
+      );
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// UC-15
+const reviewClubCreationRequest = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const result =
+      await clubCreationRequestService.reviewClubCreationRequest(
+        {
+          requestId: req.params.id,
+          status: req.body.status,
+          reviewNote: req.body.review_note,
+          reviewerId: req.user._id,
+        }
+      );
+
+    return res.status(200).json({
+      success: true,
+      message: `Request ${result.status} successfully`,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 module.exports = {
   getClubList,
@@ -109,4 +182,7 @@ module.exports = {
   getClubMembers,
   assignManagementRole,
   updateClubStatus,
+  getClubCreationRequestList,
+  getClubCreationRequestDetail,
+  reviewClubCreationRequest,
 };

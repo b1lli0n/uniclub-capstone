@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Club = require("../models/club.model");
 const ClubMember = require("../models/club_members.model");
 const Profile = require("../models/profile.model");
+const ClubCreationRequest = require("../models/club_creation_requests.model");
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -383,10 +384,166 @@ const updateClubStatus = async ({ clubId, status }) => {
   return updatedClub;
 };
 
+// UC-13 View Club Creation Request List
+const getClubCreationRequestList = async ({ query }) => {
+  const {
+    page = 1,
+    limit = 10,
+    search,
+    status,
+    sortBy = "newest",
+  } = query;
+
+  const pageNumber = Math.max(Number(page), 1);
+  const limitNumber = Math.max(Number(limit), 1);
+  const skip = (pageNumber - 1) * limitNumber;
+
+  const filter = {};
+
+  // Search
+  if (search?.trim()) {
+    filter.$or = [
+      {
+        club_name: {
+          $regex: search.trim(),
+          $options: "i",
+        },
+      },
+      {
+        reason: {
+          $regex: search.trim(),
+          $options: "i",
+        },
+      },
+    ];
+  }
+
+  // Filter
+  if (status) {
+    if (!["pending", "approved", "rejected"].includes(status)) {
+      const error = new Error("Invalid request status");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    filter.status = status;
+  }
+
+  // Sort
+  let sortOption = { created_at: -1 };
+
+  if (sortBy === "oldest") {
+    sortOption = { created_at: 1 };
+  }
+
+  if (sortBy === "club_name_asc") {
+    sortOption = { club_name: 1 };
+  }
+
+  if (sortBy === "club_name_desc") {
+    sortOption = { club_name: -1 };
+  }
+
+  const [requests, total] = await Promise.all([
+    ClubCreationRequest.find(filter)
+      .populate("requested_by", "full_name email")
+      .populate("reviewed_by", "full_name email")
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limitNumber)
+      .lean(),
+
+    ClubCreationRequest.countDocuments(filter),
+  ]);
+
+  return {
+    requests,
+    pagination: {
+      page: pageNumber,
+      limit: limitNumber,
+      total,
+      total_pages: Math.ceil(total / limitNumber),
+    },
+  };
+};
+
+// UC-14 View Club Creation Request Detail
+const getClubCreationRequestDetail = async ({ requestId }) => {
+  const request = await ClubCreationRequest.findById(requestId)
+    .populate(
+      "requested_by",
+      "full_name email avatar_url student_code"
+    )
+    .populate(
+      "member_ids",
+      "full_name email avatar_url student_code"
+    )
+    .populate(
+      "reviewed_by",
+      "full_name email"
+    )
+    .lean();
+
+  if (!request) {
+    const error = new Error("Club creation request not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return request;
+};
+
+// UC-15 Approve / Reject Club Creation Request
+const reviewClubCreationRequest = async ({
+  requestId,
+  status,
+  reviewNote,
+  reviewerId,
+}) => {
+  if (!["approved", "rejected"].includes(status)) {
+    const error = new Error(
+      "Status must be approved or rejected"
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const request =
+    await ClubCreationRequest.findById(requestId);
+
+  if (!request) {
+    const error = new Error(
+      "Club creation request not found"
+    );
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (request.status !== "pending") {
+    const error = new Error(
+      "Request has already been reviewed"
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  request.status = status;
+  request.review_note = reviewNote;
+  request.reviewed_by = reviewerId;
+  request.reviewed_at = new Date();
+
+  await request.save();
+
+  return request;
+};
+
 module.exports = {
   getClubList,
   getClubDetail,
   getClubMembers,
   assignManagementRole,
   updateClubStatus,
+  getClubCreationRequestList,
+  getClubCreationRequestDetail,
+  reviewClubCreationRequest,
 };

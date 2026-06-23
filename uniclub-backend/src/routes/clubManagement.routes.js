@@ -43,4 +43,27 @@ router.patch(
   clubManagementController.updateClubStatus
 );
 
+// UC-13 View Club Creation Request List
+router.get(
+  "/club-creation-requests",
+  verifyToken,
+  protect(["student_affairs"]),
+  clubManagementController.getClubCreationRequestList
+);
+
+// UC-14 View Club Creation Request Detail
+router.get(
+  "/club-creation-requests/:id",
+  verifyToken,
+  protect(["student_affairs"]),
+  clubManagementController.getClubCreationRequestDetail
+);
+
+// UC-15 Approve/Reject Club Creation Request
+router.patch(
+  "/club-creation-requests/:id/review",
+  verifyToken,
+  protect(["student_affairs"]),
+  clubManagementController.reviewClubCreationRequest
+);
 module.exports = router;
