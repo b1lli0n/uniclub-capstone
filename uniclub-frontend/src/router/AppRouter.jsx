@@ -72,6 +72,7 @@ function ClubDetailRoute() {
   return (
     <ProtectedLayout pageId="club-detail" activeItem="clubs">
       <ClubDetailPage
+        key={clubId}
         clubId={clubId}
         onBack={() => navigate('/clubs')}
       />
