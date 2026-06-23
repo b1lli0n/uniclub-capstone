@@ -5,7 +5,12 @@ const passport = require("passport");
 const cookieParser = require("cookie-parser");
 
 const authRoutes = require("./routes/auth.routes");
+<<<<<<< HEAD
 const clubDiscoveryRoutes = require("./routes/clubDiscovery.routes");
+=======
+const clubManagementRoutes = require("./routes/clubManagement.routes");
+
+>>>>>>> feature/be-club-management
 require("./config/passport");
 
 const profileRoutes = require("./routes/profile.routes");
@@ -27,6 +32,8 @@ app.use(
   })
 );
 
+
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
@@ -43,6 +50,8 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/member/clubs-membership", clubMembershipRoutes);
 
 app.use("/api/student/clubs-membership", studentClubMembershipRoutes);
+
+app.use("/api/club-management", clubManagementRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
