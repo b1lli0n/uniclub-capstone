@@ -5,6 +5,7 @@ const passport = require("passport");
 const cookieParser = require("cookie-parser");
 
 const authRoutes = require("./routes/auth.routes");
+const clubDiscoveryRoutes = require("./routes/clubDiscovery.routes");
 require("./config/passport");
 
 const profileRoutes = require("./routes/profile.routes");
@@ -35,6 +36,7 @@ app.use(passport.initialize());
 
 app.use("/auth", authRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/clubs", clubDiscoveryRoutes);
 
 app.use("/api/profile", profileRoutes);
 
