@@ -1,21 +1,19 @@
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
+x
 const passport = require("passport");
 const cookieParser = require("cookie-parser");
 
 const authRoutes = require("./routes/auth.routes");
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 const clubDiscoveryRoutes = require("./routes/clubDiscovery.routes");
-=======
 const clubManagementRoutes = require("./routes/clubManagement.routes");
 
->>>>>>> feature/be-club-management
-=======
+
 const clubMemberRoutes = require("./routes/clubMember.routes");
 
->>>>>>> feature/be-member-management
+
 require("./config/passport");
 
 const profileRoutes = require("./routes/profile.routes");
@@ -23,6 +21,8 @@ const profileRoutes = require("./routes/profile.routes");
 const clubMembershipRoutes = require("./routes/member/clubMembership.routes");
 
 const studentClubMembershipRoutes = require("./routes/student/clubMembership.routes");
+
+const presidentJoinRequestManagementRoutes = require("./routes/president/joinRequestManagement.routes");
 
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
@@ -67,6 +67,9 @@ app.get("/", (req, res) => {
     message: "Welcome to Uniclub backend API",
   });
 });
+
+app.get("/api/v1/health", getHealth);
+app.use("/api/president/join-request-management", presidentJoinRequestManagementRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
