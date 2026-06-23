@@ -35,7 +35,6 @@ const userSchema = Schema(
       type: String,
       required: true,
       enum: ["student", "student_affairs"],
-      default: "student",
     },
 
     status: {

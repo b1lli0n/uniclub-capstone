@@ -11,6 +11,8 @@ const profileRoutes = require("./routes/profile.routes");
 
 const clubMembershipRoutes = require("./routes/member/clubMembership.routes");
 
+const studentClubMembershipRoutes = require("./routes/student/clubMembership.routes");
+
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
 const env = require("./config/env");
@@ -38,13 +40,14 @@ app.use("/api/profile", profileRoutes);
 
 app.use("/api/member/clubs-membership", clubMembershipRoutes);
 
+app.use("/api/student/clubs-membership", studentClubMembershipRoutes);
+
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
     message: "Welcome to Uniclub backend API",
   });
 });
-
 
 app.use(notFound);
 app.use(errorHandler);
