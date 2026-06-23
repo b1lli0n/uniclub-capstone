@@ -77,7 +77,8 @@ body:has(.home-shell) #root {
 }
 
 .home-shell__main--club-detail,
-.home-shell__main--club-ranking {
+.home-shell__main--club-ranking,
+.home-shell__main--member-approval {
   background: #eef1f5;
 }
 

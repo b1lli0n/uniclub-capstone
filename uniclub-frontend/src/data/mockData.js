@@ -516,6 +516,60 @@ export const MY_REQUEST_ITEMS = [
   },
 ]
 
+// Leader club join request data.
+// BE note: replace with GET /clubs/:clubId/join-requests and approve/reject mutations.
+export const CLUB_JOIN_REQUEST_STATUS_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
+]
+
+export const CLUB_JOIN_REQUESTS = [
+  {
+    id: 'join-basketball-001',
+    clubId: 'basketball',
+    applicantName: 'Phan Thi Tam',
+    email: 'phanthitam@fpt.edu.vn',
+    submittedAt: '21:16:59 1/4/2026',
+    status: 'pending',
+    requestedRole: 'Member',
+    reason: 'I want to join training sessions and improve teamwork through basketball activities.',
+    answers: [
+      { question: 'Question 1', answer: 'I have played basketball for two semesters.' },
+      { question: 'Question 2', answer: 'I can join practice every Friday evening.' },
+    ],
+  },
+  {
+    id: 'join-basketball-002',
+    clubId: 'basketball',
+    applicantName: 'Pham Huong D',
+    email: 'phamhuongd@fpt.edu.vn',
+    submittedAt: '21:16:59 1/4/2026',
+    status: 'approved',
+    requestedRole: 'Member',
+    reason: 'I would like to help organize club activities and support new members.',
+    answers: [
+      { question: 'Question 1', answer: 'I joined several school sport events before.' },
+      { question: 'Question 2', answer: 'I can support event check-in and logistics.' },
+    ],
+  },
+  {
+    id: 'join-basketball-003',
+    clubId: 'basketball',
+    applicantName: 'Tran Thi B',
+    email: 'tranthib@fpt.edu.vn',
+    submittedAt: '21:16:59 1/4/2026',
+    status: 'rejected',
+    requestedRole: 'Member',
+    reason: 'I want to join the club to meet students with the same sports interest.',
+    answers: [
+      { question: 'Question 1', answer: 'I am a beginner but willing to practice.' },
+      { question: 'Question 2', answer: 'I am available on weekends.' },
+    ],
+  },
+]
+
 // Club ranking data
 export const CLUB_RANKING_PERIOD_OPTIONS = [
   { value: '2026-03', label: 'March 2026' },

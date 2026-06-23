@@ -6,7 +6,15 @@ import HomeUserMenuDropdown from '../components/home/HomeUserMenuDropdown'
 import fptUniversityLogo from '../assets/Logo-Dai-hoc-FPT.webp'
 import '../styles/home.css'
 
-function HomeLayout({ children, activeItem, pageId, onNavigate, onLogout, currentUser }) {
+function HomeLayout({
+  children,
+  activeItem,
+  pageId,
+  onNavigate,
+  onLogout,
+  currentUser,
+  canManageMembers = false,
+}) {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const userMenuRef = useRef(null)
@@ -117,10 +125,14 @@ function HomeLayout({ children, activeItem, pageId, onNavigate, onLogout, curren
           {children}
         </div>
 
-        {pageId === 'club-detail' || pageId === 'club-ranking' ? (
+        {pageId === 'club-detail' || pageId === 'club-ranking' || pageId === 'member-approval' ? (
           <>
             <div className="home-bottom-dock-spacer" aria-hidden="true" />
-            <HomeBottomDock pageId={pageId} onNavigate={onNavigate} />
+            <HomeBottomDock
+              pageId={pageId}
+              onNavigate={onNavigate}
+              canManageMembers={canManageMembers}
+            />
           </>
         ) : null}
 
