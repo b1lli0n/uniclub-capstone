@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { HomeLayout } from '../../layouts'
 import ClubDetailScreen from './ClubDetailScreen'
 import ClubRankingScreen from './ClubRankingScreen'
@@ -9,8 +9,7 @@ import HomeMainScreen from './HomeMainScreen'
 import MyClubsScreen from './MyClubsScreen'
 import MyProfileScreen from './MyProfileScreen'
 import MyRequestsScreen from './MyRequestsScreen'
-// Mock data import: replace with API data when BE is ready.
-import { CURRENT_USER } from '../../data/mockData'
+import { getMyProfile } from '../../api/profile.api'
 
 const HOME_SCREEN = {
   MAIN: 'home',
@@ -28,7 +27,35 @@ function HomeShellScreen({ onLogout }) {
   const [activeScreen, setActiveScreen] = useState(HOME_SCREEN.MAIN)
   const [selectedClubId, setSelectedClubId] = useState(null)
   const [detailBackScreen, setDetailBackScreen] = useState(HOME_SCREEN.MAIN)
-  const currentUser = CURRENT_USER
+  const [currentUser, setCurrentUser] = useState({
+    fullName: 'Loading...',
+    email: '',
+    avatarUrl: '',
+    avatarInitial: 'U',
+  })
+
+  useEffect(() => {
+    let active = true
+    async function loadUser() {
+      try {
+        const res = await getMyProfile()
+        if (active) {
+          const user = res.data.user
+          setCurrentUser({
+            id: user._id,
+            fullName: user.full_name || '',
+            email: user.email || '',
+            avatarUrl: user.avatar_url || '',
+            avatarInitial: user.full_name?.slice(0, 1).toUpperCase() || 'U',
+          })
+        }
+      } catch (err) {
+        console.error("Failed to load user profile in header:", err)
+      }
+    }
+    loadUser()
+    return () => { active = false }
+  }, [])
 
   const activeItem =
     activeScreen === HOME_SCREEN.CLUBS ||

@@ -11,38 +11,6 @@ router.get(
   clubManagementController.getClubList
 );
 
-
-router.get(
-  "/:clubId",
-  verifyToken,
-  protect(["student_affairs"]),
-  clubManagementController.getClubDetail
-);
-
-
-router.get(
-  "/:clubId/members",
-  verifyToken,
-  protect(["student_affairs"]),
-  clubManagementController.getClubMembers
-);
-
-
-router.patch(
-  "/:clubId/members/:memberId/role",
-  verifyToken,
-  protect(["student_affairs"]),
-  clubManagementController.assignManagementRole
-);
-
-
-router.patch(
-  "/:clubId/status",
-  verifyToken,
-  protect(["student_affairs"]),
-  clubManagementController.updateClubStatus
-);
-
 // UC-13 View Club Creation Request List
 router.get(
   "/club-creation-requests",
@@ -66,4 +34,33 @@ router.patch(
   protect(["student_affairs"]),
   clubManagementController.reviewClubCreationRequest
 );
+
+router.get(
+  "/:clubId",
+  verifyToken,
+  protect(["student_affairs"]),
+  clubManagementController.getClubDetail
+);
+
+router.get(
+  "/:clubId/members",
+  verifyToken,
+  protect(["student_affairs"]),
+  clubManagementController.getClubMembers
+);
+
+router.patch(
+  "/:clubId/members/:memberId/role",
+  verifyToken,
+  protect(["student_affairs"]),
+  clubManagementController.assignManagementRole
+);
+
+router.patch(
+  "/:clubId/status",
+  verifyToken,
+  protect(["student_affairs"]),
+  clubManagementController.updateClubStatus
+);
+
 module.exports = router;

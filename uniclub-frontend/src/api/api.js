@@ -1,4 +1,12 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+
+export function toQueryString(params) {
+  if (!params) return ''
+  const search = new URLSearchParams(
+    Object.entries(params).filter(([, value]) => value != null && value !== ''),
+  ).toString()
+  return search ? `?${search}` : ''
+}
 
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem('token')

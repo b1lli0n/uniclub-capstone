@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react'
-// Mock data import: replace with API data when BE is ready.
+import { useEffect, useMemo, useState } from 'react'
+import { getMyClubs } from '../../api/memberClubMembership.api'
+import { mapMyClubFromApi } from '../../api/clubMappers'
 import {
   CLUB_FILTER_CATEGORIES,
   CLUB_SORT_OPTIONS,
   CLUBS_PER_PAGE,
-  MY_CLUB_ITEMS,
 } from '../../data/mockData'
 import ClubLogo from '../../components/home/ClubLogo'
 import '../../styles/clubs.css'
@@ -174,13 +174,39 @@ function MyClubCard({ club, onSelect }) {
 }
 
 function MyClubsPage({ onSelectClub }) {
+  const [clubs, setClubs] = useState([])
+  const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('all')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('default')
   const [page, setPage] = useState(1)
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadMyClubs() {
+      setLoading(true)
+      try {
+        const response = await getMyClubs()
+        if (!cancelled) {
+          setClubs((response.data || []).map((membership) => mapMyClubFromApi(membership)))
+        }
+      } catch (error) {
+        console.error(error)
+        if (!cancelled) setClubs([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadMyClubs()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const filteredClubs = useMemo(() => {
-    let result = [...MY_CLUB_ITEMS]
+    let result = [...clubs]
 
     if (activeCategory !== 'all') {
       result = result.filter((club) => club.category === activeCategory)
@@ -205,7 +231,7 @@ function MyClubsPage({ onSelectClub }) {
     }
 
     return result
-  }, [activeCategory, search, sort])
+  }, [clubs, activeCategory, search, sort])
 
   const totalPages = Math.max(1, Math.ceil(filteredClubs.length / CLUBS_PER_PAGE))
   const currentPage = Math.min(page, totalPages)
@@ -282,12 +308,15 @@ function MyClubsPage({ onSelectClub }) {
         </header>
 
         <div className="clubs-grid">
-          {pageClubs.map((club) => (
-            <MyClubCard key={club.id} club={club} onSelect={onSelectClub} />
-          ))}
+          {loading ? <p className="clubs-empty">Loading your clubs...</p> : null}
+          {!loading
+            ? pageClubs.map((club) => (
+                <MyClubCard key={club.id} club={club} onSelect={onSelectClub} />
+              ))
+            : null}
         </div>
 
-        {filteredClubs.length === 0 ? (
+        {filteredClubs.length === 0 && !loading ? (
           <div className="clubs-empty my-clubs-empty">
             No joined clubs match your current filters.
           </div>

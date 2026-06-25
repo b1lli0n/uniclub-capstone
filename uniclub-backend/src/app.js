@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-x
+
 const passport = require("passport");
 const cookieParser = require("cookie-parser");
 
@@ -61,6 +61,8 @@ app.use("/api/club-management", clubManagementRoutes);
 
 app.use("/api/club-members", clubMemberRoutes);
 
+app.use("/api/president/join-request-management", presidentJoinRequestManagementRoutes);
+
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
@@ -68,8 +70,7 @@ app.get("/", (req, res) => {
   });
 });
 
-app.get("/api/v1/health", getHealth);
-app.use("/api/president/join-request-management", presidentJoinRequestManagementRoutes);
+
 
 app.use(notFound);
 app.use(errorHandler);

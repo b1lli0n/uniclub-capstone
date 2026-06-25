@@ -1,13 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { getClubById } from '../../api/club.api'
+import { getMyClubs } from '../../api/memberClubMembership.api'
 import {
-  ALL_CLUBS,
-  CLUB_JOIN_REQUESTS,
-  CLUB_JOIN_REQUEST_STATUS_OPTIONS,
-  MY_CLUB_MEMBERSHIPS,
-} from '../../data/mockData'
+  approveJoinRequest,
+  getClubJoinRequestDetail,
+  getClubJoinRequests,
+  rejectJoinRequest,
+} from '../../api/joinRequestManagement.api'
+import { mapClubFromApi, mapPresidentJoinRequestFromApi } from '../../api/clubMappers'
+import { CLUB_JOIN_REQUEST_STATUS_OPTIONS } from '../../data/mockData'
 import '../../styles/club-join-requests.css'
-
-const CLUB_FALLBACK = ALL_CLUBS[0]
 
 function getStatusLabel(status) {
   return status.charAt(0).toUpperCase() + status.slice(1)
@@ -23,33 +25,108 @@ function getInitials(name) {
 }
 
 function ClubJoinRequestsPage({ clubId }) {
-  const club = ALL_CLUBS.find((item) => item.id === clubId) || CLUB_FALLBACK
-  const membership = MY_CLUB_MEMBERSHIPS.find((item) => item.clubId === club.id)
-  const canApproveMembers = membership?.role?.toLowerCase() === 'leader'
+  const [club, setClub] = useState(null)
+  const [canApproveMembers, setCanApproveMembers] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
   const [statusMenuOpen, setStatusMenuOpen] = useState(false)
   const [detailRequest, setDetailRequest] = useState(null)
-  const [requests, setRequests] = useState(() =>
-    CLUB_JOIN_REQUESTS.filter((request) => request.clubId === club.id)
-  )
+  const [requests, setRequests] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadPageData() {
+      setLoading(true)
+      try {
+        const [clubResponse, myClubsResponse, requestsResponse] = await Promise.all([
+          getClubById(clubId),
+          getMyClubs(),
+          getClubJoinRequests(clubId, {
+            status: statusFilter !== 'all' ? statusFilter : undefined,
+          }),
+        ])
+
+        if (cancelled) return
+
+        setClub(mapClubFromApi(clubResponse.data))
+
+        const membership = (myClubsResponse.data || []).find((item) => {
+          const id = item.club_id?._id || item.club_id
+          return String(id) === String(clubId)
+        })
+        setCanApproveMembers(membership?.role === 'president')
+
+        setRequests(
+          (requestsResponse.data || []).map((request) => mapPresidentJoinRequestFromApi(request)),
+        )
+      } catch (error) {
+        console.error(error)
+        if (!cancelled) {
+          setClub(null)
+          setRequests([])
+          setCanApproveMembers(false)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadPageData()
+    return () => {
+      cancelled = true
+    }
+  }, [clubId, statusFilter])
+
   const selectedStatus =
     CLUB_JOIN_REQUEST_STATUS_OPTIONS.find((option) => option.value === statusFilter) ||
     CLUB_JOIN_REQUEST_STATUS_OPTIONS[0]
 
-  const visibleRequests = useMemo(() => {
-    if (statusFilter === 'all') return requests
-    return requests.filter((request) => request.status === statusFilter)
-  }, [requests, statusFilter])
+  const visibleRequests = useMemo(() => requests, [requests])
 
-  function updateRequestStatus(requestId, nextStatus) {
-    // BE hook: call approve/reject API here, then refresh join request data.
-    setRequests((items) =>
-      items.map((item) =>
-        item.id === requestId ? { ...item, status: nextStatus } : item
+  async function refreshRequests() {
+    const response = await getClubJoinRequests(clubId, {
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+    })
+    setRequests((response.data || []).map((request) => mapPresidentJoinRequestFromApi(request)))
+  }
+
+  async function updateRequestStatus(requestId, nextStatus) {
+    try {
+      if (nextStatus === 'approved') {
+        await approveJoinRequest(clubId, requestId)
+      } else {
+        await rejectJoinRequest(clubId, requestId)
+      }
+      await refreshRequests()
+      setDetailRequest((request) =>
+        request?.id === requestId ? { ...request, status: nextStatus } : request,
       )
-    )
-    setDetailRequest((request) =>
-      request?.id === requestId ? { ...request, status: nextStatus } : request
+    } catch (error) {
+      console.error(error)
+      alert(error.message)
+    }
+  }
+
+  async function handleViewDetails(request) {
+    try {
+      const response = await getClubJoinRequestDetail(clubId, request.id)
+      const formQuestions = response.data?.form_id?.questions || []
+      setDetailRequest(mapPresidentJoinRequestFromApi(response.data, formQuestions))
+    } catch (error) {
+      console.error(error)
+      setDetailRequest(request)
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="club-join-requests-page">
+        <section className="club-join-requests-empty">
+          <h1>Member Approval</h1>
+          <p>Loading join requests...</p>
+        </section>
+      </main>
     )
   }
 
@@ -68,7 +145,7 @@ function ClubJoinRequestsPage({ clubId }) {
     <main className="club-join-requests-page">
       <section className="club-join-requests-hero">
         <div>
-          <span>{club.name}</span>
+          <span>{club?.name}</span>
           <h1>Member Approval</h1>
           <p>Review join requests and decide who can become a member of this club.</p>
         </div>
@@ -138,7 +215,7 @@ function ClubJoinRequestsPage({ clubId }) {
                 <h2>{request.applicantName}</h2>
                 <p>{request.email}</p>
                 <span>Submitted at {request.submittedAt}</span>
-                <button type="button" onClick={() => setDetailRequest(request)}>
+                <button type="button" onClick={() => handleViewDetails(request)}>
                   View details
                 </button>
               </div>
@@ -197,7 +274,7 @@ function ClubJoinRequestsPage({ clubId }) {
             <div className="club-join-request-modal__header">
               <div>
                 <h2 id="club-join-request-detail-title">Join Request Details</h2>
-                <p>{club.name}</p>
+                <p>{club?.name}</p>
               </div>
               <button type="button" onClick={() => setDetailRequest(null)}>
                 Close

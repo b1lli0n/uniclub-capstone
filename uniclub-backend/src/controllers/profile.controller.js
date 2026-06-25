@@ -1,5 +1,6 @@
 const Profile = require("../models/profile.model");
 const User = require("../models/user.model");
+const mongoose = require("mongoose");
 
 const getMyProfile = async (req, res) => {
   try {
@@ -85,7 +86,48 @@ const updateMyProfile = async (req, res) => {
   }
 };
 
+const searchUsers = async (req, res) => {
+  try {
+    const { q } = req.query;
+    const currentUserId = req.user.id;
+
+    if (!q || q.trim().length < 2) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    const keyword = q.trim();
+    const users = await User.find({
+      _id: { $ne: new mongoose.Types.ObjectId(currentUserId) },
+      status: "active",
+      $or: [
+        { full_name: { $regex: keyword, $options: "i" } },
+        { email: { $regex: keyword, $options: "i" } },
+      ],
+    })
+      .select("_id full_name email avatar_url")
+      .limit(10);
+
+    return res.status(200).json({
+      success: true,
+      data: users.map((u) => ({
+        value: u._id,
+        label: `${u.full_name} (${u.email})`,
+        name: u.full_name,
+        email: u.email,
+        avatarUrl: u.avatar_url || "",
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Search users failed",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getMyProfile,
   updateMyProfile,
+  searchUsers,
 };

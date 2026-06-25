@@ -12,3 +12,6 @@ coverage/
 uploads/*
 !uploads/.gitkeep
 *.pem
+
+# Local dev scripts (seed data, migrations, debug tools)
+scripts/

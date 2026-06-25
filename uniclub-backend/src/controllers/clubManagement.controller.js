@@ -110,7 +110,7 @@ const getClubCreationRequestList = async (
 ) => {
   try {
     const result =
-      await clubCreationRequestService.getClubCreationRequestList(
+      await clubService.getClubCreationRequestList(
         {
           query: req.query,
         }
@@ -134,7 +134,7 @@ const getClubCreationRequestDetail = async (
 ) => {
   try {
     const result =
-      await clubCreationRequestService.getClubCreationRequestDetail(
+      await clubService.getClubCreationRequestDetail(
         {
           requestId: req.params.id,
         }
@@ -157,7 +157,7 @@ const reviewClubCreationRequest = async (
 ) => {
   try {
     const result =
-      await clubCreationRequestService.reviewClubCreationRequest(
+      await clubService.reviewClubCreationRequest(
         {
           requestId: req.params.id,
           status: req.body.status,

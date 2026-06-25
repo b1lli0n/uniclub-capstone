@@ -15,31 +15,67 @@ import ClubRankingPage from '../pages/home/ClubRankingPage'
 import ClubJoinRequestsPage from '../pages/home/ClubJoinRequestsPage'
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 
-import { CURRENT_USER, MY_CLUB_MEMBERSHIPS } from '../data/mockData'
+import { useEffect, useState } from 'react'
+import { getMyProfile } from '../api/profile.api'
+import { getMyClubs } from '../api/memberClubMembership.api'
 
-function canManageClubMembers(clubId) {
-  const membership = MY_CLUB_MEMBERSHIPS.find((item) => item.clubId === clubId)
-  return membership?.role?.toLowerCase() === 'leader'
-}
 
 function ProtectedLayout({
   pageId,
   activeItem = null,
   clubId = null,
-  canManageMembers = false,
   children,
 }) {
   const navigate = useNavigate()
   const isAuthenticated = Boolean(localStorage.getItem('token'))
+  const [currentUser, setCurrentUser] = useState({
+    fullName: 'Loading...',
+    email: '',
+    avatarUrl: '',
+    avatarInitial: 'U',
+  })
+  const [canManageMembers, setCanManageMembers] = useState(false)
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    let active = true
+    async function loadData() {
+      try {
+        const profileRes = await getMyProfile()
+        if (!active) return
+        const user = profileRes.data.user
+        setCurrentUser({
+          id: user._id,
+          fullName: user.full_name || '',
+          email: user.email || '',
+          avatarUrl: user.avatar_url || '',
+          avatarInitial: user.full_name?.slice(0, 1).toUpperCase() || 'U',
+        })
+
+        if (clubId) {
+          const myClubsRes = await getMyClubs()
+          if (!active) return
+          const membership = (myClubsRes.data || []).find((item) => {
+            const id = item.club_id?._id || item.club_id
+            return String(id) === String(clubId)
+          })
+          setCanManageMembers(membership?.role === 'president')
+        } else {
+          setCanManageMembers(false)
+        }
+      } catch (err) {
+        console.error("Failed to load layout data:", err)
+      }
+    }
+    loadData()
+    return () => { active = false }
+  }, [isAuthenticated, clubId])
 
 
 const handleLogout = async () => {
   try {
-    await axios.post(
-      'https://localhost:5000/api/auth/logout',
-      {},
-      { withCredentials: true }
-    )
+    await axios.post('/api/auth/logout', {}, { withCredentials: true })
   } catch (error) {
     console.error(error)
   }
@@ -70,7 +106,7 @@ const handleLogout = async () => {
     <HomeLayout
       activeItem={activeItem}
       pageId={pageId}
-      currentUser={CURRENT_USER}
+      currentUser={currentUser}
       onNavigate={handleNavigate}
       onLogout={handleLogout}
       canManageMembers={canManageMembers}
@@ -83,14 +119,12 @@ const handleLogout = async () => {
 function ClubDetailRoute() {
   const { clubId } = useParams()
   const navigate = useNavigate()
-  const canManageMembers = canManageClubMembers(clubId)
 
   return (
     <ProtectedLayout
       pageId="club-detail"
       activeItem="clubs"
       clubId={clubId}
-      canManageMembers={canManageMembers}
     >
       <ClubDetailPage
         key={clubId}
@@ -103,14 +137,12 @@ function ClubDetailRoute() {
 
 function ClubRankingRoute() {
   const { clubId } = useParams()
-  const canManageMembers = canManageClubMembers(clubId)
 
   return (
     <ProtectedLayout
       pageId="club-ranking"
       activeItem="clubs"
       clubId={clubId}
-      canManageMembers={canManageMembers}
     >
       <ClubRankingPage clubId={clubId} />
     </ProtectedLayout>
@@ -119,18 +151,12 @@ function ClubRankingRoute() {
 
 function ClubJoinRequestsRoute() {
   const { clubId } = useParams()
-  const canManageMembers = canManageClubMembers(clubId)
-
-  if (!canManageMembers) {
-    return <Navigate to={`/clubs/${clubId}`} replace />
-  }
 
   return (
     <ProtectedLayout
       pageId="member-approval"
       activeItem="clubs"
       clubId={clubId}
-      canManageMembers={canManageMembers}
     >
       <ClubJoinRequestsPage clubId={clubId} />
     </ProtectedLayout>
@@ -169,7 +195,7 @@ function AppRouter() {
         path="/profile"
         element={
           <ProtectedLayout pageId="profile">
-            <MyProfilePage currentUser={CURRENT_USER} />
+            <MyProfilePage />
           </ProtectedLayout>
         }
       />

@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const ClubMember = require("../models/club_member.model");
+const ClubMember = require("../models/clubMember.model");
 
 //check club hợp lệ hay không, nếu không hợp lệ thì trả về lỗi 400
 const validateObjectId = (id, message) => {

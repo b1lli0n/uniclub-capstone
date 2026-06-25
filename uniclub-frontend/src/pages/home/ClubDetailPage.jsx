@@ -1,17 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ClubLogo from '../../components/home/ClubLogo'
-// Mock data import: replace with API data when BE is ready.
+import { getClubById } from '../../api/club.api'
+import { removeMember } from '../../api/clubMember.api'
+import { getClubMembers, getMyClubs, leaveClub } from '../../api/memberClubMembership.api'
 import {
-  ALL_CLUBS,
-  CLUB_DETAIL_COPY,
-  CLUB_EVENTS,
-  CLUB_MEMBERS,
-  JOIN_FORM_QUESTIONS,
-  MY_CLUB_MEMBERSHIPS,
-} from '../../data/mockData'
+  getClubJoinForm,
+  submitJoinRequest,
+} from '../../api/studentClubMembership.api'
+import { formatRoleLabel, mapClubFromApi, mapMemberFromApi } from '../../api/clubMappers'
+import { CLUB_DETAIL_COPY, CLUB_EVENTS } from '../../data/mockData'
 import '../../styles/club-detail.css'
-
-const CLUB_DETAIL_FALLBACK = ALL_CLUBS[0]
 
 function EventIcon() {
   return (
@@ -27,27 +25,142 @@ function ClubDetailPage({ clubId, onBack }) {
   const [joinModalOpen, setJoinModalOpen] = useState(false)
   const [leaveModalOpen, setLeaveModalOpen] = useState(false)
   const [membersModalOpen, setMembersModalOpen] = useState(false)
-  const [memberRows, setMemberRows] = useState(CLUB_MEMBERS)
-  const club = ALL_CLUBS.find((item) => item.id === clubId) || CLUB_DETAIL_FALLBACK
-  const currentMembership = MY_CLUB_MEMBERSHIPS.find((membership) => membership.clubId === club.id)
+  const [club, setClub] = useState(null)
+  const [memberRows, setMemberRows] = useState([])
+  const [currentMembership, setCurrentMembership] = useState(null)
+  const [joinForm, setJoinForm] = useState(null)
+  const [joinAnswers, setJoinAnswers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadClubDetail() {
+      setLoading(true)
+      try {
+        const [clubResponse, membersResponse, myClubsResponse] = await Promise.all([
+          getClubById(clubId),
+          getClubMembers(clubId).catch(() => ({ data: [] })),
+          getMyClubs().catch(() => ({ data: [] })),
+        ])
+
+        if (cancelled) return
+
+        setClub(mapClubFromApi(clubResponse.data, { memberCount: membersResponse.data?.length }))
+        setMemberRows((membersResponse.data || []).map((member, index) => mapMemberFromApi(member, index)))
+
+        const membership = (myClubsResponse.data || []).find((item) => {
+          const id = item.club_id?._id || item.club_id
+          return String(id) === String(clubId)
+        })
+
+        setCurrentMembership(
+          membership
+            ? {
+                clubId,
+                role: formatRoleLabel(membership.role),
+                rawRole: membership.role,
+              }
+            : null,
+        )
+      } catch (error) {
+        console.error(error)
+        if (!cancelled) {
+          setClub(null)
+          setMemberRows([])
+          setCurrentMembership(null)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadClubDetail()
+    return () => {
+      cancelled = true
+    }
+  }, [clubId])
+
   const isClubMember = Boolean(currentMembership)
-  const canManageMembers = currentMembership?.role?.toLowerCase() === 'leader'
-  const detailDescription = `${club.description}. ${CLUB_DETAIL_COPY.descriptionSuffix}`
+  const canManageMembers = currentMembership?.rawRole === 'president'
+  const detailDescription = club
+    ? `${club.description}. ${CLUB_DETAIL_COPY.descriptionSuffix}`
+    : ''
   const previewMembers = memberRows.slice(0, 4)
 
-  function handleJoinSubmit(event) {
+  async function openJoinModal() {
+    try {
+      const response = await getClubJoinForm(clubId)
+      const form = response.data
+      setJoinForm(form)
+      setJoinAnswers((form.questions || []).map(() => ''))
+      setJoinModalOpen(true)
+    } catch (error) {
+      console.error(error)
+      alert(error.message)
+    }
+  }
+
+  async function handleJoinSubmit(event) {
     event.preventDefault()
-    setJoinModalOpen(false)
+    if (!joinForm) return
+
+    setSubmitting(true)
+    try {
+      await submitJoinRequest(clubId, {
+        form_id: joinForm._id,
+        answers: joinAnswers,
+      })
+      setJoinModalOpen(false)
+      alert('Join request submitted successfully')
+    } catch (error) {
+      console.error(error)
+      alert(error.message)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  function handleLeaveConfirm() {
-    // BE hook: call leave-club API here, then refresh membership data.
-    setLeaveModalOpen(false)
+  async function handleLeaveConfirm() {
+    try {
+      await leaveClub(clubId)
+      setCurrentMembership(null)
+      setLeaveModalOpen(false)
+      onBack?.()
+    } catch (error) {
+      console.error(error)
+      alert(error.message)
+    }
   }
 
-  function handleRemoveMember(memberId) {
-    // BE hook: call remove-member API here, then refresh member data.
-    setMemberRows((members) => members.filter((member) => member.id !== memberId))
+  async function handleRemoveMember(memberId) {
+    try {
+      await removeMember(clubId, memberId)
+      setMemberRows((members) => members.filter((member) => member.id !== memberId))
+    } catch (error) {
+      console.error(error)
+      alert(error.message)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="club-detail-page">
+        <p>Loading club details...</p>
+      </div>
+    )
+  }
+
+  if (!club) {
+    return (
+      <div className="club-detail-page">
+        <button type="button" className="club-product__back" onClick={onBack}>
+          Back
+        </button>
+        <p>Club not found.</p>
+      </div>
+    )
   }
 
   return (
@@ -98,7 +211,7 @@ function ClubDetailPage({ clubId, onBack }) {
                   return
                 }
 
-                setJoinModalOpen(true)
+                openJoinModal()
               }}
             >
               {isClubMember ? 'Leave Club' : 'Join Now'}
@@ -165,15 +278,27 @@ function ClubDetailPage({ clubId, onBack }) {
               <button type="button" onClick={() => setJoinModalOpen(false)} aria-label="Close">X</button>
             </div>
 
-            {JOIN_FORM_QUESTIONS.map((question) => (
-              <label key={question.id} className="club-join-modal__field">
-                <span>{question.label}</span>
-                <textarea placeholder={question.placeholder} rows={3} />
+            {(joinForm?.questions || []).map((question, index) => (
+              <label key={`${question}-${index}`} className="club-join-modal__field">
+                <span>{question}</span>
+                <textarea
+                  placeholder="Your answer"
+                  rows={3}
+                  value={joinAnswers[index] || ''}
+                  onChange={(event) => {
+                    const nextAnswers = [...joinAnswers]
+                    nextAnswers[index] = event.target.value
+                    setJoinAnswers(nextAnswers)
+                  }}
+                  required
+                />
               </label>
             ))}
 
             <div className="club-join-modal__actions">
-              <button type="submit">Submit</button>
+              <button type="submit" disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Submit'}
+              </button>
             </div>
           </form>
         </div>
@@ -233,7 +358,7 @@ function ClubDetailPage({ clubId, onBack }) {
                       <span>{member.role}</span>
                     </div>
                   </div>
-                  {canManageMembers && member.role !== 'Leader' ? (
+                  {canManageMembers && member.rawRole !== 'president' ? (
                     <button
                       type="button"
                       className="club-members-modal__remove"

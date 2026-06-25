@@ -1,19 +1,72 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import '../../styles/my-requests.css'
-// Mock data import: replace with API data when BE is ready.
-import { MY_REQUEST_ITEMS, MY_REQUEST_TABS, REQUEST_STATUS_OPTIONS } from '../../data/mockData'
+import {
+  cancelJoinRequest,
+  getMyJoinRequestDetail,
+  getMyJoinRequests,
+} from '../../api/studentClubMembership.api'
+import { mapJoinRequestFromApi } from '../../api/clubMappers'
+import { MY_REQUEST_TABS, REQUEST_STATUS_OPTIONS } from '../../data/mockData'
 
 function MyRequestsPage() {
+  const [requests, setRequests] = useState([])
+  const [loading, setLoading] = useState(true)
   const [cancelTarget, setCancelTarget] = useState(null)
   const [detailTarget, setDetailTarget] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all')
   const [statusMenuOpen, setStatusMenuOpen] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadRequests() {
+      setLoading(true)
+      try {
+        const response = await getMyJoinRequests({
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+        })
+        if (!cancelled) {
+          setRequests((response.data || []).map((item) => mapJoinRequestFromApi(item)))
+        }
+      } catch (error) {
+        console.error(error)
+        if (!cancelled) setRequests([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadRequests()
+    return () => {
+      cancelled = true
+    }
+  }, [statusFilter])
+
   const selectedStatus =
     REQUEST_STATUS_OPTIONS.find((option) => option.value === statusFilter) || REQUEST_STATUS_OPTIONS[0]
-  const filteredRequests =
-    statusFilter === 'all'
-      ? MY_REQUEST_ITEMS
-      : MY_REQUEST_ITEMS.filter((item) => item.status.toLowerCase() === statusFilter)
+  const filteredRequests = requests
+
+  async function handleConfirmCancel() {
+    if (!cancelTarget) return
+    try {
+      await cancelJoinRequest(cancelTarget.id)
+      setRequests((items) => items.filter((item) => item.id !== cancelTarget.id))
+      setCancelTarget(null)
+    } catch (error) {
+      console.error(error)
+      alert(error.message)
+    }
+  }
+
+  async function handleViewDetails(item) {
+    try {
+      const response = await getMyJoinRequestDetail(item.id)
+      setDetailTarget(mapJoinRequestFromApi(response.data))
+    } catch (error) {
+      console.error(error)
+      setDetailTarget(item)
+    }
+  }
 
   function closeCancelModal() {
     setCancelTarget(null)
@@ -96,7 +149,9 @@ function MyRequestsPage() {
       <div className="my-requests-divider" aria-hidden="true" />
 
       <section className="my-requests-grid" aria-label="Sent requests">
-        {filteredRequests.map((item) => (
+        {loading ? <p>Loading requests...</p> : null}
+        {!loading
+          ? filteredRequests.map((item) => (
           <article key={item.id} className="my-request-card">
             <div className="my-request-card__header">
               <div>
@@ -124,13 +179,14 @@ function MyRequestsPage() {
               <button
                 type="button"
                 className="my-request-card__details"
-                onClick={() => setDetailTarget(item)}
+                onClick={() => handleViewDetails(item)}
               >
                 View Details
               </button>
             </div>
           </article>
-        ))}
+            ))
+          : null}
       </section>
 
       {cancelTarget ? (
@@ -145,7 +201,7 @@ function MyRequestsPage() {
             <h2 id="request-cancel-title">Confirm Request Cancellation</h2>
             <p>Are you sure you want to cancel your request for {cancelTarget.club}?</p>
             <div className="request-cancel-modal__actions">
-              <button type="button" className="request-cancel-modal__confirm" onClick={closeCancelModal}>
+              <button type="button" className="request-cancel-modal__confirm" onClick={handleConfirmCancel}>
                 Confirm
               </button>
               <button type="button" className="request-cancel-modal__dismiss" onClick={closeCancelModal}>

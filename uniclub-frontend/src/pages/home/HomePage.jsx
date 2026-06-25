@@ -1,21 +1,43 @@
+import { useEffect, useState } from 'react'
 import BaseHomeCarousel from '../../components/home/HomeCarousel'
 import heroGroupImage from '../../assets/hero-group.png'
+import { getClubs } from '../../api/club.api'
+import { mapClubFromApi } from '../../api/clubMappers'
 // Mock data import: replace with API data when BE is ready.
-import { HOME_CLUB_ITEMS, HOME_EVENT_ITEMS } from '../../data/mockData'
+import { HOME_EVENT_ITEMS } from '../../data/mockData'
 import '../../styles/home.css'
 
-const HOME_CLUB_DETAIL_MAP = {
-  'club-creative': 'startup',
-  'club-music': 'music',
-  'club-code': 'coding',
-  'club-sport': 'football',
-  'club-book': 'chess',
-  'club-culture': 'community',
-}
-
 function HomePage({ onCreateClub, onSelectClub, onViewAll }) {
+  const [clubs, setClubs] = useState([])
+  const [loadingClubs, setLoadingClubs] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    async function fetchClubs() {
+      try {
+        const res = await getClubs()
+        if (active) {
+          const mapped = (res.data || []).map(club => {
+            const mappedClub = mapClubFromApi(club)
+            return {
+              ...mappedClub,
+              title: mappedClub.name, // CarouselCard expects title
+            }
+          })
+          setClubs(mapped)
+        }
+      } catch (err) {
+        console.error("Error fetching clubs for homepage:", err)
+      } finally {
+        if (active) setLoadingClubs(false)
+      }
+    }
+    fetchClubs()
+    return () => { active = false }
+  }, [])
+
   function handleSelectClubItem(item) {
-    onSelectClub?.(HOME_CLUB_DETAIL_MAP[item.id] || item.id)
+    onSelectClub?.(item.id)
   }
 
   return (
@@ -47,12 +69,18 @@ function HomePage({ onCreateClub, onSelectClub, onViewAll }) {
           </div>
         </section>
 
-        <BaseHomeCarousel
-          title="Clubs"
-          items={HOME_CLUB_ITEMS}
-          onSelectItem={handleSelectClubItem}
-          onViewAll={() => onViewAll?.('clubs')}
-        />
+        {loadingClubs ? (
+          <div className="home-carousel-section" style={{ padding: '2rem 0', textAlign: 'center' }}>
+            <p>Loading clubs...</p>
+          </div>
+        ) : (
+          <BaseHomeCarousel
+            title="Clubs"
+            items={clubs}
+            onSelectItem={handleSelectClubItem}
+            onViewAll={() => onViewAll?.('clubs')}
+          />
+        )}
         <BaseHomeCarousel
           title="Events"
           items={HOME_EVENT_ITEMS}

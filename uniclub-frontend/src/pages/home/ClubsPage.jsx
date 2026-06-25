@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
-// Mock data import: replace with API data when BE is ready.
+import { useEffect, useMemo, useState } from 'react'
+import { getClubs } from '../../api/club.api'
+import { mapClubFromApi } from '../../api/clubMappers'
 import {
-  ALL_CLUBS,
   CLUB_FILTER_CATEGORIES,
   CLUB_SORT_OPTIONS,
   CLUBS_PER_PAGE,
@@ -170,37 +170,52 @@ function CustomSelect({ value, onChange, options }) {
 }
 
 function ClubsPage({ onSelectClub }) {
+  const [clubs, setClubs] = useState([])
+  const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('all')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('default')
   const [page, setPage] = useState(1)
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadClubs() {
+      setLoading(true)
+      try {
+        const response = await getClubs({
+          category: activeCategory !== 'all' ? activeCategory : undefined,
+          search: search.trim() || undefined,
+          sortBy: sort === 'name-asc' ? 'name' : undefined,
+        })
+        if (!cancelled) {
+          setClubs((response.data || []).map((club) => mapClubFromApi(club)))
+        }
+      } catch (error) {
+        console.error(error)
+        if (!cancelled) setClubs([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadClubs()
+    return () => {
+      cancelled = true
+    }
+  }, [activeCategory, search, sort])
+
   const filteredClubs = useMemo(() => {
-    let result = [...ALL_CLUBS]
+    let result = [...clubs]
 
-    if (activeCategory !== 'all') {
-      result = result.filter((club) => club.category === activeCategory)
-    }
-
-    const query = search.trim().toLowerCase()
-    if (query) {
-      result = result.filter(
-        (club) =>
-          club.name.toLowerCase().includes(query) ||
-          club.description.toLowerCase().includes(query),
-      )
-    }
-
-    if (sort === 'name-asc') {
-      result.sort((a, b) => a.name.localeCompare(b.name))
-    } else if (sort === 'members-desc') {
+    if (sort === 'members-desc') {
       result.sort((a, b) => b.members - a.members)
     } else if (sort === 'events-desc') {
       result.sort((a, b) => b.events - a.events)
     }
 
     return result
-  }, [activeCategory, search, sort])
+  }, [clubs, sort])
 
   const totalPages = Math.max(1, Math.ceil(filteredClubs.length / CLUBS_PER_PAGE))
   const currentPage = Math.min(page, totalPages)
@@ -274,12 +289,15 @@ function ClubsPage({ onSelectClub }) {
         </header>
 
         <div className="clubs-grid">
-          {pageClubs.map((club) => (
-            <ClubCard key={club.id} club={club} onSelect={onSelectClub} />
-          ))}
+          {loading ? <p className="clubs-empty">Loading clubs...</p> : null}
+          {!loading
+            ? pageClubs.map((club) => (
+                <ClubCard key={club.id} club={club} onSelect={onSelectClub} />
+              ))
+            : null}
         </div>
 
-        {filteredClubs.length === 0 ? (
+        {filteredClubs.length === 0 && !loading ? (
           <p className="clubs-empty">No matching clubs found.</p>
         ) : null}
 

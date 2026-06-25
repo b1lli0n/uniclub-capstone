@@ -1,7 +1,17 @@
-import { useRef, useState } from 'react'
-// Mock data import: replace with API data when BE is ready.
-import { AVAILABLE_MEMBERS, CREATE_CLUB_CATEGORIES } from '../../data/mockData'
+import { useRef, useState, useEffect } from 'react'
+import { requestCreateClub } from '../../api/club.api'
+import { apiRequest, toQueryString } from '../../api/api'
 import '../../styles/create-club.css'
+
+const CREATE_CLUB_CATEGORIES = [
+  { value: '', label: 'Select category...' },
+  { value: 'tech', label: 'Technology' },
+  { value: 'sport', label: 'Sports' },
+  { value: 'art', label: 'Arts' },
+  { value: 'volunteer', label: 'Volunteer' },
+  { value: 'academic', label: 'Academic' },
+  { value: 'other', label: 'Other' },
+]
 
 function SectionIcon({ type }) {
   if (type === 'clipboard') {
@@ -37,30 +47,82 @@ function CreateClubPage({ onCancel, onSubmit }) {
   const [name, setName] = useState('')
   const [category, setCategory] = useState('')
   const [description, setDescription] = useState('')
-  const [memberPick, setMemberPick] = useState('')
+  const [memberSearch, setMemberSearch] = useState('')
+  const [memberSuggestions, setMemberSuggestions] = useState([])
   const [members, setMembers] = useState([])
   const [logoName, setLogoName] = useState('')
+  const [logoUrl, setLogoUrl] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
 
-  function handleAddMember() {
-    if (!memberPick) return
-    const option = AVAILABLE_MEMBERS.find((m) => m.value === memberPick)
-    if (!option || members.some((m) => m.value === memberPick)) return
+  useEffect(() => {
+    if (memberSearch.trim().length < 2) {
+      setMemberSuggestions([])
+      return
+    }
+    let active = true
+    setSearchLoading(true)
+    const delay = setTimeout(async () => {
+      try {
+        const res = await apiRequest(`/profile/search${toQueryString({ q: memberSearch })}`)
+        if (active) {
+          setMemberSuggestions((res.data || []).filter(
+            (u) => !members.some((m) => String(m.value) === String(u.value))
+          ))
+        }
+      } catch {
+        if (active) setMemberSuggestions([])
+      } finally {
+        if (active) setSearchLoading(false)
+      }
+    }, 350)
+    return () => { active = false; clearTimeout(delay) }
+  }, [memberSearch, members])
+
+  function handleAddMember(option) {
+    if (!option || members.some((m) => String(m.value) === String(option.value))) return
     setMembers((prev) => [...prev, option])
-    setMemberPick('')
+    setMemberSearch('')
+    setMemberSuggestions([])
   }
 
   function handleRemoveMember(value) {
-    setMembers((prev) => prev.filter((m) => m.value !== value))
+    setMembers((prev) => prev.filter((m) => String(m.value) !== String(value)))
   }
 
   function handleFileChange(event) {
     const file = event.target.files?.[0]
     setLogoName(file ? file.name : '')
+    if (!file) {
+      setLogoUrl('')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setLogoUrl(typeof reader.result === 'string' ? reader.result : '')
+    }
+    reader.readAsDataURL(file)
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
-    onSubmit?.({ name, category, description, members, logoName })
+    setSubmitting(true)
+    try {
+      await requestCreateClub({
+        club_name: name,
+        description,
+        reason: description,
+        logo_url: logoUrl || 'https://placehold.co/200x200/png',
+        member_ids: members.map((member) => member.value),
+      })
+      onSubmit?.({ name, category, description, members, logoName })
+    } catch (error) {
+      console.error(error)
+      alert(error.message)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -130,28 +192,50 @@ function CreateClubPage({ onCancel, onSubmit }) {
                 Add Members
               </h2>
 
-              <div className="create-club-member-row">
-                <select
-                  className="create-club-member-row__select"
-                  value={memberPick}
-                  onChange={(event) => setMemberPick(event.target.value)}
-                  aria-label="Select member"
-                >
-                  {AVAILABLE_MEMBERS.map((option) => (
-                    <option key={option.value || 'empty'} value={option.value} disabled={option.value === ''}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <button type="button" className="create-club-btn create-club-btn--outline" onClick={handleAddMember}>
-                  Add
-                </button>
+
+              <div className="create-club-member-row" style={{ flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <input
+                    type="text"
+                    className="create-club-member-row__select"
+                    placeholder="Search by name or email..."
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    aria-label="Search member"
+                    autoComplete="off"
+                  />
+                  {(memberSuggestions.length > 0 || searchLoading) && (
+                    <ul style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
+                      background: 'var(--surface, #fff)', border: '1px solid var(--border, #e5e7eb)',
+                      borderRadius: '0.5rem', margin: 0, padding: '0.25rem 0', listStyle: 'none',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto',
+                    }}>
+                      {searchLoading && <li style={{ padding: '0.5rem 1rem', opacity: 0.6, fontSize: '0.85rem' }}>Searching...</li>}
+                      {!searchLoading && memberSuggestions.map((option) => (
+                        <li key={String(option.value)} style={{ padding: 0 }}>
+                          <button
+                            type="button"
+                            style={{
+                              width: '100%', textAlign: 'left', padding: '0.5rem 1rem',
+                              background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem',
+                            }}
+                            onMouseDown={(e) => { e.preventDefault(); handleAddMember(option) }}
+                          >
+                            <span style={{ fontWeight: 600 }}>{option.name}</span>
+                            <span style={{ opacity: 0.6, marginLeft: '0.4rem', fontSize: '0.8rem' }}>{option.email}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
 
               {members.length > 0 ? (
                 <ul className="create-club-member-list">
                   {members.map((member) => (
-                    <li key={member.value}>
+                    <li key={String(member.value)}>
                       <span>{member.label}</span>
                       <button
                         type="button"
@@ -203,8 +287,8 @@ function CreateClubPage({ onCancel, onSubmit }) {
           <button type="button" className="create-club-btn create-club-btn--cancel" onClick={onCancel}>
             Cancel
           </button>
-          <button type="submit" className="create-club-btn create-club-btn--primary">
-            Create Club
+          <button type="submit" className="create-club-btn create-club-btn--primary" disabled={submitting}>
+            {submitting ? 'Submitting...' : 'Create Club'}
           </button>
         </div>
       </form>

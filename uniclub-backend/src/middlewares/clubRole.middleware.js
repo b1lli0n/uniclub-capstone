@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const ClubMember = require("../models/club_member.model");
+const ClubMember = require("../models/clubMember.model");
 
 /**
  * Middleware để check role cho Club Member (member, president, secretary, treasurer, event_manager)
