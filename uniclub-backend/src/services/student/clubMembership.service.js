@@ -1,4 +1,4 @@
-const JoinForm = require("../../models/joinForm.model");
+const JoinForm = require("../../models/join_form.model");
 const JoinRequest = require("../../models/joinRequest.model");
 const { getStatusError } = require("../../utils/error");
 

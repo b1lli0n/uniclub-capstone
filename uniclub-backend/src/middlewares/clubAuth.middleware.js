@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const ClubMember = require("../models/clubMember.model");
+const ClubMember = require("../models/club_member.model");
 const { getStatusError } = require("../utils/error");
 
 const resolveClubId = (req, paramName) => {

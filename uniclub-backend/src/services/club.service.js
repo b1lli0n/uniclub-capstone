@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Club = require("../models/club.model");
-const ClubMember = require("../models/clubMember.model");
+const ClubMember = require("../models/club_member.model");
 const Profile = require("../models/profile.model");
 const ClubCreationRequest = require("../models/club_creation_requests.model");
 

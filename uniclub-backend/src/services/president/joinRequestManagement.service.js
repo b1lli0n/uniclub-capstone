@@ -1,4 +1,4 @@
-const ClubMember = require("../../models/clubMember.model");
+const ClubMember = require("../../models/club_member.model");
 const JoinRequest = require("../../models/joinRequest.model");
 const { getStatusError } = require("../../utils/error");
 
