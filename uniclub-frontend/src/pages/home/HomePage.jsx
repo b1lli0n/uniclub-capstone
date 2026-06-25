@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react'
 import BaseHomeCarousel from '../../components/home/HomeCarousel'
 import heroGroupImage from '../../assets/hero-group.png'
 import { getClubs } from '../../api/club.api'
+import { getPublicEvents } from '../../api/event.api'
 import { mapClubFromApi } from '../../api/clubMappers'
-// Mock data import: replace with API data when BE is ready.
-import { HOME_EVENT_ITEMS } from '../../data/mockData'
 import '../../styles/home.css'
 
-function HomePage({ onCreateClub, onSelectClub, onViewAll }) {
+function HomePage({ onCreateClub, onSelectClub, onSelectEvent, onViewAll }) {
   const [clubs, setClubs] = useState([])
   const [loadingClubs, setLoadingClubs] = useState(true)
+  const [events, setEvents] = useState([])
+  const [loadingEvents, setLoadingEvents] = useState(true)
 
   useEffect(() => {
     let active = true
@@ -36,8 +37,37 @@ function HomePage({ onCreateClub, onSelectClub, onViewAll }) {
     return () => { active = false }
   }, [])
 
+  useEffect(() => {
+    let active = true
+    async function fetchEvents() {
+      try {
+        const res = await getPublicEvents()
+        if (active) {
+          const mapped = (res.data || []).map(event => {
+            return {
+              id: event._id || event.id,
+              title: event.title,
+              description: event.description,
+            }
+          })
+          setEvents(mapped)
+        }
+      } catch (err) {
+        console.error("Error fetching events for homepage:", err)
+      } finally {
+        if (active) setLoadingEvents(false)
+      }
+    }
+    fetchEvents()
+    return () => { active = false }
+  }, [])
+
   function handleSelectClubItem(item) {
     onSelectClub?.(item.id)
+  }
+
+  function handleSelectEventItem(item) {
+    onSelectEvent?.(item.id)
   }
 
   return (
@@ -81,11 +111,19 @@ function HomePage({ onCreateClub, onSelectClub, onViewAll }) {
             onViewAll={() => onViewAll?.('clubs')}
           />
         )}
-        <BaseHomeCarousel
-          title="Events"
-          items={HOME_EVENT_ITEMS}
-          onViewAll={() => onViewAll?.('events')}
-        />
+
+        {loadingEvents ? (
+          <div className="home-carousel-section" style={{ padding: '2rem 0', textAlign: 'center' }}>
+            <p>Loading events...</p>
+          </div>
+        ) : (
+          <BaseHomeCarousel
+            title="Events"
+            items={events}
+            onSelectItem={handleSelectEventItem}
+            onViewAll={() => onViewAll?.('events')}
+          />
+        )}
       </div>
     </div>
   )

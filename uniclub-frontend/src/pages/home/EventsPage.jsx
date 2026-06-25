@@ -1,13 +1,38 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  ALL_EVENTS,
   EVENT_CATEGORIES,
   EVENT_SORT_OPTIONS,
   EVENTS_PER_PAGE,
-  MY_CLUB_MEMBERSHIPS,
 } from '../../data/mockData'
+import { getPublicEvents } from '../../api/event.api'
 import '../../styles/clubs.css'
+
+const CATEGORY_GRADIENTS = {
+  sport: 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)',
+  academic: 'linear-gradient(135deg, #a8d8ff 0%, #7eb8f0 100%)',
+  art: 'linear-gradient(135deg, #f5b0d8 0%, #e88fc4 100%)',
+  event: 'linear-gradient(135deg, #c4f0a8 0%, #9ed87e 100%)',
+}
+
+function mapEventFromApi(apiEvent) {
+  if (!apiEvent) return null
+  const startDate = apiEvent.start_time ? new Date(apiEvent.start_time) : null
+  const formattedDate = startDate ? startDate.toLocaleDateString('vi-VN') : ''
+  const category = (apiEvent.category || 'academic').toLowerCase()
+  
+  return {
+    id: apiEvent._id || apiEvent.id,
+    name: apiEvent.title || '',
+    description: apiEvent.description || '',
+    category,
+    categoryLabel: category.toUpperCase(),
+    date: formattedDate,
+    participants: apiEvent.capacity || 0,
+    gradient: CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.academic,
+    status: apiEvent.status || 'coming soon',
+  }
+}
 
 function ChevronIcon({ direction }) {
   return (
@@ -128,6 +153,25 @@ function EventCard({ event, onSelect }) {
     >
       <div className="clubs-card__media events-card__media" style={{ '--event-gradient': event.gradient }}>
         <span className="clubs-card__badge">{event.categoryLabel}</span>
+        <span className={`event-status-badge status-${event.status}`} style={{
+          position: 'absolute',
+          top: '0.75rem',
+          right: '0.75rem',
+          padding: '0.25rem 0.6rem',
+          borderRadius: '999px',
+          fontSize: '0.7rem',
+          fontWeight: '700',
+          textTransform: 'uppercase',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+          background: event.status === 'opening' ? '#e2f9e6' :
+                      event.status === 'coming soon' ? '#e6f3ff' :
+                      event.status === 'closed' ? '#fff4e6' : '#fce8e6',
+          color: event.status === 'opening' ? '#1b8a36' :
+                 event.status === 'coming soon' ? '#0284c7' :
+                 event.status === 'closed' ? '#d97706' : '#dc2626'
+        }}>
+          {event.status}
+        </span>
       </div>
       <div className="clubs-card__body events-card__body">
         <h3 className="clubs-card__name">{event.name}</h3>
@@ -139,7 +183,7 @@ function EventCard({ event, onSelect }) {
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" strokeLinecap="round" />
                 <circle cx="9" cy="7" r="4" />
               </svg>
-              {event.participants} participants
+              {event.participants} slots
             </span>
             <span className="clubs-card__stat">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
@@ -166,22 +210,52 @@ function EventCard({ event, onSelect }) {
   )
 }
 
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: 'All Statuses' },
+  { value: 'opening', label: 'Opening' },
+  { value: 'coming soon', label: 'Coming Soon' },
+  { value: 'closed', label: 'Closed' },
+  { value: 'cancelled', label: 'Cancelled' },
+]
+
 function EventsPage() {
   const navigate = useNavigate()
+  const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('all')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('default')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [page, setPage] = useState(1)
 
+  useEffect(() => {
+    let active = true
+    async function fetchEvents() {
+      setLoading(true)
+      try {
+        const res = await getPublicEvents()
+        if (active) {
+          setEvents(res.data || [])
+        }
+      } catch (err) {
+        console.error("Error loading public events:", err)
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    fetchEvents()
+    return () => { active = false }
+  }, [])
+
   const filteredEvents = useMemo(() => {
-    let result = ALL_EVENTS.filter(
-      (event) =>
-        event.visibility !== 'private' ||
-        MY_CLUB_MEMBERSHIPS.some((membership) => membership.clubId === event.clubId)
-    )
+    let result = events.map(mapEventFromApi).filter(Boolean)
 
     if (activeCategory !== 'all') {
       result = result.filter((event) => event.category === activeCategory)
+    }
+
+    if (statusFilter !== 'all') {
+      result = result.filter((event) => event.status === statusFilter)
     }
 
     const query = search.trim().toLowerCase()
@@ -200,7 +274,7 @@ function EventsPage() {
     }
 
     return result
-  }, [activeCategory, search, sort])
+  }, [events, activeCategory, search, sort, statusFilter])
 
   const totalPages = Math.max(1, Math.ceil(filteredEvents.length / EVENTS_PER_PAGE))
   const currentPage = Math.min(page, totalPages)
@@ -216,6 +290,11 @@ function EventsPage() {
 
   function handleSearchChange(event) {
     setSearch(event.target.value)
+    setPage(1)
+  }
+
+  function handleStatusFilterChange(val) {
+    setStatusFilter(val)
     setPage(1)
   }
 
@@ -263,6 +342,16 @@ function EventsPage() {
               />
             </div>
 
+            <div className="clubs-sort" style={{ marginRight: '0.5rem' }}>
+              <label htmlFor="events-status">STATUS</label>
+              <CustomSelect
+                id="events-status"
+                value={statusFilter}
+                onChange={handleStatusFilterChange}
+                options={STATUS_FILTER_OPTIONS}
+              />
+            </div>
+
             <div className="clubs-sort">
               <label htmlFor="events-sort">SORT</label>
               <CustomSelect
@@ -275,15 +364,23 @@ function EventsPage() {
           </div>
         </header>
 
-        <div className="clubs-grid events-grid">
-          {pageEvents.map((event) => (
-            <EventCard key={event.id} event={event} onSelect={() => navigate(`/events/${event.id}`)} />
-          ))}
-        </div>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '4rem 0' }}>
+            <p>Loading events...</p>
+          </div>
+        ) : (
+          <>
+            <div className="clubs-grid events-grid">
+              {pageEvents.map((event) => (
+                <EventCard key={event.id} event={event} onSelect={() => navigate(`/events/${event.id}`)} />
+              ))}
+            </div>
 
-        {filteredEvents.length === 0 ? (
-          <p className="clubs-empty">No matching events found.</p>
-        ) : null}
+            {filteredEvents.length === 0 ? (
+              <p className="clubs-empty">No matching events found.</p>
+            ) : null}
+          </>
+        )}
 
         {totalPages > 1 ? (
           <nav className="clubs-pagination" aria-label="Event pagination">

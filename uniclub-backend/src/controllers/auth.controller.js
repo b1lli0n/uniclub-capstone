@@ -163,6 +163,31 @@ const feidCallback = async (req, res) => {
   }
 };
 
+const devLogin = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ message: "Email parameter is required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: `User with email ${email} not found` });
+    }
+
+    const token = createToken({
+      id: user._id,
+      email: user.email,
+      role: user.role,
+    });
+
+    return res.redirect(`${config.frontendURL}/auth/callback?token=${token}`);
+  } catch (error) {
+    console.error("Dev login error:", error);
+    return res.status(500).json({ message: "Dev login failed", error: error.message });
+  }
+};
+
 const logout = async (req, res) => {
   return res.status(200).json({
     message: 'Logout successfully',
@@ -172,5 +197,6 @@ const logout = async (req, res) => {
 module.exports = {
   loginWithFeid,
   feidCallback,
+  devLogin,
   logout
 };

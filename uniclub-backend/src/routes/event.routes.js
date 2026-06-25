@@ -7,6 +7,7 @@ const {
   getEventDetail,
   registerForEvent,
   cancelEventRegistration,
+  getMyRegistrations,
 } = require("../controllers/event.controller");
 
 const router = express.Router();
@@ -31,13 +32,16 @@ const verifyTokenOptional = (req, res, next) => {
 // 1. View Public Events
 router.get("/public", verifyTokenOptional, getPublicEvents);
 
-// 2. View Event Detail
+// 2. View My Registrations
+router.get("/my-registrations", verifyToken, getMyRegistrations);
+
+// 3. View Event Detail
 router.get("/:eventId", verifyTokenOptional, getEventDetail);
 
-// 3. Register for Event
+// 4. Register for Event
 router.post("/:eventId/register", verifyToken, protect(["student"]), registerForEvent);
 
-// 4. Cancel Event Registration
+// 5. Cancel Event Registration
 router.post("/:eventId/cancel", verifyToken, protect(["student"]), cancelEventRegistration);
 
 module.exports = router;

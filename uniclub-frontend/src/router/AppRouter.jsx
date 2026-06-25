@@ -12,6 +12,7 @@ import CreateClubPage from '../pages/home/CreateClubPage'
 import ClubsPage from '../pages/home/ClubsPage'
 import EventsPage from '../pages/home/EventsPage'
 import EventDetailPage from '../pages/home/EventDetailPage'
+import MyEventsPage from '../pages/home/MyEventsPage'
 import ClubDetailPage from '../pages/home/ClubDetailPage'
 import ClubEventsPage from '../pages/home/ClubEventsPage'
 import ClubRankingPage from '../pages/home/ClubRankingPage'
@@ -217,6 +218,7 @@ function AppRouter() {
             <HomePage
               onCreateClub={() => navigate('/create-club')}
               onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)}
+              onSelectEvent={(eventId) => navigate(`/events/${eventId}`)}
               onViewAll={(target) => navigate(target === 'events' ? '/events' : '/clubs')}
             />
           </ProtectedLayout>
@@ -280,6 +282,15 @@ function AppRouter() {
         element={
           <ProtectedLayout pageId="events" activeItem="events">
             <EventsPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/my-events"
+        element={
+          <ProtectedLayout pageId="my-events" activeItem="events">
+            <MyEventsPage />
           </ProtectedLayout>
         }
       />

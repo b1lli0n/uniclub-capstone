@@ -1,17 +1,16 @@
 import { useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 const MENU_ITEMS = [
   { id: 'profile', label: 'My Profile', href: '/profile'},
   { id: 'clubs', label: 'My Clubs', href: '/my-clubs' },
-  { id: 'events', label: 'My Events', href: '#my-events' },
+  { id: 'my-events', label: 'My Events', href: '/my-events' },
   { id: 'requests', label: 'My Requests', href: '/my-requests'},
   { id: 'fees', label: 'My Membership Fees', href: '#my-fees' },
 ]
 
-function HomeUserMenuDropdown({ open, onClose, anchorRef, onNavigate }) {
+function HomeUserMenuDropdown({ open, onClose, anchorRef }) {
   const panelRef = useRef(null)
-   const navigate = useNavigate()
 
   useEffect(() => {
     if (!open) return undefined
@@ -51,20 +50,25 @@ function HomeUserMenuDropdown({ open, onClose, anchorRef, onNavigate }) {
       <ul className="home-user-dropdown__list">
         {MENU_ITEMS.map((item) => (
           <li key={item.id} role="none">
-            <a
-              href={item.href}
-              className="home-user-dropdown__link"
-              role="menuitem"
-              onClick={(event) => {
-                if (item.screen) {
-                  event.preventDefault()
-                  navigate(item.href)
-                }
-                onClose?.()
-              }}
-            >
-              {item.label}
-            </a>
+            {item.href.startsWith('#') ? (
+              <a
+                href={item.href}
+                className="home-user-dropdown__link"
+                role="menuitem"
+                onClick={onClose}
+              >
+                {item.label}
+              </a>
+            ) : (
+              <Link
+                to={item.href}
+                className="home-user-dropdown__link"
+                role="menuitem"
+                onClick={onClose}
+              >
+                {item.label}
+              </Link>
+            )}
           </li>
         ))}
       </ul>

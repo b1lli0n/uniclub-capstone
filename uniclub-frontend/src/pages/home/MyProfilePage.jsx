@@ -31,39 +31,43 @@ function createProfileFromUser(user) {
 
 function MyProfilePage({ currentUser }) {
   const [isEditing, setIsEditing] = useState(false)
-  const [genderOpen, setGenderOpen] = useState(false)
   const [profile, setProfile] = useState(() => createProfileFromUser(currentUser))
 
-  const selectedGenderLabel =
-    GENDER_OPTIONS.find((option) => option.value === profile.gender)?.label ||
-    'Other'
-
   useEffect(() => {
+    let active = true
     async function fetchProfile() {
-      const res = await getMyProfile()
-      const user = res.data.user
-      const profileData = res.data.profile
+      try {
+        const profileRes = await getMyProfile()
 
-      setProfile({
-        fullName: user.full_name || '',
-        phone: profileData.phone || '',
-        email: user.email || '',
-        gender: 'other',
-        birthDate: '',
-        avatarInitial: user.full_name?.slice(0, 1).toUpperCase() || 'U',
-        role: user.role || 'student',
-        studentCode: profileData.student_code || '',
-        major: profileData.major || '',
-        campus: profileData.campus || '',
-        socialLinks: profileData.social_links || {
-          facebook: '',
-          github: '',
-          linkedin: '',
-        },
-      })
+        if (!active) return
+
+        const user = profileRes.data.user
+        const profileData = profileRes.data.profile
+
+        setProfile({
+          fullName: user.full_name || '',
+          phone: profileData.phone || '',
+          email: user.email || '',
+          gender: 'other',
+          birthDate: '',
+          avatarInitial: user.full_name?.slice(0, 1).toUpperCase() || 'U',
+          role: user.role || 'student',
+          studentCode: profileData.student_code || '',
+          major: profileData.major || '',
+          campus: profileData.campus || '',
+          socialLinks: profileData.social_links || {
+            facebook: '',
+            github: '',
+            linkedin: '',
+          },
+        })
+      } catch (err) {
+        console.error("Error fetching profile data:", err)
+      }
     }
 
     fetchProfile()
+    return () => { active = false }
   }, [])
 
   function updateProfileField(field, value) {
@@ -74,22 +78,24 @@ function MyProfilePage({ currentUser }) {
   }
 
   async function handleEditAction() {
-    setGenderOpen(false)
-
     if (!isEditing) {
       setIsEditing(true)
       return
     }
 
-    await updateMyProfile({
-      student_code: profile.studentCode,
-      phone: profile.phone,
-      major: profile.major,
-      campus: profile.campus,
-      social_links: profile.socialLinks,
-    })
-
-    setIsEditing(false)
+    try {
+      await updateMyProfile({
+        student_code: profile.studentCode,
+        phone: profile.phone,
+        major: profile.major,
+        campus: profile.campus,
+        social_links: profile.socialLinks,
+      })
+      setIsEditing(false)
+    } catch (err) {
+      console.error(err)
+      alert(err.message || 'Failed to update profile')
+    }
   }
 
   return (

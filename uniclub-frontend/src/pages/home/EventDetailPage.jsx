@@ -1,46 +1,36 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { ALL_CLUBS, ALL_EVENTS, CURRENT_USER, MY_CLUB_MEMBERSHIPS } from '../../data/mockData'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import {
+  getEventDetail,
+  registerForEvent as registerForEventApi,
+  cancelEventRegistration as cancelEventRegistrationApi,
+} from '../../api/event.api'
+import { getMyProfile } from '../../api/profile.api'
+import { getEventFeedback, submitEventFeedback } from '../../api/feedback.api'
 import '../../styles/clubs.css'
 
-function parseEventDate(dateText) {
-  const [day, month, year] = dateText.split('/').map(Number)
-  return new Date(year, month - 1, day)
-}
-
-function parseEventStartDate(event) {
-  const startDate = parseEventDate(event.date)
-  const startTime = event.time?.split('-')[0]?.trim()
-  const timeMatch = startTime?.match(/^(\d{1,2}):(\d{2})$/)
-
-  if (timeMatch) {
-    startDate.setHours(Number(timeMatch[1]), Number(timeMatch[2]), 0, 0)
-  }
-
-  return startDate
-}
-
 function isEventRegistrationOpen(event) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  return parseEventDate(event.date).getTime() >= today.getTime()
+  return event.status === 'opening' && new Date() < new Date(event.start_time)
 }
 
 function isBeforeEventStart(event) {
-  return Date.now() < parseEventStartDate(event).getTime()
+  return new Date() < new Date(event.start_time)
 }
 
 function getRegistrationLabel(status) {
-  if (status === 'accepted') return 'Accepted'
-  if (status === 'pending') return 'Pending approval'
-  if (status === 'cancelled') return 'Cancelled'
+  if (status === 'registered' || status === 'approved') return 'Registered'
+  if (status === 'attended') return 'Attended'
+  if (status === 'cancelled' || status === 'rejected') return 'Cancelled'
+  if (status === 'pending') return 'Pending'
   return 'Not registered'
 }
 
 function getEventStatus(event) {
-  if (isEventRegistrationOpen(event)) return 'Opening'
-  return 'Started'
+  if (event.status === 'opening') return 'Opening'
+  if (event.status === 'coming soon') return 'Coming soon'
+  if (event.status === 'closed') return 'Closed'
+  if (event.status === 'cancelled') return 'Cancelled'
+  return event.status
 }
 
 function buildTicketCode(eventId, userId) {
@@ -79,16 +69,189 @@ function TicketQr({ value }) {
   )
 }
 
+function mapEventFromApi(apiEvent) {
+  if (!apiEvent) return null
+  const startDate = apiEvent.start_time ? new Date(apiEvent.start_time) : null
+  const endDate = apiEvent.end_time ? new Date(apiEvent.end_time) : null
+  
+  const formattedDate = startDate ? startDate.toLocaleDateString('vi-VN') : ''
+  const formattedTime = startDate && endDate 
+    ? `${startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`
+    : ''
+  
+  return {
+    id: apiEvent._id || apiEvent.id,
+    name: apiEvent.title || '',
+    description: apiEvent.description || '',
+    content: apiEvent.content || '',
+    date: formattedDate,
+    time: formattedTime,
+    start_time: apiEvent.start_time,
+    end_time: apiEvent.end_time,
+    location: apiEvent.location || 'Campus',
+    visibility: apiEvent.is_public ? 'public' : 'private',
+    checkinOpen: apiEvent.check_in_status === 'open',
+    status: apiEvent.status || 'coming soon',
+    categoryLabel: (apiEvent.category || 'ACADEMIC').toUpperCase(),
+    clubId: apiEvent.club_id?._id || apiEvent.club_id,
+    organizerName: apiEvent.club_id?.name || 'UniClub',
+    organizerLogo: apiEvent.club_id?.logo_url || '',
+    capacity: apiEvent.capacity,
+    registeredCount: apiEvent.registeredCount || 0,
+    isRegistered: apiEvent.isRegistered || false,
+    registrationStatus: apiEvent.registrationStatus || null,
+  }
+}
+
+function FeedbackForm({ onSubmit }) {
+  const [rating, setRating] = useState(5)
+  const [comment, setComment] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!comment.trim()) return
+    setSubmitting(true)
+    try {
+      await onSubmit({ rating, comment })
+      setComment('')
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={{
+      padding: '1.2rem',
+      background: '#fff',
+      border: '1px solid #f0e4d8',
+      borderRadius: '16px',
+      marginBottom: '1.5rem',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '0.8rem'
+    }}>
+      <strong style={{ color: '#3d2e24', fontSize: '0.95rem' }}>Send your feedback</strong>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <span style={{ fontSize: '0.85rem', color: '#6f6676' }}>Rating:</span>
+        <div style={{ display: 'flex', gap: '0.3rem' }}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => setRating(star)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '1.4rem',
+                padding: 0,
+                color: star <= rating ? '#F57C00' : '#d2c8bc'
+              }}
+            >
+              ★
+            </button>
+          ))}
+        </div>
+      </div>
+      <textarea
+        placeholder="Write your feedback..."
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        required
+        rows={3}
+        style={{
+          width: '100%',
+          padding: '0.6rem 0.8rem',
+          borderRadius: '8px',
+          border: '1px solid #d2c8bc',
+          fontSize: '0.85rem',
+          fontFamily: 'inherit',
+          boxSizing: 'border-box'
+        }}
+      />
+      <button
+        type="submit"
+        disabled={submitting}
+        style={{
+          alignSelf: 'flex-end',
+          padding: '0.45rem 1rem',
+          background: '#F57C00',
+          color: '#fff',
+          border: 'none',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          fontWeight: '600',
+          fontSize: '0.8rem'
+        }}
+      >
+        {submitting ? 'Submitting...' : 'Submit Feedback'}
+      </button>
+    </form>
+  )
+}
+
 function EventDetailPage() {
   const { clubId, eventId } = useParams()
   const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
+  const [errorMsg, setErrorMsg] = useState('')
+  const [event, setEvent] = useState(null)
+  const [profile, setProfile] = useState(null)
   const [ticketOpen, setTicketOpen] = useState(false)
   const [registration, setRegistration] = useState(null)
+  const [feedbacks, setFeedbacks] = useState([])
+  const [myFeedback, setMyFeedback] = useState(null)
 
-  const event = useMemo(() => ALL_EVENTS.find((item) => item.id === eventId), [eventId])
+  async function loadEventData() {
+    setLoading(true)
+    try {
+      const [eventRes, profileRes, feedbackRes] = await Promise.all([
+        getEventDetail(eventId),
+        getMyProfile().catch(() => ({ data: { user: null } })),
+        getEventFeedback(eventId).catch(() => ({ data: { feedbacks: [], myFeedback: null } }))
+      ])
+      
+      const mapped = mapEventFromApi(eventRes.data)
+      setEvent(mapped)
+      setProfile(profileRes.data?.user)
+      setFeedbacks(feedbackRes.data?.feedbacks || [])
+      setMyFeedback(feedbackRes.data?.myFeedback || null)
+      
+      if (mapped.isRegistered) {
+        setRegistration({
+          status: mapped.registrationStatus || 'registered',
+          registeredAt: '', // can be populated if we want
+          checkedIn: mapped.registrationStatus === 'attended',
+        })
+      } else {
+        setRegistration(null)
+      }
+      setErrorMsg('')
+    } catch (err) {
+      console.error(err)
+      setErrorMsg(err.message || 'Failed to load event details')
+      setEvent(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleFeedbackSubmit({ rating, comment }) {
+    try {
+      const res = await submitEventFeedback(eventId, { rating, comment })
+      alert(res.message || 'Feedback submitted successfully!')
+      loadEventData()
+    } catch (err) {
+      console.error(err)
+      alert(err.message || 'Failed to submit feedback')
+    }
+  }
 
   useEffect(() => {
-    setRegistration(null)
+    loadEventData()
     setTicketOpen(false)
   }, [eventId])
 
@@ -100,57 +263,80 @@ function EventDetailPage() {
     }
   }, [ticketOpen])
 
-  if (!event) {
-    return <Navigate to={clubId ? `/clubs/${clubId}/events` : '/events'} replace />
-  }
-
-  const isOrganizerMember = MY_CLUB_MEMBERSHIPS.some((membership) => membership.clubId === event.clubId)
-
-  if (event.visibility === 'private' && !isOrganizerMember) {
-    return <Navigate to={`/clubs/${event.clubId}`} replace />
-  }
-
-  const canCancel = Boolean(registration) && !registration.checkedIn && isBeforeEventStart(event)
-  const canRegister = !registration && isEventRegistrationOpen(event)
-  const canCheckIn = registration?.status === 'accepted' && event.checkinOpen && !registration.checkedIn
-  const statusText = getEventStatus(event)
-  const organizerClub = ALL_CLUBS.find((club) => club.id === event.clubId)
-  const organizerName = organizerClub?.name || 'UniClub'
-  const organizerInitial = organizerName.slice(0, 1).toUpperCase()
-  const ticketCode = buildTicketCode(event.id, CURRENT_USER.id)
-  const studentPhone = CURRENT_USER.phone || 'Not updated'
-  const studentEmail = CURRENT_USER.email || 'Not updated'
-
-  function registerForEvent() {
-    setRegistration({
-      status: 'pending',
-      registeredAt: new Date().toLocaleDateString('en-GB'),
-      checkedIn: false,
-    })
-  }
-
-  function cancelEventRegistration() {
-    setRegistration(null)
-    setTicketOpen(false)
-  }
-
-  function checkInEvent() {
-    setRegistration((current) =>
-      current
-        ? {
-            ...current,
-            checkedIn: true,
-          }
-        : current
+  if (loading) {
+    return (
+      <div className="event-detail-page">
+        <p>Loading event details...</p>
+      </div>
     )
+  }
+
+  if (errorMsg || !event) {
+    return (
+      <div className="event-detail-page">
+        <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+          <h1 style={{ fontSize: '1.8rem', color: '#3d2e24' }}>Access Denied / Not Found</h1>
+          <p style={{ marginTop: '0.5rem', color: '#6f6676' }}>
+            {errorMsg || 'Event not found or you do not have permission to view it.'}
+          </p>
+          <button 
+            onClick={() => navigate(-1)} 
+            style={{ 
+              marginTop: '1.5rem', 
+              padding: '0.6rem 1.2rem',
+              background: '#3d2e24',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer'
+            }}
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const isRegistered = event.isRegistered
+  const canCancel = isRegistered && (registration?.status === 'registered' || registration?.status === 'approved' || registration?.status === 'pending') && isBeforeEventStart(event)
+  const canRegister = !isRegistered && isEventRegistrationOpen(event)
+  const canCheckIn = (registration?.status === 'registered' || registration?.status === 'approved') && event.checkinOpen && !registration.checkedIn
+  const statusText = getEventStatus(event)
+  const organizerName = event.organizerName || 'UniClub'
+  const organizerInitial = organizerName.slice(0, 1).toUpperCase()
+  const ticketCode = event.id && profile ? buildTicketCode(event.id, profile._id) : ''
+  const studentPhone = profile?.phone || 'Not updated'
+  const studentEmail = profile?.email || 'Not updated'
+
+  async function registerForEvent() {
+    try {
+      const res = await registerForEventApi(eventId)
+      alert(res.message || 'Registered successfully!')
+      loadEventData()
+    } catch (err) {
+      console.error(err)
+      alert(err.message || 'Failed to register')
+    }
+  }
+
+  async function cancelEventRegistration() {
+    try {
+      const res = await cancelEventRegistrationApi(eventId)
+      alert(res.message || 'Registration cancelled successfully!')
+      loadEventData()
+    } catch (err) {
+      console.error(err)
+      alert(err.message || 'Failed to cancel registration')
+    }
   }
 
   return (
     <div className="event-detail-page">
       <div className="event-detail-shell">
-        <Link className="event-detail-back" to={clubId ? `/clubs/${clubId}/events` : '/events'}>
+        <Link className="event-detail-back" to={clubId ? `/clubs/${clubId}` : '/'}>
           <span aria-hidden="true">&lt;</span>
-          {clubId ? 'Back to club events' : 'Back to events'}
+          {clubId ? 'Back to club' : 'Back to home'}
         </Link>
 
         <div className="event-detail-layout">
@@ -171,13 +357,10 @@ function EventDetailPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (organizerClub) {
-                      navigate(`/clubs/${organizerClub.id}`)
-                    }
+                    navigate(`/clubs/${event.clubId}`)
                   }}
-                  disabled={!organizerClub}
                 >
-                  Contact
+                  View Club
                 </button>
               </div>
             </section>
@@ -203,11 +386,85 @@ function EventDetailPage() {
             </article>
 
             <section className="event-detail-feedback">
-              <header>
-                <h2>Feedback</h2>
-                <span>Feedback section can be connected later.</span>
+              <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h2 style={{ margin: 0 }}>Feedback ({feedbacks.length})</h2>
               </header>
-              <div className="event-detail-empty-feedback">No feedback yet.</div>
+
+              {/* Submit Feedback form */}
+              {registration?.status === 'attended' && !myFeedback && (
+                <FeedbackForm onSubmit={handleFeedbackSubmit} />
+              )}
+
+              {/* User's own submitted feedback */}
+              {myFeedback && (
+                <div className="my-feedback-submitted" style={{
+                  padding: '1rem',
+                  border: '1.5px dashed #F57C00',
+                  borderRadius: '12px',
+                  background: '#fffbf5',
+                  marginBottom: '1.5rem'
+                }}>
+                  <strong style={{ color: '#F57C00', display: 'block', marginBottom: '0.4rem' }}>
+                    Your Feedback:
+                  </strong>
+                  <div style={{ display: 'flex', gap: '0.2rem', color: '#F57C00', marginBottom: '0.3rem' }}>
+                    {Array.from({ length: myFeedback.rating }).map((_, i) => (
+                      <span key={i}>★</span>
+                    ))}
+                  </div>
+                  <p style={{ margin: 0, color: '#3d2e24', fontSize: '0.9rem' }}>{myFeedback.comment}</p>
+                </div>
+              )}
+
+              {/* Feedbacks list */}
+              {feedbacks.length === 0 ? (
+                <div className="event-detail-empty-feedback">No feedback yet.</div>
+              ) : (
+                <div className="feedbacks-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                  {feedbacks.map((fb) => {
+                    const reviewerName = fb.user_id?.full_name || 'Anonymous'
+                    const reviewerInitial = reviewerName.slice(0, 1).toUpperCase()
+                    return (
+                      <div key={fb._id} style={{
+                        display: 'flex',
+                        gap: '1rem',
+                        padding: '1rem',
+                        background: '#fcfaf7',
+                        border: '1px solid #f0e4d8',
+                        borderRadius: '12px'
+                      }}>
+                        <span style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          background: '#e8ddcf',
+                          color: '#3d2e24',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '600',
+                          fontSize: '0.9rem'
+                        }}>
+                          {reviewerInitial}
+                        </span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <strong style={{ fontSize: '0.9rem', color: '#3d2e24' }}>{reviewerName}</strong>
+                            <div style={{ color: '#F57C00', display: 'flex', gap: '0.1rem' }}>
+                              {Array.from({ length: fb.rating }).map((_, i) => (
+                                <span key={i}>★</span>
+                              ))}
+                            </div>
+                          </div>
+                          <p style={{ margin: '0.3rem 0 0', fontSize: '0.85rem', color: '#6f6676', lineHeight: 1.4 }}>
+                            {fb.comment}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </section>
           </main>
 
@@ -231,7 +488,7 @@ function EventDetailPage() {
               </div>
               <div>
                 <span>Participants</span>
-                <strong>{event.participants}</strong>
+                <strong>{event.registeredCount} / {event.capacity}</strong>
               </div>
             </div>
 
@@ -274,14 +531,12 @@ function EventDetailPage() {
                     <p>Your registration is waiting for approval.</p>
                   ) : null}
 
-                  {registration.status === 'accepted' && !event.checkinOpen ? (
+                  {(registration.status === 'registered' || registration.status === 'approved') && !event.checkinOpen ? (
                     <p>Check-in is not open yet.</p>
                   ) : null}
 
                   {canCheckIn ? (
-                    <button type="button" className="event-detail-primary" onClick={checkInEvent}>
-                      Check in
-                    </button>
+                    <p>Please check in at the coordinator counter using your ticket code.</p>
                   ) : null}
 
                   <button
@@ -324,7 +579,7 @@ function EventDetailPage() {
               <div className="event-ticket__info">
                 <div>
                   <span>Name</span>
-                  <strong>{CURRENT_USER.fullName}</strong>
+                  <strong>{profile?.full_name}</strong>
                 </div>
                 <div>
                   <span>Phone</span>

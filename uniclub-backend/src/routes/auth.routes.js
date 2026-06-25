@@ -33,6 +33,7 @@ router.get(
 
 router.get("/feid", authController.loginWithFeid);
 router.get("/callback", authController.feidCallback);
+router.get("/dev-login", authController.devLogin);
 
 router.get("/me", verifyToken, (req, res) => {
   res.status(200).json({

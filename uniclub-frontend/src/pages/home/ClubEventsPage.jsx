@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import { ALL_CLUBS, ALL_EVENTS, MY_CLUB_MEMBERSHIPS } from '../../data/mockData'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { getClubById } from '../../api/club.api'
+import { getMyClubs } from '../../api/memberClubMembership.api'
+import { getClubEventsForMember, getPublicEvents } from '../../api/event.api'
 import '../../styles/club-detail.css'
 
 const VISIBILITY_FILTERS = [
@@ -8,6 +10,34 @@ const VISIBILITY_FILTERS = [
   { id: 'public', label: 'Public' },
   { id: 'private', label: 'Private' },
 ]
+
+const CATEGORY_GRADIENTS = {
+  sport: 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)',
+  academic: 'linear-gradient(135deg, #a8d8ff 0%, #7eb8f0 100%)',
+  art: 'linear-gradient(135deg, #f5b0d8 0%, #e88fc4 100%)',
+  event: 'linear-gradient(135deg, #c4f0a8 0%, #9ed87e 100%)',
+}
+
+function mapEventFromApi(apiEvent) {
+  if (!apiEvent) return null
+  const startDate = apiEvent.start_time ? new Date(apiEvent.start_time) : null
+  const formattedDate = startDate ? startDate.toLocaleDateString('vi-VN') : ''
+  const formattedTime = startDate ? startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''
+  const category = (apiEvent.category || 'academic').toLowerCase()
+
+  return {
+    id: apiEvent._id || apiEvent.id,
+    name: apiEvent.title || '',
+    description: apiEvent.description || '',
+    date: formattedDate,
+    time: formattedTime,
+    location: apiEvent.location || 'Campus',
+    visibility: apiEvent.is_public ? 'public' : 'private',
+    checkinOpen: apiEvent.check_in_status === 'open',
+    categoryLabel: category.toUpperCase(),
+    gradient: CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.academic,
+  }
+}
 
 function CalendarIcon() {
   return (
@@ -32,15 +62,58 @@ function ClubEventsPage() {
   const navigate = useNavigate()
   const [visibility, setVisibility] = useState('all')
   const [search, setSearch] = useState('')
-  const club = ALL_CLUBS.find((item) => item.id === clubId)
-  const membership = MY_CLUB_MEMBERSHIPS.find((item) => item.clubId === clubId)
-  const isClubMember = Boolean(membership)
+  
+  const [club, setClub] = useState(null)
+  const [isClubMember, setIsClubMember] = useState(false)
+  const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    async function loadData() {
+      setLoading(true)
+      try {
+        const [clubRes, myClubsRes] = await Promise.all([
+          getClubById(clubId),
+          getMyClubs().catch(() => ({ data: [] })),
+        ])
+
+        if (!active) return
+
+        setClub(clubRes.data)
+
+        const membership = (myClubsRes.data || []).find((item) => {
+          const id = item.club_id?._id || item.club_id
+          return String(id) === String(clubId)
+        })
+        const memberStatus = Boolean(membership)
+        setIsClubMember(memberStatus)
+
+        let eventsRes
+        if (memberStatus) {
+          eventsRes = await getClubEventsForMember(clubId).catch(() => ({ data: [] }))
+        } else {
+          eventsRes = await getPublicEvents({ clubId }).catch(() => ({ data: [] }))
+        }
+
+        if (!active) return
+        setEvents(eventsRes.data || [])
+      } catch (err) {
+        console.error("Error loading club events:", err)
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    loadData()
+    return () => { active = false }
+  }, [clubId])
 
   const visibleEvents = useMemo(() => {
     const query = search.trim().toLowerCase()
 
-    return ALL_EVENTS
-      .filter((event) => event.clubId === clubId)
+    return events
+      .map(mapEventFromApi)
+      .filter(Boolean)
       .filter((event) => event.visibility !== 'private' || isClubMember)
       .filter((event) => visibility === 'all' || (event.visibility || 'public') === visibility)
       .filter((event) => {
@@ -52,22 +125,34 @@ function ClubEventsPage() {
           (event.location || '').toLowerCase().includes(query)
         )
       })
-  }, [clubId, isClubMember, search, visibility])
+  }, [events, isClubMember, search, visibility])
 
-  const hiddenPrivateCount = ALL_EVENTS.filter(
-    (event) => event.clubId === clubId && event.visibility === 'private'
-  ).length - ALL_EVENTS.filter(
-    (event) => event.clubId === clubId && event.visibility === 'private' && isClubMember
-  ).length
+  const hiddenPrivateCount = useMemo(() => {
+    return events.filter((ev) => !ev.is_public).length - 
+           events.filter((ev) => !ev.is_public && isClubMember).length
+  }, [events, isClubMember])
+
+  if (loading) {
+    return (
+      <div className="club-events-page" style={{ padding: '4rem 0', textAlign: 'center' }}>
+        <p>Loading club events...</p>
+      </div>
+    )
+  }
 
   if (!club) {
-    return <Navigate to="/clubs" replace />
+    return (
+      <div className="club-events-page" style={{ padding: '4rem 0', textAlign: 'center' }}>
+        <p>Club not found.</p>
+        <button type="button" onClick={() => navigate('/clubs')}>Back to clubs</button>
+      </div>
+    )
   }
 
   return (
     <div className="club-events-page">
       <section className="club-events-hero">
-        <button type="button" className="club-events-back" onClick={() => navigate(`/clubs/${club.id}`)}>
+        <button type="button" className="club-events-back" onClick={() => navigate(`/clubs/${club._id || club.id}`)}>
           <span aria-hidden="true">&lt;</span>
           Back to club
         </button>
@@ -136,7 +221,7 @@ function ClubEventsPage() {
               type="button"
               className="club-events-card__action"
               aria-label={`View ${event.name}`}
-              onClick={() => navigate(`/clubs/${club.id}/events/${event.id}`)}
+              onClick={() => navigate(`/clubs/${club._id || club.id}/events/${event.id}`)}
             >
               <ArrowIcon />
             </button>

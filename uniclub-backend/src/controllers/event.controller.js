@@ -131,7 +131,8 @@ const getEventDetail = async (req, res, next) => {
       }).lean();
 
       if (reg) {
-        isRegistered = reg.status === "registered" || reg.status === "attended";
+        // user is registered if registration is approved, attended or pending approval
+        isRegistered = ["pending", "approved", "attended"].includes(reg.status);
         registrationStatus = reg.status;
       }
     }
@@ -139,7 +140,7 @@ const getEventDetail = async (req, res, next) => {
     // Đếm số lượng slot đã đăng ký thực tế
     const registeredCount = await EventRegistration.countDocuments({
       event_id: eventId,
-      status: "registered",
+      status: "approved",
     });
 
     return res.status(200).json({
@@ -206,7 +207,7 @@ const registerForEvent = async (req, res, next) => {
     // 4. Kiểm tra giới hạn số lượng (capacity)
     const registeredCount = await EventRegistration.countDocuments({
       event_id: eventId,
-      status: "registered",
+      status: "approved",
     });
 
     if (registeredCount >= event.capacity) {
@@ -223,27 +224,27 @@ const registerForEvent = async (req, res, next) => {
     });
 
     if (reg) {
-      if (reg.status === "registered") {
+      if (["pending", "approved", "attended"].includes(reg.status)) {
         return res.status(400).json({
           success: false,
           message: "You have already registered for this event",
         });
       }
-      reg.status = "registered";
+      reg.status = "pending";
       reg.registered_at = new Date();
       await reg.save();
     } else {
       reg = await EventRegistration.create({
         event_id: eventId,
         user_id: req.user.id,
-        status: "registered",
+        status: "pending",
         registered_at: new Date(),
       });
     }
 
     return res.status(201).json({
       success: true,
-      message: "Registered for event successfully",
+      message: "Registered for event successfully (waiting for approval)",
       data: reg,
     });
   } catch (error) {
@@ -280,7 +281,7 @@ const cancelEventRegistration = async (req, res, next) => {
     const reg = await EventRegistration.findOne({
       event_id: eventId,
       user_id: req.user.id,
-      status: "registered",
+      status: { $in: ["pending", "approved"] },
     });
 
     if (!reg) {
@@ -303,10 +304,34 @@ const cancelEventRegistration = async (req, res, next) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────
+// UC: View Registered Events (học sinh xem các sự kiện đã đăng ký tham gia)
+// GET /api/events/my-registrations
+// ─────────────────────────────────────────────────────────────
+const getMyRegistrations = async (req, res, next) => {
+  try {
+    const registrations = await EventRegistration.find({ user_id: req.user.id })
+      .populate({
+        path: "event_id",
+        populate: {
+          path: "club_id",
+          select: "name logo_url"
+        }
+      })
+      .sort({ registered_at: -1 })
+      .lean();
+
+    return res.status(200).json({ success: true, data: registrations });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getPublicEvents,
   getClubEventsForMember,
   getEventDetail,
   registerForEvent,
   cancelEventRegistration,
+  getMyRegistrations,
 };

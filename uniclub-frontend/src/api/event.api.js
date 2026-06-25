@@ -44,3 +44,11 @@ export function cancelEventRegistration(eventId) {
 export function getClubEventsForMember(clubId) {
   return apiRequest(`/member/clubs-membership/${clubId}/events`)
 }
+
+/**
+ * View My Registrations (xem các sự kiện đã đăng ký tham gia của cá nhân)
+ * GET /api/events/my-registrations
+ */
+export function getMyRegistrations() {
+  return apiRequest('/events/my-registrations')
+}

@@ -21,11 +21,16 @@ const eventRegistrationSchema = Schema(
       default: Date.now,
     },
 
+    check_in_time: {
+      type: Date,
+      default: null,
+    },
+
     status: {
       type: String,
       required: true,
-      enum: ["registered", "cancelled", "attended"],
-      default: "registered",
+      enum: ["pending", "approved", "rejected", "attended", "cancelled"],
+      default: "pending",
     },
   },
   {

@@ -16,7 +16,6 @@ router.get(
   "/:clubId/members",
   verifyToken,
   protect(["student"]),
-  requireClubMember("clubId"),
   getClubMembers
 );
 router.patch(

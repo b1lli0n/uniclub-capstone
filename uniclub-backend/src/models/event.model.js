@@ -109,5 +109,6 @@ const eventSchema = Schema(
 eventSchema.index({ club_id: 1 });
 eventSchema.index({ status: 1 });
 eventSchema.index({ start_time: 1 });
+eventSchema.index({ club_id: 1, start_time: -1 });
 
 module.exports = mongoose.model("Event", eventSchema);
