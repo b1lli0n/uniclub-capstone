@@ -6,6 +6,9 @@ import {
   MY_CLUB_MEMBERSHIPS,
 } from '../../data/mockData'
 import '../../styles/club-attendance.css'
+import { getClubById } from '../../api/club.api'
+import { getMyClubs } from '../../api/memberClubMembership.api'
+import { getClubEventsForMember } from '../../api/event.api'
 
 const CLUB_FALLBACK = ALL_CLUBS[0]
 
@@ -22,7 +25,28 @@ function getNowLabel() {
 
 function canManageEventOperations(role = '') {
   const normalizedRole = role.toLowerCase()
-  return normalizedRole === 'leader' || normalizedRole === 'event management'
+  return (
+    normalizedRole === 'leader' ||
+    normalizedRole === 'event management' ||
+    normalizedRole === 'president' ||
+    normalizedRole === 'event_manager'
+  )
+}
+
+function mapEventFromApi(apiEvent) {
+  return {
+    id: apiEvent._id || apiEvent.id,
+    name: apiEvent.title || '',
+    checkinOpen: apiEvent.check_in_status === 'open',
+  }
+}
+
+function createManagedEvent(event) {
+  return {
+    id: event.id,
+    name: event.name,
+    checkinOpen: Boolean(event.checkinOpen),
+  }
 }
 
 function AttendanceSelect({ value, options, onChange, placeholder, disabled = false }) {
@@ -95,20 +119,75 @@ function AttendanceSelect({ value, options, onChange, placeholder, disabled = fa
 }
 
 function ClubAttendancePage({ clubId }) {
-  const club = ALL_CLUBS.find((item) => item.id === clubId) || CLUB_FALLBACK
-  const membership = MY_CLUB_MEMBERSHIPS.find((item) => item.clubId === club.id)
-  const canManageAttendance = canManageEventOperations(membership?.role)
-  const clubEvents = useMemo(() => ALL_EVENTS.filter((event) => event.clubId === club.id), [club.id])
-  const [selectedEventId, setSelectedEventId] = useState(clubEvents[0]?.id || '')
-  const selectedEvent = clubEvents.find((event) => event.id === selectedEventId) || clubEvents[0]
+  const [club, setClub] = useState(null)
+  const [membership, setMembership] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [clubEvents, setClubEvents] = useState([])
+
+  const [selectedEventId, setSelectedEventId] = useState('')
   const [query, setQuery] = useState('')
   const [manualMemberId, setManualMemberId] = useState('')
-  const [attendanceItems, setAttendanceItems] = useState(() =>
-    EVENT_ATTENDANCES.filter((item) => clubEvents.some((event) => event.id === item.eventId))
-  )
-  const [checkinOpenByEvent, setCheckinOpenByEvent] = useState(() =>
-    Object.fromEntries(clubEvents.map((event) => [event.id, Boolean(event.checkinOpen)]))
-  )
+  const [attendanceItems, setAttendanceItems] = useState([])
+  const [checkinOpenByEvent, setCheckinOpenByEvent] = useState({})
+
+  useEffect(() => {
+    let active = true
+    async function loadData() {
+      setLoading(true)
+      try {
+        const [clubRes, myClubsRes, eventsRes] = await Promise.all([
+          getClubById(clubId),
+          getMyClubs().catch(() => ({ data: [] })),
+          getClubEventsForMember(clubId).catch(() => ({ data: [] }))
+        ])
+        if (!active) return
+
+        const loadedClub = clubRes.data
+        setClub(loadedClub)
+
+        const userMembership = (myClubsRes.data || []).find((item) => {
+          const id = item.club_id?._id || item.club_id
+          return String(id) === String(clubId)
+        })
+        setMembership(userMembership || null)
+
+        let loadedEvents = []
+        if (eventsRes.data && eventsRes.data.length > 0) {
+          loadedEvents = eventsRes.data.map(mapEventFromApi)
+        } else {
+          // Fallback to mock events filtered by club name/slug
+          const slug = loadedClub?.slug || loadedClub?.id || clubId
+          loadedEvents = ALL_EVENTS.filter((event) => 
+            String(event.clubId) === String(slug) || 
+            String(event.clubId) === String(clubId)
+          ).map(createManagedEvent)
+        }
+        setClubEvents(loadedEvents)
+
+        // Initialize state variables based on loaded events
+        const firstEventId = loadedEvents[0]?.id || ''
+        setSelectedEventId(firstEventId)
+
+        // Try to load attendance items matching loaded events
+        const filteredAttendances = EVENT_ATTENDANCES.filter((item) => 
+          loadedEvents.some((event) => event.id === item.eventId)
+        )
+        setAttendanceItems(filteredAttendances)
+
+        setCheckinOpenByEvent(
+          Object.fromEntries(loadedEvents.map((event) => [event.id, Boolean(event.checkinOpen)]))
+        )
+      } catch (err) {
+        console.error("Failed to load attendance data:", err)
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    loadData()
+    return () => { active = false }
+  }, [clubId])
+
+  const selectedEvent = clubEvents.find((event) => event.id === selectedEventId) || clubEvents[0]
 
   const checkinOpen = Boolean(checkinOpenByEvent[selectedEvent?.id])
   const selectedAttendance = useMemo(
@@ -125,6 +204,20 @@ function ClubAttendancePage({ clubId }) {
         item.email.toLowerCase().includes(keyword)
     )
   }, [query, selectedAttendance])
+
+  if (loading) {
+    return (
+      <main className="club-attendance-page">
+        <section className="club-attendance-empty">
+          <h1>Loading...</h1>
+          <p>Verifying club management permissions...</p>
+        </section>
+      </main>
+    )
+  }
+
+  const activeClub = club || CLUB_FALLBACK
+  const canManageAttendance = canManageEventOperations(membership?.role)
   const uncheckedAttendance = selectedAttendance.filter((item) => !item.checkedIn)
   const checkedCount = selectedAttendance.filter((item) => item.checkedIn).length
   const eventOptions = clubEvents.map((event) => ({
@@ -187,7 +280,7 @@ function ClubAttendancePage({ clubId }) {
     <main className="club-attendance-page">
       <section className="club-attendance-hero">
         <div>
-          <span>{club.name}</span>
+          <span>{activeClub.name}</span>
           <h1>Attendance</h1>
           <p>View attendance list and update check-in status for club events.</p>
         </div>

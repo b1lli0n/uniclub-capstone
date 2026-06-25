@@ -224,20 +224,12 @@ function ClubEventManagementRoute() {
 
 function ClubAttendanceRoute() {
   const { clubId } = useParams()
-  const canManageMembers = canManageClubMembers(clubId)
-  const canManageEvents = canManageClubEvents(clubId)
-
-  if (!canManageEvents) {
-    return <Navigate to={`/clubs/${clubId}`} replace />
-  }
 
   return (
     <ProtectedLayout
       pageId="attendance"
       activeItem="clubs"
       clubId={clubId}
-      canManageMembers={canManageMembers}
-      canManageEvents={canManageEvents}
     >
       <ClubAttendancePage clubId={clubId} />
     </ProtectedLayout>
