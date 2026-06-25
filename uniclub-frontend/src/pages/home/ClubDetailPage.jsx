@@ -8,8 +8,12 @@ import {
   getClubJoinForm,
   submitJoinRequest,
 } from '../../api/studentClubMembership.api'
+import {
+  getPublicEvents,
+  getClubEventsForMember,
+} from '../../api/event.api'
 import { formatRoleLabel, mapClubFromApi, mapMemberFromApi } from '../../api/clubMappers'
-import { CLUB_DETAIL_COPY, ALL_EVENTS } from '../../data/mockData'
+import { CLUB_DETAIL_COPY } from '../../data/mockData'
 import '../../styles/club-detail.css'
 
 function EventIcon() {
@@ -22,6 +26,24 @@ function EventIcon() {
   )
 }
 
+function mapEventFromApi(apiEvent) {
+  if (!apiEvent) return null
+  const startDate = apiEvent.start_time ? new Date(apiEvent.start_time) : null
+  const formattedDate = startDate ? startDate.toLocaleDateString('vi-VN') : ''
+  const formattedTime = startDate ? startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''
+  
+  return {
+    id: apiEvent._id || apiEvent.id,
+    name: apiEvent.title || '',
+    description: apiEvent.description || '',
+    date: formattedDate,
+    time: formattedTime,
+    location: apiEvent.location || 'Campus',
+    visibility: apiEvent.is_public ? 'public' : 'private',
+    checkinOpen: apiEvent.check_in_status === 'open',
+  }
+}
+
 function ClubDetailPage({ clubId, onBack }) {
   const navigate = useNavigate()
   const [joinModalOpen, setJoinModalOpen] = useState(false)
@@ -32,6 +54,7 @@ function ClubDetailPage({ clubId, onBack }) {
   const [currentMembership, setCurrentMembership] = useState(null)
   const [joinForm, setJoinForm] = useState(null)
   const [joinAnswers, setJoinAnswers] = useState([])
+  const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
@@ -56,6 +79,20 @@ function ClubDetailPage({ clubId, onBack }) {
           const id = item.club_id?._id || item.club_id
           return String(id) === String(clubId)
         })
+
+        const isMember = Boolean(membership)
+
+        // Fetch events based on membership status
+        let eventsRes
+        if (isMember) {
+          eventsRes = await getClubEventsForMember(clubId).catch(() => ({ data: [] }))
+        } else {
+          eventsRes = await getPublicEvents({ clubId }).catch(() => ({ data: [] }))
+        }
+
+        if (cancelled) return
+
+        setEvents((eventsRes.data || []).map((ev) => mapEventFromApi(ev)))
 
         setCurrentMembership(
           membership
@@ -90,12 +127,8 @@ function ClubDetailPage({ clubId, onBack }) {
     ? `${club.description}. ${CLUB_DETAIL_COPY.descriptionSuffix}`
     : ''
   const previewMembers = memberRows.slice(0, 4)
-  const clubEvents = club ? ALL_EVENTS.filter((event) => event.clubId === club.id) : []
-  const visibleClubEvents = clubEvents.filter(
-    (event) => event.visibility !== 'private' || isClubMember
-  )
-  const previewClubEvents = visibleClubEvents.slice(0, 3)
-  const hiddenPrivateEventsCount = clubEvents.length - visibleClubEvents.length
+  const previewClubEvents = events.slice(0, 3)
+  const hiddenPrivateEventsCount = 0
 
   async function openJoinModal() {
     try {
