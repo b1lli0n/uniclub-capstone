@@ -18,3 +18,24 @@ export function submitEventFeedback(eventId, data) {
     body: JSON.stringify(data),
   })
 }
+
+/**
+ * Update feedback for an event
+ * PATCH /api/student/feedback-management/:eventId
+ */
+export function updateEventFeedback(eventId, data) {
+  return apiRequest(`/student/feedback-management/${eventId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Delete feedback for an event
+ * DELETE /api/student/feedback-management/:eventId
+ */
+export function deleteEventFeedback(eventId) {
+  return apiRequest(`/student/feedback-management/${eventId}`, {
+    method: 'DELETE',
+  })
+}

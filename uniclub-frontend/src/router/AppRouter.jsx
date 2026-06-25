@@ -15,6 +15,7 @@ import EventDetailPage from '../pages/home/EventDetailPage'
 import MyEventsPage from '../pages/home/MyEventsPage'
 import ClubDetailPage from '../pages/home/ClubDetailPage'
 import ClubEventsPage from '../pages/home/ClubEventsPage'
+import ClubEventManagementPage from '../pages/home/ClubEventManagementPage'
 import ClubRankingPage from '../pages/home/ClubRankingPage'
 import ClubJoinRequestsPage from '../pages/home/ClubJoinRequestsPage'
 import ClubJoinFormPage from '../pages/home/ClubJoinFormPage'
@@ -40,6 +41,7 @@ function ProtectedLayout({
     avatarInitial: 'U',
   })
   const [canManageMembers, setCanManageMembers] = useState(false)
+  const [canManageEvents, setCanManageEvents] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -65,9 +67,13 @@ function ProtectedLayout({
             const id = item.club_id?._id || item.club_id
             return String(id) === String(clubId)
           })
-          setCanManageMembers(membership?.role === 'president')
+          const isPresident = membership?.role === 'president'
+          const isEventManager = membership?.role === 'event_manager'
+          setCanManageMembers(isPresident)
+          setCanManageEvents(isPresident || isEventManager)
         } else {
           setCanManageMembers(false)
+          setCanManageEvents(false)
         }
       } catch (err) {
         console.error("Failed to load layout data:", err)
@@ -102,6 +108,7 @@ function ProtectedLayout({
     else if (screen === 'club-ranking') navigate(clubId ? `/clubs/${clubId}/ranking` : '/club-ranking')
     else if (screen === 'member-approval' && clubId) navigate(`/clubs/${clubId}/join-requests`)
     else if (screen === 'join-form' && clubId) navigate(`/clubs/${clubId}/join-form`)
+    else if (screen === 'manage-events' && clubId) navigate(`/clubs/${clubId}/manage-events`)
     else navigate('/')
   }
 
@@ -117,6 +124,7 @@ function ProtectedLayout({
       onNavigate={handleNavigate}
       onLogout={handleLogout}
       canManageMembers={canManageMembers}
+      canManageEvents={canManageEvents}
     >
       {children}
     </HomeLayout>
@@ -198,6 +206,20 @@ function ClubEventsRoute() {
   )
 }
 
+function ClubEventManagementRoute() {
+  const { clubId } = useParams()
+
+  return (
+    <ProtectedLayout
+      pageId="manage-events"
+      activeItem="clubs"
+      clubId={clubId}
+    >
+      <ClubEventManagementPage clubId={clubId} />
+    </ProtectedLayout>
+  )
+}
+
 function AppRouter() {
   const isAuthenticated = Boolean(localStorage.getItem('token'))
   const navigate = useNavigate()
@@ -206,7 +228,9 @@ function AppRouter() {
     <Routes>
       <Route
         path="/login"
-        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
+        element={
+          isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
+        }
       />
 
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -304,12 +328,6 @@ function AppRouter() {
         }
       />
 
-      <Route path="/clubs/:clubId/ranking" element={<ClubRankingRoute />} />
-      <Route path="/clubs/:clubId/join-requests" element={<ClubJoinRequestsRoute />} />
-      <Route path="/clubs/:clubId/join-form" element={<ClubJoinFormRoute />} />
-
-      <Route path="/clubs/:clubId/events" element={<ClubEventsRoute />} />
-
       <Route
         path="/clubs/:clubId/events/:eventId"
         element={
@@ -319,6 +337,11 @@ function AppRouter() {
         }
       />
 
+      <Route path="/clubs/:clubId/ranking" element={<ClubRankingRoute />} />
+      <Route path="/clubs/:clubId/join-requests" element={<ClubJoinRequestsRoute />} />
+      <Route path="/clubs/:clubId/join-form" element={<ClubJoinFormRoute />} />
+      <Route path="/clubs/:clubId/manage-events" element={<ClubEventManagementRoute />} />
+      <Route path="/clubs/:clubId/events" element={<ClubEventsRoute />} />
       <Route path="/clubs/:clubId" element={<ClubDetailRoute />} />
 
       <Route

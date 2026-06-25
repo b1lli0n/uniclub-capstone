@@ -6,7 +6,12 @@ import {
   cancelEventRegistration as cancelEventRegistrationApi,
 } from '../../api/event.api'
 import { getMyProfile } from '../../api/profile.api'
-import { getEventFeedback, submitEventFeedback } from '../../api/feedback.api'
+import {
+  getEventFeedback,
+  submitEventFeedback as submitEventFeedbackApi,
+  updateEventFeedback as updateEventFeedbackApi,
+  deleteEventFeedback as deleteEventFeedbackApi,
+} from '../../api/feedback.api'
 import '../../styles/clubs.css'
 
 function isEventRegistrationOpen(event) {
@@ -41,10 +46,7 @@ function TicketQr({ value }) {
   const cells = Array.from({ length: 225 }, (_, index) => {
     const row = Math.floor(index / 15)
     const col = index % 15
-    const inTopLeft = row < 5 && col < 5
-    const inTopRight = row < 5 && col > 9
-    const inBottomLeft = row > 9 && col < 5
-    const finder = inTopLeft || inTopRight || inBottomLeft
+    const finder = (row < 5 && col < 5) || (row < 5 && col > 9) || (row > 9 && col < 5)
 
     if (finder) {
       const localRow = row % 10
@@ -103,93 +105,31 @@ function mapEventFromApi(apiEvent) {
   }
 }
 
-function FeedbackForm({ onSubmit }) {
-  const [rating, setRating] = useState(5)
-  const [comment, setComment] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!comment.trim()) return
-    setSubmitting(true)
-    try {
-      await onSubmit({ rating, comment })
-      setComment('')
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
+function RatingStars({ rating, onChange, readonly = false }) {
   return (
-    <form onSubmit={handleSubmit} style={{
-      padding: '1.2rem',
-      background: '#fff',
-      border: '1px solid #f0e4d8',
-      borderRadius: '16px',
-      marginBottom: '1.5rem',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.8rem'
-    }}>
-      <strong style={{ color: '#3d2e24', fontSize: '0.95rem' }}>Send your feedback</strong>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span style={{ fontSize: '0.85rem', color: '#6f6676' }}>Rating:</span>
-        <div style={{ display: 'flex', gap: '0.3rem' }}>
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              onClick={() => setRating(star)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '1.4rem',
-                padding: 0,
-                color: star <= rating ? '#F57C00' : '#d2c8bc'
-              }}
-            >
-              ★
-            </button>
-          ))}
-        </div>
-      </div>
-      <textarea
-        placeholder="Write your feedback..."
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-        required
-        rows={3}
-        style={{
-          width: '100%',
-          padding: '0.6rem 0.8rem',
-          borderRadius: '8px',
-          border: '1px solid #d2c8bc',
-          fontSize: '0.85rem',
-          fontFamily: 'inherit',
-          boxSizing: 'border-box'
-        }}
-      />
-      <button
-        type="submit"
-        disabled={submitting}
-        style={{
-          alignSelf: 'flex-end',
-          padding: '0.45rem 1rem',
-          background: '#F57C00',
-          color: '#fff',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          fontWeight: '600',
-          fontSize: '0.8rem'
-        }}
-      >
-        {submitting ? 'Submitting...' : 'Submit Feedback'}
-      </button>
-    </form>
+    <div className="event-detail-rating-stars" style={{ display: 'flex', gap: '0.3rem' }}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: readonly ? 'default' : 'pointer',
+            fontSize: '1.4rem',
+            padding: 0,
+            color: star <= rating ? '#F57C00' : '#d2c8bc',
+          }}
+          onClick={() => {
+            if (!readonly) onChange?.(star)
+          }}
+          disabled={readonly}
+          aria-label={`${star} star`}
+        >
+          ★
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -204,6 +144,11 @@ function EventDetailPage() {
   const [registration, setRegistration] = useState(null)
   const [feedbacks, setFeedbacks] = useState([])
   const [myFeedback, setMyFeedback] = useState(null)
+
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
+  const [editingFeedback, setEditingFeedback] = useState(null)
+  const [feedbackDraft, setFeedbackDraft] = useState('')
+  const [feedbackRating, setFeedbackRating] = useState(5)
 
   async function loadEventData() {
     setLoading(true)
@@ -223,7 +168,7 @@ function EventDetailPage() {
       if (mapped.isRegistered) {
         setRegistration({
           status: mapped.registrationStatus || 'registered',
-          registeredAt: '', // can be populated if we want
+          registeredAt: '',
           checkedIn: mapped.registrationStatus === 'attended',
         })
       } else {
@@ -239,20 +184,10 @@ function EventDetailPage() {
     }
   }
 
-  async function handleFeedbackSubmit({ rating, comment }) {
-    try {
-      const res = await submitEventFeedback(eventId, { rating, comment })
-      alert(res.message || 'Feedback submitted successfully!')
-      loadEventData()
-    } catch (err) {
-      console.error(err)
-      alert(err.message || 'Failed to submit feedback')
-    }
-  }
-
   useEffect(() => {
     loadEventData()
     setTicketOpen(false)
+    setFeedbackModalOpen(false)
   }, [eventId])
 
   useEffect(() => {
@@ -262,6 +197,87 @@ function EventDetailPage() {
       document.body.classList.remove('event-ticket-open')
     }
   }, [ticketOpen])
+
+  const isRegistered = event?.isRegistered
+  const canCancel = isRegistered && (registration?.status === 'registered' || registration?.status === 'approved' || registration?.status === 'pending') && isBeforeEventStart(event)
+  const canRegister = !isRegistered && isEventRegistrationOpen(event)
+  const canCheckIn = (registration?.status === 'registered' || registration?.status === 'approved') && event?.checkinOpen && !registration?.checkedIn
+  const statusText = event ? getEventStatus(event) : ''
+  const organizerName = event?.organizerName || 'UniClub'
+  const organizerInitial = organizerName.slice(0, 1).toUpperCase()
+  const ticketCode = event?.id && profile ? buildTicketCode(event.id, profile._id) : ''
+  const studentPhone = profile?.phone || 'Not updated'
+  const studentEmail = profile?.email || 'Not updated'
+
+  async function registerForEvent() {
+    try {
+      const res = await registerForEventApi(eventId)
+      alert(res.message || 'Registered successfully!')
+      loadEventData()
+    } catch (err) {
+      console.error(err)
+      alert(err.message || 'Failed to register')
+    }
+  }
+
+  async function cancelEventRegistration() {
+    try {
+      const res = await cancelEventRegistrationApi(eventId)
+      alert(res.message || 'Registration cancelled successfully!')
+      loadEventData()
+    } catch (err) {
+      console.error(err)
+      alert(err.message || 'Failed to cancel registration')
+    }
+  }
+
+  function openFeedbackModal(feedbackItem = null) {
+    setEditingFeedback(feedbackItem)
+    setFeedbackDraft(feedbackItem?.comment || '')
+    setFeedbackRating(feedbackItem?.rating || 5)
+    setFeedbackModalOpen(true)
+  }
+
+  function closeFeedbackModal() {
+    setFeedbackModalOpen(false)
+    setEditingFeedback(null)
+    setFeedbackDraft('')
+    setFeedbackRating(5)
+  }
+
+  async function handleFeedbackSubmit(submitEvent) {
+    submitEvent.preventDefault()
+
+    const comment = feedbackDraft.trim()
+    if (!comment) return
+
+    try {
+      if (editingFeedback) {
+        const res = await updateEventFeedbackApi(eventId, { rating: feedbackRating, comment })
+        alert(res.message || 'Feedback updated successfully!')
+      } else {
+        const res = await submitEventFeedbackApi(eventId, { rating: feedbackRating, comment })
+        alert(res.message || 'Feedback submitted successfully!')
+      }
+      loadEventData()
+      closeFeedbackModal()
+    } catch (err) {
+      console.error(err)
+      alert(err.message || 'Failed to save feedback')
+    }
+  }
+
+  async function deleteEventFeedback(feedbackId) {
+    if (!confirm('Are you sure you want to delete your feedback?')) return
+    try {
+      const res = await deleteEventFeedbackApi(eventId)
+      alert(res.message || 'Feedback deleted successfully!')
+      loadEventData()
+    } catch (err) {
+      console.error(err)
+      alert(err.message || 'Failed to delete feedback')
+    }
+  }
 
   if (loading) {
     return (
@@ -298,39 +314,6 @@ function EventDetailPage() {
     )
   }
 
-  const isRegistered = event.isRegistered
-  const canCancel = isRegistered && (registration?.status === 'registered' || registration?.status === 'approved' || registration?.status === 'pending') && isBeforeEventStart(event)
-  const canRegister = !isRegistered && isEventRegistrationOpen(event)
-  const canCheckIn = (registration?.status === 'registered' || registration?.status === 'approved') && event.checkinOpen && !registration.checkedIn
-  const statusText = getEventStatus(event)
-  const organizerName = event.organizerName || 'UniClub'
-  const organizerInitial = organizerName.slice(0, 1).toUpperCase()
-  const ticketCode = event.id && profile ? buildTicketCode(event.id, profile._id) : ''
-  const studentPhone = profile?.phone || 'Not updated'
-  const studentEmail = profile?.email || 'Not updated'
-
-  async function registerForEvent() {
-    try {
-      const res = await registerForEventApi(eventId)
-      alert(res.message || 'Registered successfully!')
-      loadEventData()
-    } catch (err) {
-      console.error(err)
-      alert(err.message || 'Failed to register')
-    }
-  }
-
-  async function cancelEventRegistration() {
-    try {
-      const res = await cancelEventRegistrationApi(eventId)
-      alert(res.message || 'Registration cancelled successfully!')
-      loadEventData()
-    } catch (err) {
-      console.error(err)
-      alert(err.message || 'Failed to cancel registration')
-    }
-  }
-
   return (
     <div className="event-detail-page">
       <div className="event-detail-shell">
@@ -357,7 +340,7 @@ function EventDetailPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    navigate(`/clubs/${event.clubId}`)
+                    if (event.clubId) navigate(`/clubs/${event.clubId}`)
                   }}
                 >
                   View Club
@@ -379,53 +362,51 @@ function EventDetailPage() {
               </ul>
 
               <h3>3. Meaning</h3>
-              <p>
-                Build new connections, experience campus life, and keep memorable moments with
-                UniClub.
-              </p>
+              <p>Build new connections, experience campus life, and keep memorable moments with UniClub.</p>
             </article>
 
             <section className="event-detail-feedback">
               <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h2 style={{ margin: 0 }}>Feedback ({feedbacks.length})</h2>
+                <div>
+                  <h2 style={{ margin: 0 }}>Feedback</h2>
+                  <span style={{ fontSize: '0.85rem', color: '#6f6676' }}>
+                    {feedbacks.length} {feedbacks.length === 1 ? 'review' : 'reviews'}
+                  </span>
+                </div>
+                {registration?.status === 'attended' && (
+                  <button
+                    type="button"
+                    className="event-detail-feedback-open"
+                    style={{
+                      padding: '0.45rem 1rem',
+                      background: '#F57C00',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      fontSize: '0.8rem'
+                    }}
+                    onClick={() => openFeedbackModal(myFeedback || null)}
+                  >
+                    {myFeedback ? 'Update my feedback' : 'Write feedback'}
+                  </button>
+                )}
               </header>
 
-              {/* Submit Feedback form */}
-              {registration?.status === 'attended' && !myFeedback && (
-                <FeedbackForm onSubmit={handleFeedbackSubmit} />
-              )}
+              <p className="event-detail-feedback-note" style={{ fontSize: '0.85rem', color: '#6f6676', marginBottom: '1rem' }}>
+                Students who attended this event can share their feedback.
+              </p>
 
-              {/* User's own submitted feedback */}
-              {myFeedback && (
-                <div className="my-feedback-submitted" style={{
-                  padding: '1rem',
-                  border: '1.5px dashed #F57C00',
-                  borderRadius: '12px',
-                  background: '#fffbf5',
-                  marginBottom: '1.5rem'
-                }}>
-                  <strong style={{ color: '#F57C00', display: 'block', marginBottom: '0.4rem' }}>
-                    Your Feedback:
-                  </strong>
-                  <div style={{ display: 'flex', gap: '0.2rem', color: '#F57C00', marginBottom: '0.3rem' }}>
-                    {Array.from({ length: myFeedback.rating }).map((_, i) => (
-                      <span key={i}>★</span>
-                    ))}
-                  </div>
-                  <p style={{ margin: 0, color: '#3d2e24', fontSize: '0.9rem' }}>{myFeedback.comment}</p>
-                </div>
-              )}
-
-              {/* Feedbacks list */}
-              {feedbacks.length === 0 ? (
-                <div className="event-detail-empty-feedback">No feedback yet.</div>
-              ) : (
-                <div className="feedbacks-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+              {feedbacks.length > 0 ? (
+                <div className="event-detail-feedback-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {feedbacks.map((fb) => {
                     const reviewerName = fb.user_id?.full_name || 'Anonymous'
                     const reviewerInitial = reviewerName.slice(0, 1).toUpperCase()
+                    const isMine = fb.user_id?._id === profile?._id || fb.user_id === profile?._id
+
                     return (
-                      <div key={fb._id} style={{
+                      <article key={fb._id} className="event-detail-feedback-item" style={{
                         display: 'flex',
                         gap: '1rem',
                         padding: '1rem',
@@ -433,7 +414,7 @@ function EventDetailPage() {
                         border: '1px solid #f0e4d8',
                         borderRadius: '12px'
                       }}>
-                        <span style={{
+                        <div className="event-detail-feedback-avatar" aria-hidden="true" style={{
                           width: '32px',
                           height: '32px',
                           borderRadius: '50%',
@@ -443,26 +424,75 @@ function EventDetailPage() {
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: '600',
-                          fontSize: '0.9rem'
+                          fontSize: '0.9rem',
+                          flexShrink: 0
                         }}>
                           {reviewerInitial}
-                        </span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <strong style={{ fontSize: '0.9rem', color: '#3d2e24' }}>{reviewerName}</strong>
-                            <div style={{ color: '#F57C00', display: 'flex', gap: '0.1rem' }}>
-                              {Array.from({ length: fb.rating }).map((_, i) => (
-                                <span key={i}>★</span>
-                              ))}
+                        </div>
+
+                        <div className="event-detail-feedback-content" style={{ flex: 1 }}>
+                          <div className="event-detail-feedback-topline" style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            marginBottom: '0.3rem'
+                          }}>
+                            <div>
+                              <strong style={{ fontSize: '0.9rem', color: '#3d2e24', display: 'block' }}>{reviewerName}</strong>
+                              <span style={{ fontSize: '0.75rem', color: '#8c7e95' }}>
+                                {fb.updated_at ? `Updated ${new Date(fb.updated_at).toLocaleDateString('vi-VN')}` : new Date(fb.created_at || Date.now()).toLocaleDateString('vi-VN')}
+                              </span>
                             </div>
+                            <RatingStars rating={fb.rating} readonly />
                           </div>
-                          <p style={{ margin: '0.3rem 0 0', fontSize: '0.85rem', color: '#6f6676', lineHeight: 1.4 }}>
+
+                          <p style={{ margin: '0.4rem 0 0.6rem', fontSize: '0.88rem', color: '#3d2e24', lineHeight: 1.4 }}>
                             {fb.comment}
                           </p>
+
+                          {isMine ? (
+                            <div className="event-detail-feedback-actions" style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
+                              <button 
+                                type="button" 
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#F57C00',
+                                  cursor: 'pointer',
+                                  fontSize: '0.8rem',
+                                  fontWeight: '600',
+                                  padding: 0
+                                }}
+                                onClick={() => openFeedbackModal(fb)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="is-danger"
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#dc2626',
+                                  cursor: 'pointer',
+                                  fontSize: '0.8rem',
+                                  fontWeight: '600',
+                                  padding: 0
+                                }}
+                                onClick={() => deleteEventFeedback(fb._id)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
-                      </div>
+                      </article>
                     )
                   })}
+                </div>
+              ) : (
+                <div className="event-detail-empty-feedback" style={{ textAlign: 'center', padding: '2rem 0', color: '#8c7e95', fontSize: '0.9rem' }}>
+                  No feedback yet.
                 </div>
               )}
             </section>
@@ -514,11 +544,7 @@ function EventDetailPage() {
               {registration ? (
                 <>
                   {canCancel ? (
-                    <button
-                      type="button"
-                      className="event-detail-secondary"
-                      onClick={cancelEventRegistration}
-                    >
+                    <button type="button" className="event-detail-secondary" onClick={cancelEventRegistration}>
                       Cancel registration
                     </button>
                   ) : registration.checkedIn ? (
@@ -539,11 +565,7 @@ function EventDetailPage() {
                     <p>Please check in at the coordinator counter using your ticket code.</p>
                   ) : null}
 
-                  <button
-                    type="button"
-                    className="event-detail-primary"
-                    onClick={() => setTicketOpen(true)}
-                  >
+                  <button type="button" className="event-detail-primary" onClick={() => setTicketOpen(true)}>
                     View registration info
                   </button>
                 </>
@@ -563,6 +585,7 @@ function EventDetailPage() {
           />
           <section className="event-ticket">
             <div className="event-ticket__notches" aria-hidden="true" />
+
             <header className="event-ticket__header">
               <div>
                 <span>Event ticket</span>
@@ -614,6 +637,95 @@ function EventDetailPage() {
               <p>Show this QR code to the event leader at the check-in counter.</p>
             </div>
           </section>
+        </div>
+      ) : null}
+
+      {feedbackModalOpen ? (
+        <div className="event-feedback-modal" role="dialog" aria-modal="true" aria-labelledby="event-feedback-title">
+          <button
+            type="button"
+            className="event-feedback-modal__backdrop"
+            aria-label="Close feedback form"
+            onClick={closeFeedbackModal}
+          />
+
+          <form className="event-feedback-modal__panel" onSubmit={handleFeedbackSubmit}>
+            <header>
+              <div>
+                <span>{event.name}</span>
+                <h2 id="event-feedback-title">
+                  {editingFeedback ? 'Update feedback' : 'Write feedback'}
+                </h2>
+              </div>
+              <button type="button" onClick={closeFeedbackModal} aria-label="Close feedback form">
+                X
+              </button>
+            </header>
+
+            <label className="event-detail-rating" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '1rem 0' }}>
+              <span>Rating:</span>
+              <RatingStars rating={feedbackRating} onChange={setFeedbackRating} />
+            </label>
+
+            <label className="event-feedback-modal__field" style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '1.2rem' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#6b5a4a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feedback</span>
+              <textarea
+                value={feedbackDraft}
+                onChange={(eventChange) => setFeedbackDraft(eventChange.target.value)}
+                placeholder="Write your feedback..."
+                rows={5}
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 0.95rem',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(240, 228, 216, 0.8)',
+                  fontSize: '0.92rem',
+                  fontFamily: 'inherit',
+                  boxSizing: 'border-box',
+                  resize: 'vertical',
+                  outline: 'none'
+                }}
+              />
+            </label>
+
+            <div className="event-feedback-modal__actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.8rem' }}>
+              <button 
+                type="button" 
+                className="event-feedback-modal__cancel" 
+                onClick={closeFeedbackModal}
+                style={{
+                  padding: '0.55rem 1.1rem',
+                  background: '#fff',
+                  border: '1px solid #d2c8bc',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  fontWeight: '600'
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="event-detail-feedback-submit" 
+                disabled={!feedbackDraft.trim()}
+                style={{
+                  padding: '0.55rem 1.1rem',
+                  background: '#F57C00',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  fontWeight: '600',
+                  boxShadow: '0 2px 6px rgba(245, 124, 0, 0.15)'
+                }}
+              >
+                {editingFeedback ? 'Save changes' : 'Send feedback'}
+              </button>
+            </div>
+          </form>
         </div>
       ) : null}
     </div>
