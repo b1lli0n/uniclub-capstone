@@ -62,7 +62,8 @@ body:has(.home-shell) #root {
 }
 
 .home-shell__main--clubs,
-.home-shell__main--events {
+.home-shell__main--events,
+.home-shell__main--event-detail {
   background: #eef1f5;
 }
 
@@ -78,7 +79,10 @@ body:has(.home-shell) #root {
 
 .home-shell__main--club-detail,
 .home-shell__main--club-ranking,
-.home-shell__main--member-approval {
+.home-shell__main--member-approval,
+.home-shell__main--join-form,
+.home-shell__main--manage-events,
+.home-shell__main--attendance {
   background: #eef1f5;
 }
 

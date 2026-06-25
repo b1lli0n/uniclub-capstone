@@ -19,6 +19,7 @@ import ClubEventManagementPage from '../pages/home/ClubEventManagementPage'
 import ClubRankingPage from '../pages/home/ClubRankingPage'
 import ClubJoinRequestsPage from '../pages/home/ClubJoinRequestsPage'
 import ClubJoinFormPage from '../pages/home/ClubJoinFormPage'
+import ClubAttendancePage from '../pages/home/ClubAttendancePage'
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 
 import { useEffect, useState } from 'react'
@@ -109,6 +110,7 @@ function ProtectedLayout({
     else if (screen === 'member-approval' && clubId) navigate(`/clubs/${clubId}/join-requests`)
     else if (screen === 'join-form' && clubId) navigate(`/clubs/${clubId}/join-form`)
     else if (screen === 'manage-events' && clubId) navigate(`/clubs/${clubId}/manage-events`)
+    else if (screen === 'attendance' && clubId) navigate(`/clubs/${clubId}/attendance`)
     else navigate('/')
   }
 
@@ -216,6 +218,28 @@ function ClubEventManagementRoute() {
       clubId={clubId}
     >
       <ClubEventManagementPage clubId={clubId} />
+    </ProtectedLayout>
+  )
+}
+
+function ClubAttendanceRoute() {
+  const { clubId } = useParams()
+  const canManageMembers = canManageClubMembers(clubId)
+  const canManageEvents = canManageClubEvents(clubId)
+
+  if (!canManageEvents) {
+    return <Navigate to={`/clubs/${clubId}`} replace />
+  }
+
+  return (
+    <ProtectedLayout
+      pageId="attendance"
+      activeItem="clubs"
+      clubId={clubId}
+      canManageMembers={canManageMembers}
+      canManageEvents={canManageEvents}
+    >
+      <ClubAttendancePage clubId={clubId} />
     </ProtectedLayout>
   )
 }
@@ -341,6 +365,7 @@ function AppRouter() {
       <Route path="/clubs/:clubId/join-requests" element={<ClubJoinRequestsRoute />} />
       <Route path="/clubs/:clubId/join-form" element={<ClubJoinFormRoute />} />
       <Route path="/clubs/:clubId/manage-events" element={<ClubEventManagementRoute />} />
+      <Route path="/clubs/:clubId/attendance" element={<ClubAttendanceRoute />} />
       <Route path="/clubs/:clubId/events" element={<ClubEventsRoute />} />
       <Route path="/clubs/:clubId" element={<ClubDetailRoute />} />
 
