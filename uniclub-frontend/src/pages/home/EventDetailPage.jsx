@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams, Navigate } from 'react-router-dom'
 import {
   getEventDetail,
   registerForEvent as registerForEventApi,
@@ -12,20 +12,66 @@ import {
   updateEventFeedback as updateEventFeedbackApi,
   deleteEventFeedback as deleteEventFeedbackApi,
 } from '../../api/feedback.api'
+import { getMyClubs } from '../../api/memberClubMembership.api'
+import { EVENT_TIMELINES } from '../../data/mockData'
 import '../../styles/clubs.css'
+
+function parseEventDate(dateText) {
+  if (!dateText) return new Date()
+  const [day, month, year] = dateText.split('/').map(Number)
+  return new Date(year, month - 1, day)
+}
+
+function parseEventStartDate(event) {
+  if (!event) return new Date()
+  const startDate = parseEventDate(event.date)
+  const startTime = event.time?.split('-')[0]?.trim()
+  const timeMatch = startTime?.match(/^(\d{1,2}):(\d{2})$/)
+
+  if (timeMatch) {
+    startDate.setHours(Number(timeMatch[1]), Number(timeMatch[2]), 0, 0)
+  }
+
+  return startDate
+}
+
+function parseEventEndDate(event) {
+  if (!event) return new Date()
+  const endDate = parseEventDate(event.date)
+  const endTime = event.time?.split('-')[1]?.trim()
+  const timeMatch = endTime?.match(/^(\d{1,2}):(\d{2})$/)
+
+  if (timeMatch) {
+    endDate.setHours(Number(timeMatch[1]), Number(timeMatch[2]), 0, 0)
+    return endDate
+  }
+
+  endDate.setHours(23, 59, 59, 999)
+  return endDate
+}
 
 function isEventRegistrationOpen(event) {
   if (!event) return false
-  return event.status === 'opening' && new Date() < new Date(event.start_time)
+  if (event.start_time) return event.status === 'opening' && new Date() < new Date(event.start_time)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return parseEventDate(event.date).getTime() >= today.getTime()
 }
 
 function isBeforeEventStart(event) {
   if (!event) return false
-  return new Date() < new Date(event.start_time)
+  if (event.start_time) return new Date() < new Date(event.start_time)
+  return new Date() < parseEventStartDate(event)
+}
+
+function isEventFeedbackOpen(event) {
+  if (!event) return false
+  if (event.end_time) return new Date() > new Date(event.end_time)
+  return Date.now() > parseEventEndDate(event).getTime()
 }
 
 function getRegistrationLabel(status) {
-  if (status === 'registered' || status === 'approved') return 'Registered'
+  if (status === 'registered' || status === 'approved' || status === 'accepted') return 'Registered'
   if (status === 'attended') return 'Attended'
   if (status === 'cancelled' || status === 'rejected') return 'Cancelled'
   if (status === 'pending') return 'Pending'
@@ -38,39 +84,33 @@ function getEventStatus(event) {
   if (event.status === 'coming soon') return 'Coming soon'
   if (event.status === 'closed') return 'Closed'
   if (event.status === 'cancelled') return 'Cancelled'
-  return event.status
+  if (event.status) return event.status
+  if (isEventRegistrationOpen(event)) return 'Opening'
+  return 'Started'
 }
 
 function buildTicketCode(eventId, userId) {
   return `${eventId}-${userId}`.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12)
 }
 
-function TicketQr({ value }) {
-  const cells = Array.from({ length: 225 }, (_, index) => {
-    const row = Math.floor(index / 15)
-    const col = index % 15
-    const finder = (row < 5 && col < 5) || (row < 5 && col > 9) || (row > 9 && col < 5)
+function createTimelineDraft(eventId) {
+  return {
+    id: '',
+    eventId,
+    time: '',
+    title: '',
+    description: '',
+    location: '',
+  }
+}
 
-    if (finder) {
-      const localRow = row % 10
-      const localCol = col % 10
-      return localRow === 0 || localRow === 4 || localCol === 0 || localCol === 4 || (localRow === 2 && localCol === 2)
-    }
-
-    let hash = 0
-    for (let i = 0; i < value.length; i += 1) {
-      hash = (hash * 31 + value.charCodeAt(i) + index) % 997
-    }
-
-    return (hash + row * 7 + col * 11) % 3 !== 0
-  })
-
+function canManageEventOperations(role = '') {
+  const normalizedRole = role.toLowerCase()
   return (
-    <div className="event-ticket-qr" aria-label={`QR check-in code ${value}`}>
-      {cells.map((active, index) => (
-        <span key={index} className={active ? 'is-active' : ''} />
-      ))}
-    </div>
+    normalizedRole === 'leader' ||
+    normalizedRole === 'event management' ||
+    normalizedRole === 'president' ||
+    normalizedRole === 'event_manager'
   )
 }
 
@@ -78,7 +118,6 @@ function mapEventFromApi(apiEvent) {
   if (!apiEvent) return null
   const startDate = apiEvent.start_time ? new Date(apiEvent.start_time) : null
   const endDate = apiEvent.end_time ? new Date(apiEvent.end_time) : null
-  
   const formattedDate = startDate ? startDate.toLocaleDateString('vi-VN') : ''
   const formattedTime = startDate && endDate 
     ? `${startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`
@@ -136,6 +175,67 @@ function RatingStars({ rating, onChange, readonly = false }) {
   )
 }
 
+function TicketQr({ value }) {
+  const cells = Array.from({ length: 225 }, (_, index) => {
+    const row = Math.floor(index / 15)
+    const col = index % 15
+    const inTopLeft = row < 5 && col < 5
+    const inTopRight = row < 5 && col > 9
+    const inBottomLeft = row > 9 && col < 5
+    const finder = inTopLeft || inTopRight || inBottomLeft
+
+    if (finder) {
+      const outer =
+        (row === 0 && col < 5) ||
+        (row === 4 && col < 5) ||
+        (col === 0 && row < 5) ||
+        (col === 4 && row < 5) ||
+        (row === 0 && col > 9) ||
+        (row === 4 && col > 9) ||
+        (col === 14 && row < 5) ||
+        (col === 10 && row < 5) ||
+        (row === 10 && col < 5) ||
+        (row === 14 && col < 5) ||
+        (col === 0 && row > 9) ||
+        (col === 4 && row > 9)
+
+      const inner =
+        (row === 2 && col === 2) ||
+        (row === 2 && col === 12) ||
+        (row === 12 && col === 2)
+
+      return outer || inner
+    }
+
+    const valueNum = Array.from(value).reduce((sum, char) => sum + char.charCodeAt(0), 0)
+    return (index * 7 + valueNum) % 3 === 0
+  })
+
+  return (
+    <div
+      className="event-ticket-qr"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(15, 1fr)',
+        gap: '2px',
+        width: '180px',
+        height: '180px',
+        margin: '0 auto',
+      }}
+    >
+      {cells.map((active, index) => (
+        <span
+          key={index}
+          style={{
+            background: active ? '#3d2e24' : '#fff',
+            borderRadius: '1px',
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 function EventDetailPage() {
   const { clubId, eventId } = useParams()
   const navigate = useNavigate()
@@ -147,19 +247,27 @@ function EventDetailPage() {
   const [registration, setRegistration] = useState(null)
   const [feedbacks, setFeedbacks] = useState([])
   const [myFeedback, setMyFeedback] = useState(null)
+  const [myClubs, setMyClubs] = useState([])
 
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
   const [editingFeedback, setEditingFeedback] = useState(null)
   const [feedbackDraft, setFeedbackDraft] = useState('')
   const [feedbackRating, setFeedbackRating] = useState(5)
 
+  // Timeline states from feature/fe-event-timeline
+  const [timelineModalOpen, setTimelineModalOpen] = useState(false)
+  const [editingTimeline, setEditingTimeline] = useState(null)
+  const [timelineDraft, setTimelineDraft] = useState(() => createTimelineDraft(eventId || ''))
+  const [timelines, setTimelines] = useState(EVENT_TIMELINES)
+
   async function loadEventData() {
     setLoading(true)
     try {
-      const [eventRes, profileRes, feedbackRes] = await Promise.all([
+      const [eventRes, profileRes, feedbackRes, myClubsRes] = await Promise.all([
         getEventDetail(eventId),
         getMyProfile().catch(() => ({ data: { user: null } })),
-        getEventFeedback(eventId).catch(() => ({ data: { feedbacks: [], myFeedback: null } }))
+        getEventFeedback(eventId).catch(() => ({ data: { feedbacks: [], myFeedback: null } })),
+        getMyClubs().catch(() => ({ data: [] }))
       ])
       
       const mapped = mapEventFromApi(eventRes.data)
@@ -167,6 +275,7 @@ function EventDetailPage() {
       setProfile(profileRes.data?.user)
       setFeedbacks(feedbackRes.data?.feedbacks || [])
       setMyFeedback(feedbackRes.data?.myFeedback || null)
+      setMyClubs(myClubsRes.data || [])
       
       if (mapped.isRegistered) {
         setRegistration({
@@ -206,11 +315,25 @@ function EventDetailPage() {
   const canRegister = !isRegistered && isEventRegistrationOpen(event)
   const canCheckIn = (registration?.status === 'registered' || registration?.status === 'approved') && event?.checkinOpen && !registration?.checkedIn
   const statusText = event ? getEventStatus(event) : ''
+
+  // Organizer details
+  const organizerClubId = event?.clubId
+  const organizerMembership = myClubs.find((membership) => {
+    const id = membership.club_id?._id || membership.club_id
+    return String(id) === String(organizerClubId)
+  })
+  const isOrganizerMember = Boolean(organizerMembership)
+  const canManageTimeline = organizerMembership ? canManageEventOperations(organizerMembership.role) : false
+
   const organizerName = event?.organizerName || 'UniClub'
   const organizerInitial = organizerName.slice(0, 1).toUpperCase()
   const ticketCode = event?.id && profile ? buildTicketCode(event.id, profile._id) : ''
   const studentPhone = profile?.phone || 'Not updated'
   const studentEmail = profile?.email || 'Not updated'
+  const eventEnded = isEventFeedbackOpen(event)
+  const eventTimelines = timelines
+    .filter((timelineItem) => timelineItem.eventId === event?.id)
+    .sort((firstItem, secondItem) => firstItem.time.localeCompare(secondItem.time))
 
   async function registerForEvent() {
     try {
@@ -282,6 +405,54 @@ function EventDetailPage() {
     }
   }
 
+  function openTimelineModal(timelineItem = null) {
+    setEditingTimeline(timelineItem)
+    setTimelineDraft(timelineItem ? { ...timelineItem } : createTimelineDraft(event.id))
+    setTimelineModalOpen(true)
+  }
+
+  function closeTimelineModal() {
+    setTimelineModalOpen(false)
+    setEditingTimeline(null)
+    setTimelineDraft(createTimelineDraft(event.id))
+  }
+
+  function updateTimelineDraft(field, value) {
+    setTimelineDraft((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  function handleTimelineSubmit(submitEvent) {
+    submitEvent.preventDefault()
+
+    const nextTimeline = {
+      ...timelineDraft,
+      id: timelineDraft.id || `timeline-${event.id}-${Date.now()}`,
+      eventId: event.id,
+      time: timelineDraft.time.trim(),
+      title: timelineDraft.title.trim(),
+      description: timelineDraft.description.trim(),
+      location: timelineDraft.location.trim(),
+    }
+
+    if (!nextTimeline.time || !nextTimeline.title || !nextTimeline.description) return
+
+    setTimelines((items) => {
+      if (editingTimeline) {
+        return items.map((item) => (item.id === editingTimeline.id ? nextTimeline : item))
+      }
+
+      return [...items, nextTimeline]
+    })
+    closeTimelineModal()
+  }
+
+  function deleteTimeline(timelineId) {
+    setTimelines((items) => items.filter((item) => item.id !== timelineId))
+  }
+
   if (loading) {
     return (
       <div className="event-detail-page">
@@ -333,7 +504,6 @@ function EventDetailPage() {
                 <h1>{event.name}</h1>
                 <span>{event.categoryLabel}</span>
               </div>
-
               <div className="event-detail-host">
                 <span className="event-detail-host__avatar" aria-hidden="true">{organizerInitial}</span>
                 <div>
@@ -355,18 +525,66 @@ function EventDetailPage() {
               <h2>Event details</h2>
               <h3>1. Introduction</h3>
               <p>{event.description}</p>
-
               <h3>2. Main activities</h3>
               <ul>
                 <li>Connect with students who share the same interests.</li>
                 <li>Join activities prepared by the club organizer.</li>
-                <li>Time: {event.date} {event.time ? `- ${event.time}` : ''}</li>
+                <li>Time: {event.date}</li>
                 <li>Location: {event.location || 'Campus'}</li>
               </ul>
-
               <h3>3. Meaning</h3>
-              <p>Build new connections, experience campus life, and keep memorable moments with UniClub.</p>
+              <p>
+                Build new connections, experience campus life, and keep memorable moments with
+                UniClub.
+              </p>
             </article>
+
+            <section className="event-detail-timeline">
+              <header>
+                <div>
+                  <h2>Event Timeline</h2>
+                  <span>{eventTimelines.length} {eventTimelines.length === 1 ? 'item' : 'items'}</span>
+                </div>
+                {canManageTimeline ? (
+                  <button type="button" onClick={() => openTimelineModal()}>
+                    Add item
+                  </button>
+                ) : null}
+              </header>
+
+              {eventTimelines.length > 0 ? (
+                <div className="event-detail-timeline-list">
+                  {eventTimelines.map((timelineItem) => (
+                    <article key={timelineItem.id} className="event-detail-timeline-item">
+                      <div className="event-detail-timeline-time">
+                        <span>{timelineItem.time}</span>
+                      </div>
+                      <div className="event-detail-timeline-content">
+                        <div>
+                          <h3>{timelineItem.title}</h3>
+                          {timelineItem.location ? <small>{timelineItem.location}</small> : null}
+                        </div>
+                        <p>{timelineItem.description}</p>
+                        {canManageTimeline ? (
+                          <div className="event-detail-timeline-actions">
+                            <button type="button" onClick={() => openTimelineModal(timelineItem)}>
+                              Edit
+                            </button>
+                            <button type="button" className="is-danger" onClick={() => deleteTimeline(timelineItem.id)}>
+                              Delete
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="event-detail-empty-timeline">
+                  No timeline has been added for this event yet.
+                </div>
+              )}
+            </section>
 
             <section className="event-detail-feedback">
               <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -398,18 +616,20 @@ function EventDetailPage() {
               </header>
 
               <p className="event-detail-feedback-note" style={{ fontSize: '0.85rem', color: '#6f6676', marginBottom: '1rem' }}>
-                Students who attended this event can share their feedback.
+                {eventEnded
+                  ? 'Students who attended this event can share their feedback.'
+                  : 'You can draft feedback now; BE can decide final submission rules later.'}
               </p>
 
               {feedbacks.length > 0 ? (
                 <div className="event-detail-feedback-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {feedbacks.map((fb) => {
-                    const reviewerName = fb.user_id?.full_name || 'Anonymous'
+                    const reviewerName = fb.user_id?.full_name || fb.authorName || 'Anonymous'
                     const reviewerInitial = reviewerName.slice(0, 1).toUpperCase()
-                    const isMine = fb.user_id?._id === profile?._id || fb.user_id === profile?._id
+                    const isMine = fb.user_id?._id === profile?._id || fb.user_id === profile?._id || fb.userId === profile?._id
 
                     return (
-                      <article key={fb._id} className="event-detail-feedback-item" style={{
+                      <article key={fb._id || fb.id} className="event-detail-feedback-item" style={{
                         display: 'flex',
                         gap: '1rem',
                         padding: '1rem',
@@ -443,7 +663,7 @@ function EventDetailPage() {
                             <div>
                               <strong style={{ fontSize: '0.9rem', color: '#3d2e24', display: 'block' }}>{reviewerName}</strong>
                               <span style={{ fontSize: '0.75rem', color: '#8c7e95' }}>
-                                {fb.updated_at ? `Updated ${new Date(fb.updated_at).toLocaleDateString('vi-VN')}` : new Date(fb.created_at || Date.now()).toLocaleDateString('vi-VN')}
+                                {fb.updated_at || fb.updatedAt ? `Updated ${new Date(fb.updated_at || fb.updatedAt).toLocaleDateString('vi-VN')}` : new Date(fb.created_at || fb.createdAt || Date.now()).toLocaleDateString('vi-VN')}
                               </span>
                             </div>
                             <RatingStars rating={fb.rating} readonly />
@@ -482,7 +702,7 @@ function EventDetailPage() {
                                   fontWeight: '600',
                                   padding: 0
                                 }}
-                                onClick={() => deleteEventFeedback(fb._id)}
+                                onClick={() => deleteEventFeedback(fb._id || fb.id)}
                               >
                                 Delete
                               </button>
@@ -502,7 +722,7 @@ function EventDetailPage() {
           </main>
 
           <aside className="event-detail-register-card">
-            <div className="event-detail-visual" style={{ '--event-gradient': event.gradient }}>
+            <div className="event-detail-visual" style={{ '--event-gradient': event.gradient || 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)' }}>
               <span>{event.categoryLabel}</span>
             </div>
 
@@ -535,7 +755,7 @@ function EventDetailPage() {
 
             <div className="event-detail-actions">
               {canRegister ? (
-                <button type="button" className="event-detail-primary" onClick={registerForEvent}>
+                <button type="button" className="event-detail-primary" onClick={() => registerForEvent(event.id)}>
                   Register for event
                 </button>
               ) : null}
@@ -547,7 +767,11 @@ function EventDetailPage() {
               {registration ? (
                 <>
                   {canCancel ? (
-                    <button type="button" className="event-detail-secondary" onClick={cancelEventRegistration}>
+                    <button
+                      type="button"
+                      className="event-detail-secondary"
+                      onClick={() => cancelEventRegistration(event.id)}
+                    >
                       Cancel registration
                     </button>
                   ) : registration.checkedIn ? (
@@ -568,9 +792,15 @@ function EventDetailPage() {
                     <p>Please check in at the coordinator counter using your ticket code.</p>
                   ) : null}
 
-                  <button type="button" className="event-detail-primary" onClick={() => setTicketOpen(true)}>
-                    View registration info
-                  </button>
+                  {registration ? (
+                    <button
+                      type="button"
+                      className="event-detail-primary"
+                      onClick={() => setTicketOpen(true)}
+                    >
+                      View registration info
+                    </button>
+                  ) : null}
                 </>
               ) : null}
             </div>
@@ -588,7 +818,6 @@ function EventDetailPage() {
           />
           <section className="event-ticket">
             <div className="event-ticket__notches" aria-hidden="true" />
-
             <header className="event-ticket__header">
               <div>
                 <span>Event ticket</span>
@@ -598,7 +827,7 @@ function EventDetailPage() {
             </header>
 
             <div className="event-ticket__body">
-              <div className="event-ticket__poster" style={{ '--event-gradient': event.gradient }}>
+              <div className="event-ticket__poster" style={{ '--event-gradient': event.gradient || 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)' }}>
                 <span>{event.categoryLabel}</span>
               </div>
 
@@ -637,7 +866,7 @@ function EventDetailPage() {
                 <TicketQr value={ticketCode} />
                 <strong>{ticketCode}</strong>
               </div>
-              <p>Show this QR code to the event leader at the check-in counter.</p>
+              <p>Show this QR code to event management at the check-in counter.</p>
             </div>
           </section>
         </div>
@@ -651,7 +880,6 @@ function EventDetailPage() {
             aria-label="Close feedback form"
             onClick={closeFeedbackModal}
           />
-
           <form className="event-feedback-modal__panel" onSubmit={handleFeedbackSubmit}>
             <header>
               <div>
@@ -726,6 +954,88 @@ function EventDetailPage() {
                 }}
               >
                 {editingFeedback ? 'Save changes' : 'Send feedback'}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {timelineModalOpen ? (
+        <div className="event-feedback-modal" role="dialog" aria-modal="true" aria-labelledby="event-timeline-title">
+          <button
+            type="button"
+            className="event-feedback-modal__backdrop"
+            aria-label="Close timeline form"
+            onClick={closeTimelineModal}
+          />
+          <form className="event-feedback-modal__panel event-timeline-modal__panel" onSubmit={handleTimelineSubmit}>
+            <header>
+              <div>
+                <span>{event.name}</span>
+                <h2 id="event-timeline-title">
+                  {editingTimeline ? 'Update timeline item' : 'Create timeline item'}
+                </h2>
+              </div>
+              <button type="button" onClick={closeTimelineModal} aria-label="Close timeline form">
+                X
+              </button>
+            </header>
+
+            <div className="event-timeline-modal__grid">
+              <label className="event-feedback-modal__field">
+                <span>Time *</span>
+                <input
+                  type="text"
+                  value={timelineDraft.time}
+                  onChange={(eventChange) => updateTimelineDraft('time', eventChange.target.value)}
+                  placeholder="HH:mm"
+                  maxLength={5}
+                  required
+                />
+              </label>
+              <label className="event-feedback-modal__field">
+                <span>Location</span>
+                <input
+                  type="text"
+                  value={timelineDraft.location}
+                  onChange={(eventChange) => updateTimelineDraft('location', eventChange.target.value)}
+                  placeholder="Room, hall, or checkpoint..."
+                />
+              </label>
+            </div>
+
+            <label className="event-feedback-modal__field">
+              <span>Title *</span>
+              <input
+                type="text"
+                value={timelineDraft.title}
+                onChange={(eventChange) => updateTimelineDraft('title', eventChange.target.value)}
+                placeholder="Example: Opening ceremony"
+                required
+              />
+            </label>
+
+            <label className="event-feedback-modal__field">
+              <span>Description *</span>
+              <textarea
+                value={timelineDraft.description}
+                onChange={(eventChange) => updateTimelineDraft('description', eventChange.target.value)}
+                placeholder="Describe what happens in this timeline item..."
+                rows={4}
+                required
+              />
+            </label>
+
+            <div className="event-feedback-modal__actions">
+              <button type="button" className="event-feedback-modal__cancel" onClick={closeTimelineModal}>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="event-detail-feedback-submit"
+                disabled={!timelineDraft.time.trim() || !timelineDraft.title.trim() || !timelineDraft.description.trim()}
+              >
+                {editingTimeline ? 'Save changes' : 'Create item'}
               </button>
             </div>
           </form>
