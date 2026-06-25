@@ -24,8 +24,19 @@ const eventRegistrationSchema = Schema(
     status: {
       type: String,
       required: true,
-      enum: ["registered", "cancelled", "attended"],
+      enum: ["registered", "cancelled", "attended", "absent"],
       default: "registered",
+    },
+
+    check_in_time: {
+      type: Date,
+      default: null,
+    },
+
+    checked_in_by: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     },
   },
   {
@@ -33,7 +44,7 @@ const eventRegistrationSchema = Schema(
   }
 );
 
-// Tránh việc user đăng ký trùng lặp nhiều lần cho cùng 1 event
 eventRegistrationSchema.index({ event_id: 1, user_id: 1 }, { unique: true });
+eventRegistrationSchema.index({ event_id: 1, status: 1 });
 
 module.exports = mongoose.model("EventRegistration", eventRegistrationSchema);

@@ -18,6 +18,7 @@ require("./config/passport");
 const profileRoutes = require("./routes/profile.routes");
 const eventRoutes = require("./routes/event.routes");
 const eventTimelineRoutes = require("./routes/eventTimeline.routes");
+const eventAttendanceRoutes = require("./routes/eventAttendance.routes");
 
 const clubMembershipRoutes = require("./routes/member/clubMembership.routes");
 
@@ -55,6 +56,7 @@ app.use("/api/clubs", clubDiscoveryRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/events", eventTimelineRoutes);
+app.use("/api/events", eventAttendanceRoutes);
 
 app.use("/api/member/clubs-membership", clubMembershipRoutes);
 
