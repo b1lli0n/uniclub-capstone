@@ -13,6 +13,7 @@ import ClubsPage from '../pages/home/ClubsPage'
 import ClubDetailPage from '../pages/home/ClubDetailPage'
 import ClubRankingPage from '../pages/home/ClubRankingPage'
 import ClubJoinRequestsPage from '../pages/home/ClubJoinRequestsPage'
+import ClubJoinFormPage from '../pages/home/ClubJoinFormPage'
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 
 import { useEffect, useState } from 'react'
@@ -95,6 +96,7 @@ const handleLogout = async () => {
     else if (screen === 'club-detail') navigate(clubId ? `/clubs/${clubId}` : '/clubs')
     else if (screen === 'club-ranking') navigate(clubId ? `/clubs/${clubId}/ranking` : '/club-ranking')
     else if (screen === 'member-approval' && clubId) navigate(`/clubs/${clubId}/join-requests`)
+    else if (screen === 'join-form' && clubId) navigate(`/clubs/${clubId}/join-form`)
     else navigate('/')
   }
 
@@ -163,6 +165,20 @@ function ClubJoinRequestsRoute() {
   )
 }
 
+function ClubJoinFormRoute() {
+  const { clubId } = useParams()
+
+  return (
+    <ProtectedLayout
+      pageId="join-form"
+      activeItem="clubs"
+      clubId={clubId}
+    >
+      <ClubJoinFormPage clubId={clubId} />
+    </ProtectedLayout>
+  )
+}
+
 function AppRouter() {
   const isAuthenticated = Boolean(localStorage.getItem('token'))
   const navigate = useNavigate()
@@ -171,9 +187,7 @@ function AppRouter() {
     <Routes>
       <Route
         path="/login"
-        element={
-          isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
-        }
+        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
       />
 
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -213,9 +227,7 @@ function AppRouter() {
         path="/my-clubs"
         element={
           <ProtectedLayout pageId="my-clubs" activeItem="clubs">
-            <MyClubsPage
-              onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)}
-            />
+            <MyClubsPage onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)} />
           </ProtectedLayout>
         }
       />
@@ -236,15 +248,14 @@ function AppRouter() {
         path="/clubs"
         element={
           <ProtectedLayout pageId="clubs" activeItem="clubs">
-            <ClubsPage
-              onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)}
-            />
+            <ClubsPage onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)} />
           </ProtectedLayout>
         }
       />
 
       <Route path="/clubs/:clubId/ranking" element={<ClubRankingRoute />} />
       <Route path="/clubs/:clubId/join-requests" element={<ClubJoinRequestsRoute />} />
+      <Route path="/clubs/:clubId/join-form" element={<ClubJoinFormRoute />} />
       <Route path="/clubs/:clubId" element={<ClubDetailRoute />} />
 
       <Route

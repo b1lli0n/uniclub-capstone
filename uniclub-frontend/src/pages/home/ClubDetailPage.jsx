@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ClubLogo from '../../components/home/ClubLogo'
 import { getClubById } from '../../api/club.api'
 import { removeMember } from '../../api/clubMember.api'
@@ -8,7 +9,7 @@ import {
   submitJoinRequest,
 } from '../../api/studentClubMembership.api'
 import { formatRoleLabel, mapClubFromApi, mapMemberFromApi } from '../../api/clubMappers'
-import { CLUB_DETAIL_COPY, CLUB_EVENTS } from '../../data/mockData'
+import { CLUB_DETAIL_COPY, ALL_EVENTS } from '../../data/mockData'
 import '../../styles/club-detail.css'
 
 function EventIcon() {
@@ -22,6 +23,7 @@ function EventIcon() {
 }
 
 function ClubDetailPage({ clubId, onBack }) {
+  const navigate = useNavigate()
   const [joinModalOpen, setJoinModalOpen] = useState(false)
   const [leaveModalOpen, setLeaveModalOpen] = useState(false)
   const [membersModalOpen, setMembersModalOpen] = useState(false)
@@ -88,6 +90,12 @@ function ClubDetailPage({ clubId, onBack }) {
     ? `${club.description}. ${CLUB_DETAIL_COPY.descriptionSuffix}`
     : ''
   const previewMembers = memberRows.slice(0, 4)
+  const clubEvents = club ? ALL_EVENTS.filter((event) => event.clubId === club.id) : []
+  const visibleClubEvents = clubEvents.filter(
+    (event) => event.visibility !== 'private' || isClubMember
+  )
+  const previewClubEvents = visibleClubEvents.slice(0, 3)
+  const hiddenPrivateEventsCount = clubEvents.length - visibleClubEvents.length
 
   async function openJoinModal() {
     try {
@@ -224,24 +232,53 @@ function ClubDetailPage({ clubId, onBack }) {
         <div className="club-detail-section__header">
           <div>
             <h2>Ongoing Events</h2>
-            <p>Featured activities inside this club</p>
+            <p>
+              {isClubMember
+                ? 'Public and member-only activities inside this club'
+                : 'Public activities available to all students'}
+            </p>
           </div>
-          <button type="button">View all</button>
+          <button type="button" onClick={() => navigate(`/clubs/${club.id}/events`)}>
+            View all
+          </button>
         </div>
 
         <div className="club-event-grid">
-          {CLUB_EVENTS.map((event) => (
-            <article key={event.id} className="club-event-card">
+          {previewClubEvents.map((event) => (
+            <article
+              key={event.id}
+              className="club-event-card club-event-card--clickable"
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(`/clubs/${club.id}/events/${event.id}`)}
+              onKeyDown={(keyEvent) => {
+                if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+                  keyEvent.preventDefault()
+                  navigate(`/clubs/${club.id}/events/${event.id}`)
+                }
+              }}
+            >
               <div className="club-event-card__icon">
                 <EventIcon />
               </div>
-              <span>{event.tag}</span>
-              <h3>{event.title}</h3>
+              <div className="club-event-card__badges">
+                <span className="club-event-card__tag">{event.checkinOpen ? 'Open' : 'Upcoming'}</span>
+                <span className={`club-event-card__visibility club-event-card__visibility--${event.visibility || 'public'}`}>
+                  {event.visibility === 'private' ? 'Private' : 'Public'}
+                </span>
+              </div>
+              <h3>{event.name}</h3>
               <p>{event.description}</p>
-              <small>{event.meta}</small>
+              <small>{event.date} - {event.location || 'Campus'}</small>
             </article>
           ))}
         </div>
+
+        {hiddenPrivateEventsCount > 0 ? (
+          <p className="club-event-private-note">
+            {hiddenPrivateEventsCount} private event{hiddenPrivateEventsCount > 1 ? 's are' : ' is'} visible to club members only.
+          </p>
+        ) : null}
       </section>
 
       <section className="club-detail-section">

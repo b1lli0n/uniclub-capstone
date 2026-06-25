@@ -34,6 +34,18 @@ const dockItems = [
       </svg>
     ),
   },
+  {
+    id: 'join-form',
+    label: 'Join Form',
+    leaderOnly: true,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+        <path d="M8 6h8M8 10h8M8 14h5" strokeLinecap="round" />
+        <rect x="5" y="3" width="14" height="18" rx="2" />
+        <path d="m15 18 1.5 1.5L20 16" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
 ]
 
 function HomeBottomDock({ pageId, onNavigate, canManageMembers = false }) {
@@ -46,6 +58,8 @@ function HomeBottomDock({ pageId, onNavigate, canManageMembers = false }) {
       onNavigate?.('club-ranking')
     } else if (itemId === 'member-approval') {
       onNavigate?.('member-approval')
+    } else if (itemId === 'join-form') {
+      onNavigate?.('join-form')
     }
   }
 
@@ -53,6 +67,7 @@ function HomeBottomDock({ pageId, onNavigate, canManageMembers = false }) {
     if (itemId === 'overview') return pageId === 'club-detail'
     if (itemId === 'ranking') return pageId === 'club-ranking'
     if (itemId === 'member-approval') return pageId === 'member-approval'
+    if (itemId === 'join-form') return pageId === 'join-form'
     return false
   }
 

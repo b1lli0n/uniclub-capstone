@@ -125,7 +125,10 @@ function HomeLayout({
           {children}
         </div>
 
-        {pageId === 'club-detail' || pageId === 'club-ranking' || pageId === 'member-approval' ? (
+        {pageId === 'club-detail' ||
+        pageId === 'club-ranking' ||
+        pageId === 'member-approval' ||
+        pageId === 'join-form' ? (
           <>
             <div className="home-bottom-dock-spacer" aria-hidden="true" />
             <HomeBottomDock
