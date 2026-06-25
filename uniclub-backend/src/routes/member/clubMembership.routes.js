@@ -7,6 +7,8 @@ const {
   getClubMembers,
 } = require("../../controllers/member/clubMembership.controller");
 
+const { getClubEventsForMember } = require("../../controllers/event.controller");
+
 const router = express.Router();
 
 router.get("/my-clubs", verifyToken, protect(["student"]), getMyClubs);
@@ -23,6 +25,13 @@ router.patch(
   protect(["student"]),
   requireClubMember("clubId"),
   leaveClub
+);
+router.get(
+  "/:clubId/events",
+  verifyToken,
+  protect(["student"]),
+  requireClubMember("clubId"),
+  getClubEventsForMember
 );
 
 module.exports = router;
