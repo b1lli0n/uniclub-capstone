@@ -3,7 +3,6 @@ const cors = require("cors");
 const morgan = require("morgan");
 const path = require("path");
 
-
 const passport = require("passport");
 const cookieParser = require("cookie-parser");
 
@@ -12,14 +11,13 @@ const authRoutes = require("./routes/auth.routes");
 const clubDiscoveryRoutes = require("./routes/clubDiscovery.routes");
 const clubManagementRoutes = require("./routes/clubManagement.routes");
 
-
 const clubMemberRoutes = require("./routes/clubMember.routes");
-
 
 require("./config/passport");
 
 const profileRoutes = require("./routes/profile.routes");
 const eventRoutes = require("./routes/event.routes");
+const eventTimelineRoutes = require("./routes/eventTimeline.routes");
 
 const clubMembershipRoutes = require("./routes/member/clubMembership.routes");
 
@@ -41,24 +39,22 @@ app.use(
   })
 );
 
-
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 app.use(cookieParser());
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
-
 app.use(passport.initialize());
 
 app.use("/auth", authRoutes);
 app.use("/api/auth", authRoutes);
+
 app.use("/api/clubs", clubDiscoveryRoutes);
 
 app.use("/api/profile", profileRoutes);
 app.use("/api/events", eventRoutes);
-
+app.use("/api/events", eventTimelineRoutes);
 
 app.use("/api/member/clubs-membership", clubMembershipRoutes);
 
@@ -77,8 +73,6 @@ app.get("/", (req, res) => {
     message: "Welcome to Uniclub backend API",
   });
 });
-
-
 
 app.use(notFound);
 app.use(errorHandler);
