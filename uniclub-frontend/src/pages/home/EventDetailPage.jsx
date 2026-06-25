@@ -15,10 +15,12 @@ import {
 import '../../styles/clubs.css'
 
 function isEventRegistrationOpen(event) {
+  if (!event) return false
   return event.status === 'opening' && new Date() < new Date(event.start_time)
 }
 
 function isBeforeEventStart(event) {
+  if (!event) return false
   return new Date() < new Date(event.start_time)
 }
 
@@ -31,6 +33,7 @@ function getRegistrationLabel(status) {
 }
 
 function getEventStatus(event) {
+  if (!event) return ''
   if (event.status === 'opening') return 'Opening'
   if (event.status === 'coming soon') return 'Coming soon'
   if (event.status === 'closed') return 'Closed'

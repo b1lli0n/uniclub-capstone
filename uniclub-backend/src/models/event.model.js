@@ -58,6 +58,7 @@ const eventSchema = Schema(
     is_public: {
       type: Boolean,
       required: true,
+      default: true,
     },
 
     capacity: {
@@ -68,6 +69,7 @@ const eventSchema = Schema(
     multiplier: {
       type: Number,
       required: true,
+      default: 1,
     },
 
     status: {
@@ -91,7 +93,7 @@ const eventSchema = Schema(
       default: "not_open",
     },
 
-    media_urls: {
+    media_uris: {
       type: [String],
       default: [],
     },
@@ -110,5 +112,6 @@ eventSchema.index({ club_id: 1 });
 eventSchema.index({ status: 1 });
 eventSchema.index({ start_time: 1 });
 eventSchema.index({ club_id: 1, start_time: -1 });
+eventSchema.index({ club_id: 1, progress_status: 1, start_time: -1 });
 
 module.exports = mongoose.model("Event", eventSchema);
