@@ -10,7 +10,10 @@ import MyRequestsPage from '../pages/home/MyRequestsPage'
 import MyClubsPage from '../pages/home/MyClubsPage'
 import CreateClubPage from '../pages/home/CreateClubPage'
 import ClubsPage from '../pages/home/ClubsPage'
+import EventsPage from '../pages/home/EventsPage'
+import EventDetailPage from '../pages/home/EventDetailPage'
 import ClubDetailPage from '../pages/home/ClubDetailPage'
+import ClubEventsPage from '../pages/home/ClubEventsPage'
 import ClubRankingPage from '../pages/home/ClubRankingPage'
 import ClubJoinRequestsPage from '../pages/home/ClubJoinRequestsPage'
 import ClubJoinFormPage from '../pages/home/ClubJoinFormPage'
@@ -74,18 +77,18 @@ function ProtectedLayout({
   }, [isAuthenticated, clubId])
 
 
-const handleLogout = async () => {
-  try {
-    await axios.post('/api/auth/logout', {}, { withCredentials: true })
-  } catch (error) {
-    console.error(error)
+  const handleLogout = async () => {
+    try {
+      await axios.post('/api/auth/logout', {}, { withCredentials: true })
+    } catch (error) {
+      console.error(error)
+    }
+
+    localStorage.removeItem('token')
+    sessionStorage.clear()
+
+    navigate('/login', { replace: true })
   }
-
-  localStorage.removeItem('token')
-  sessionStorage.clear()
-
-  navigate('/login', { replace: true })
-}
 
   const handleNavigate = (screen) => {
     if (screen === 'profile') navigate('/profile')
@@ -93,6 +96,7 @@ const handleLogout = async () => {
     else if (screen === 'my-clubs') navigate('/my-clubs')
     else if (screen === 'create-club') navigate('/create-club')
     else if (screen === 'clubs') navigate('/clubs')
+    else if (screen === 'events') navigate('/events')
     else if (screen === 'club-detail') navigate(clubId ? `/clubs/${clubId}` : '/clubs')
     else if (screen === 'club-ranking') navigate(clubId ? `/clubs/${clubId}/ranking` : '/club-ranking')
     else if (screen === 'member-approval' && clubId) navigate(`/clubs/${clubId}/join-requests`)
@@ -179,6 +183,20 @@ function ClubJoinFormRoute() {
   )
 }
 
+function ClubEventsRoute() {
+  const { clubId } = useParams()
+
+  return (
+    <ProtectedLayout
+      pageId="club-events"
+      activeItem="clubs"
+      clubId={clubId}
+    >
+      <ClubEventsPage />
+    </ProtectedLayout>
+  )
+}
+
 function AppRouter() {
   const isAuthenticated = Boolean(localStorage.getItem('token'))
   const navigate = useNavigate()
@@ -199,7 +217,7 @@ function AppRouter() {
             <HomePage
               onCreateClub={() => navigate('/create-club')}
               onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)}
-              onViewAll={() => navigate('/clubs')}
+              onViewAll={(target) => navigate(target === 'events' ? '/events' : '/clubs')}
             />
           </ProtectedLayout>
         }
@@ -227,7 +245,9 @@ function AppRouter() {
         path="/my-clubs"
         element={
           <ProtectedLayout pageId="my-clubs" activeItem="clubs">
-            <MyClubsPage onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)} />
+            <MyClubsPage
+              onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)}
+            />
           </ProtectedLayout>
         }
       />
@@ -248,7 +268,27 @@ function AppRouter() {
         path="/clubs"
         element={
           <ProtectedLayout pageId="clubs" activeItem="clubs">
-            <ClubsPage onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)} />
+            <ClubsPage
+              onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)}
+            />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/events"
+        element={
+          <ProtectedLayout pageId="events" activeItem="events">
+            <EventsPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/events/:eventId"
+        element={
+          <ProtectedLayout pageId="event-detail" activeItem="events">
+            <EventDetailPage />
           </ProtectedLayout>
         }
       />
@@ -256,6 +296,18 @@ function AppRouter() {
       <Route path="/clubs/:clubId/ranking" element={<ClubRankingRoute />} />
       <Route path="/clubs/:clubId/join-requests" element={<ClubJoinRequestsRoute />} />
       <Route path="/clubs/:clubId/join-form" element={<ClubJoinFormRoute />} />
+
+      <Route path="/clubs/:clubId/events" element={<ClubEventsRoute />} />
+
+      <Route
+        path="/clubs/:clubId/events/:eventId"
+        element={
+          <ProtectedLayout pageId="event-detail" activeItem="clubs">
+            <EventDetailPage />
+          </ProtectedLayout>
+        }
+      />
+
       <Route path="/clubs/:clubId" element={<ClubDetailRoute />} />
 
       <Route
