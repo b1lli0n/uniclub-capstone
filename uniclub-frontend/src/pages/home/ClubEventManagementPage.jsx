@@ -4,6 +4,7 @@ import '../../styles/club-event-management.css'
 import { getClubById } from '../../api/club.api'
 import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getClubEventsForMember } from '../../api/event.api'
+import { useConfirm, useToast } from '../../components/common/notificationContext'
 
 
 const CLUB_FALLBACK = ALL_CLUBS[0]
@@ -370,6 +371,8 @@ function ChevronDownIcon() {
 }
 
 function ClubEventManagementPage({ clubId }) {
+  const confirm = useConfirm()
+  const showToast = useToast()
   const [club, setClub] = useState(null)
   const [membership, setMembership] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -507,9 +510,27 @@ function ClubEventManagementPage({ clubId }) {
     setActiveStatus(nextEvent.publicationStatus)
     setDetailEvent((current) => (current?.id === nextEvent.id ? nextEvent : current))
     closeEditor()
+    // Hiển thị thông báo cho chức năng tạo hoặc cập nhật sự kiện.
+    showToast({
+      type: 'success',
+      title: editorMode === 'update' ? 'Event updated' : 'Event created',
+      message: editorMode === 'update'
+        ? 'The event information has been updated.'
+        : 'A new event has been created.',
+    })
   }
 
-  function cancelEvent(eventId) {
+  async function cancelEvent(eventId) {
+    const eventItem = events.find((item) => item.id === eventId) || detailEvent
+    const accepted = await confirm({
+      title: 'Cancel event?',
+      message: `Cancel ${eventItem?.name || 'this event'}? Students will see it as cancelled.`,
+      confirmText: 'Cancel event',
+      tone: 'danger',
+    })
+
+    if (!accepted) return
+
     setEvents((items) =>
       items.map((eventItem) =>
         eventItem.id === eventId
@@ -522,6 +543,12 @@ function ClubEventManagementPage({ clubId }) {
         ? { ...current, lifecycleStatus: 'cancelled', updatedAt: new Date().toLocaleDateString('en-GB') }
         : current
     )
+    // Hiển thị thông báo cho chức năng hủy sự kiện.
+    showToast({
+      type: 'success',
+      title: 'Event cancelled',
+      message: `${eventItem?.name || 'The event'} has been marked as cancelled.`,
+    })
   }
 
   function openTimelineEditor(timelineItem = null) {
@@ -569,10 +596,33 @@ function ClubEventManagementPage({ clubId }) {
       return [...items, nextTimeline]
     })
     closeTimelineEditor()
+    // Hiển thị thông báo cho chức năng tạo hoặc cập nhật timeline trong quản lý sự kiện.
+    showToast({
+      type: 'success',
+      title: editingTimeline ? 'Timeline updated' : 'Timeline added',
+      message: editingTimeline
+        ? 'The timeline item has been updated.'
+        : 'A new timeline item has been added.',
+    })
   }
 
-  function deleteTimeline(timelineId) {
+  async function deleteTimeline(timelineId) {
+    const accepted = await confirm({
+      title: 'Delete timeline item?',
+      message: 'This timeline item will be removed from the event.',
+      confirmText: 'Delete',
+      tone: 'danger',
+    })
+
+    if (!accepted) return
+
     setTimelines((items) => items.filter((item) => item.id !== timelineId))
+    // Hiển thị thông báo cho chức năng xóa timeline trong quản lý sự kiện.
+    showToast({
+      type: 'success',
+      title: 'Timeline deleted',
+      message: 'The timeline item has been removed.',
+    })
   }
 
   if (!canManageEvents) {

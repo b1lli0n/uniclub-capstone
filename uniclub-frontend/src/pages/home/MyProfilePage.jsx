@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import '../../styles/my-profile.css'
 import { getMyProfile, updateMyProfile } from '../../api/profile.api'
+import { useToast } from '../../components/common/notificationContext'
 
 const GENDER_OPTIONS = [
   { value: 'male', label: 'Male' },
@@ -30,6 +31,7 @@ function createProfileFromUser(user) {
 }
 
 function MyProfilePage({ currentUser }) {
+  const showToast = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [profile, setProfile] = useState(() => createProfileFromUser(currentUser))
 
@@ -92,9 +94,19 @@ function MyProfilePage({ currentUser }) {
         social_links: profile.socialLinks,
       })
       setIsEditing(false)
+      // Hiển thị thông báo cho chức năng cập nhật hồ sơ.
+      showToast({
+        type: 'success',
+        title: 'Profile updated',
+        message: 'Your profile information has been saved successfully.',
+      })
     } catch (err) {
       console.error(err)
-      alert(err.message || 'Failed to update profile')
+      showToast({
+        type: 'error',
+        title: 'Update failed',
+        message: err.message || 'Failed to update profile.',
+      })
     }
   }
 

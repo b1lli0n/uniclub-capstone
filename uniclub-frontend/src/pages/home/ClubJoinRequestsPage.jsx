@@ -9,6 +9,7 @@ import {
 } from '../../api/joinRequestManagement.api'
 import { mapClubFromApi, mapPresidentJoinRequestFromApi } from '../../api/clubMappers'
 import { CLUB_JOIN_REQUEST_STATUS_OPTIONS } from '../../data/mockData'
+import { useConfirm, useToast } from '../../components/common/notificationContext'
 import '../../styles/club-join-requests.css'
 
 function getStatusLabel(status) {
@@ -25,6 +26,8 @@ function getInitials(name) {
 }
 
 function ClubJoinRequestsPage({ clubId }) {
+  const confirm = useConfirm()
+  const showToast = useToast()
   const [club, setClub] = useState(null)
   const [canApproveMembers, setCanApproveMembers] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -92,6 +95,17 @@ function ClubJoinRequestsPage({ clubId }) {
   }
 
   async function updateRequestStatus(requestId, nextStatus) {
+    const request = requests.find((item) => item.id === requestId) || detailRequest
+    const isApprove = nextStatus === 'approved'
+    const accepted = await confirm({
+      title: isApprove ? 'Approve request?' : 'Reject request?',
+      message: `${isApprove ? 'Approve' : 'Reject'} ${request?.applicantName || 'this applicant'}'s join request?`,
+      confirmText: isApprove ? 'Approve' : 'Reject',
+      tone: isApprove ? 'warning' : 'danger',
+    })
+
+    if (!accepted) return
+
     try {
       if (nextStatus === 'approved') {
         await approveJoinRequest(clubId, requestId)
@@ -102,9 +116,19 @@ function ClubJoinRequestsPage({ clubId }) {
       setDetailRequest((request) =>
         request?.id === requestId ? { ...request, status: nextStatus } : request,
       )
+      // Hiển thị thông báo cho chức năng duyệt hoặc từ chối yêu cầu tham gia.
+      showToast({
+        type: 'success',
+        title: isApprove ? 'Request approved' : 'Request rejected',
+        message: `${request?.applicantName || 'The applicant'} has been ${isApprove ? 'approved' : 'rejected'}.`,
+      })
     } catch (error) {
       console.error(error)
-      alert(error.message)
+      showToast({
+        type: 'error',
+        title: 'Review failed',
+        message: error.message || 'Could not update this join request.',
+      })
     }
   }
 

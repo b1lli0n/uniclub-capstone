@@ -8,6 +8,7 @@ import {
   togglePresidentJoinFormStatus,
 } from '../../api/joinFormManagement.api'
 import { mapClubFromApi } from '../../api/clubMappers'
+import { useConfirm, useToast } from '../../components/common/notificationContext'
 import '../../styles/club-join-form.css'
 
 const DEFAULT_ANSWER_PLACEHOLDER = 'Type your answer...'
@@ -45,6 +46,8 @@ function mapFormFromApi(apiForm) {
 }
 
 function ClubJoinFormPage({ clubId }) {
+  const confirm = useConfirm()
+  const showToast = useToast()
   const [loading, setLoading] = useState(true)
   const [club, setClub] = useState(null)
   const [canManageForms, setCanManageForms] = useState(false)
@@ -191,9 +194,21 @@ function ClubJoinFormPage({ clubId }) {
       
       setDetailForm((form) => (form?.id === mapped.id ? mapped : form))
       closeEditor()
+      // Hiển thị thông báo cho chức năng tạo hoặc cập nhật form tham gia.
+      showToast({
+        type: 'success',
+        title: editorMode === 'edit' ? 'Form updated' : 'Form created',
+        message: editorMode === 'edit'
+          ? 'The join form has been updated successfully.'
+          : 'The join form has been created successfully.',
+      })
     } catch (error) {
       console.error(error)
-      alert(error.message || 'Failed to save join form')
+      showToast({
+        type: 'error',
+        title: 'Save failed',
+        message: error.message || 'Failed to save join form.',
+      })
     }
   }
 
@@ -202,6 +217,16 @@ function ClubJoinFormPage({ clubId }) {
     if (!targetForm) return
 
     const nextStatus = targetForm.status === 'active' ? 'inactive' : 'active'
+    const accepted = await confirm({
+      title: nextStatus === 'active' ? 'Activate form?' : 'Deactivate form?',
+      message: nextStatus === 'active'
+        ? 'Students will be able to use this join form.'
+        : 'Students will not be able to submit this join form.',
+      confirmText: nextStatus === 'active' ? 'Activate' : 'Deactivate',
+      tone: nextStatus === 'active' ? 'warning' : 'danger',
+    })
+
+    if (!accepted) return
     
     try {
       await togglePresidentJoinFormStatus(clubId, formId, nextStatus)
@@ -220,9 +245,24 @@ function ClubJoinFormPage({ clubId }) {
           }
         })
       )
+      setDetailForm((form) =>
+        form?.id === formId
+          ? { ...form, status: nextStatus }
+          : form
+      )
+      // Hiển thị thông báo cho chức năng bật hoặc tắt form tham gia.
+      showToast({
+        type: 'success',
+        title: nextStatus === 'active' ? 'Form activated' : 'Form deactivated',
+        message: `The join form is now ${nextStatus}.`,
+      })
     } catch (error) {
       console.error(error)
-      alert(error.message || 'Failed to toggle form status')
+      showToast({
+        type: 'error',
+        title: 'Status update failed',
+        message: error.message || 'Failed to toggle form status.',
+      })
     }
   }
 
@@ -349,13 +389,7 @@ function ClubJoinFormPage({ clubId }) {
               <button
                 type="button"
                 className={detailForm.status === 'active' ? 'is-deactivate' : 'is-activate'}
-                onClick={() => {
-                  toggleFormStatus(detailForm.id)
-                  setDetailForm((form) => ({
-                    ...form,
-                    status: form.status === 'active' ? 'inactive' : 'active',
-                  }))
-                }}
+                onClick={() => toggleFormStatus(detailForm.id)}
               >
                 {detailForm.status === 'active' ? 'Deactivate' : 'Activate'}
               </button>

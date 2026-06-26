@@ -4,6 +4,7 @@ import '../../styles/admin-dashboard.css'
 // Mock data import: replace with API data when BE is ready.
 import { ADMIN_ACTIVE_CLUBS, ADMIN_NAV_ITEMS, ADMIN_REGISTRATION_REQUESTS } from '../../data/mockData'
 import fptUniversityLogo from '../../assets/Logo-Dai-hoc-FPT.webp'
+import { useConfirm, useToast } from '../../components/common/notificationContext'
 
 const ADMIN_SORT_OPTIONS = [
   { value: 'newest', label: 'Newest date' },
@@ -144,6 +145,8 @@ function AdminTopbar() {
 }
 
 function AdminDashboardPage({ onLogout }) {
+  const confirm = useConfirm()
+  const showToast = useToast()
   const [activeView, setActiveView] = useState('registrations')
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
   const [sortMode, setSortMode] = useState('')
@@ -156,6 +159,7 @@ function AdminDashboardPage({ onLogout }) {
   const [isManagingMembers, setIsManagingMembers] = useState(false)
   const [memberRoleFilter, setMemberRoleFilter] = useState('all')
   const [openRoleDropdown, setOpenRoleDropdown] = useState(null)
+  const [registrationRequests, setRegistrationRequests] = useState(ADMIN_REGISTRATION_REQUESTS)
   const [activeClubs, setActiveClubs] = useState(ADMIN_ACTIVE_CLUBS)
   const [currentPage, setCurrentPage] = useState(1)
   const [clubCurrentPage, setClubCurrentPage] = useState(1)
@@ -165,7 +169,7 @@ function AdminDashboardPage({ onLogout }) {
   const selectedClubSort = ADMIN_CLUB_SORT_OPTIONS.find((option) => option.value === clubSortMode)
   const visibleRequests = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
-    const requests = ADMIN_REGISTRATION_REQUESTS.filter((item) => {
+    const requests = registrationRequests.filter((item) => {
       if (!query) return true
 
       return item.clubName.toLowerCase().includes(query)
@@ -188,7 +192,7 @@ function AdminDashboardPage({ onLogout }) {
     }
 
     return requests.filter((item) => item.status === sortMode)
-  }, [searchQuery, sortMode])
+  }, [registrationRequests, searchQuery, sortMode])
   const pageCount = Math.max(1, Math.ceil(visibleRequests.length / ADMIN_PAGE_SIZE))
   const paginatedRequests = useMemo(() => {
     const startIndex = (currentPage - 1) * ADMIN_PAGE_SIZE
@@ -307,12 +311,28 @@ function AdminDashboardPage({ onLogout }) {
     }
   }
 
-  function handleDeleteClub(clubId) {
+  async function handleDeleteClub(clubId) {
+    const targetClub = activeClubs.find((item) => item.id === clubId)
+    const accepted = await confirm({
+      title: 'Delete club?',
+      message: `Delete ${targetClub?.clubName || 'this club'} from the active club list?`,
+      confirmText: 'Delete',
+      tone: 'danger',
+    })
+
+    if (!accepted) return
+
     setActiveClubs((items) => items.filter((item) => item.id !== clubId))
     if (selectedActiveClub?.id === clubId) {
       setSelectedActiveClub(null)
       setIsManagingMembers(false)
     }
+    // Hiển thị thông báo cho chức năng xóa câu lạc bộ ở trang admin.
+    showToast({
+      type: 'success',
+      title: 'Club deleted',
+      message: `${targetClub?.clubName || 'The club'} has been removed from the list.`,
+    })
   }
 
   function getRoleClass(role) {
@@ -363,7 +383,18 @@ function AdminDashboardPage({ onLogout }) {
     )
   }
 
-  function updateMemberRole(memberId, nextRole) {
+  async function updateMemberRole(memberId, nextRole) {
+    const targetMember = selectedActiveClub?.memberList?.find((member) => member.id === memberId)
+    if (!targetMember || targetMember.role === nextRole) return
+
+    const accepted = await confirm({
+      title: 'Update member role?',
+      message: `Change ${targetMember.name}'s role from ${targetMember.role} to ${nextRole}?`,
+      confirmText: 'Update role',
+    })
+
+    if (!accepted) return
+
     setActiveClubs((clubs) =>
       clubs.map((club) => {
         if (club.id !== selectedActiveClub.id) return club
@@ -383,6 +414,39 @@ function AdminDashboardPage({ onLogout }) {
         member.id === memberId ? { ...member, role: nextRole } : member
       ),
     }))
+    // Hiển thị thông báo cho chức năng cập nhật vai trò thành viên ở trang admin.
+    showToast({
+      type: 'success',
+      title: 'Role updated',
+      message: `${targetMember.name}'s role has been changed to ${nextRole}.`,
+    })
+  }
+
+  async function updateRegistrationRequestStatus(request, nextStatus) {
+    const isApprove = nextStatus === 'approved'
+    const accepted = await confirm({
+      title: isApprove ? 'Approve registration?' : 'Reject registration?',
+      message: `${isApprove ? 'Approve' : 'Reject'} the registration request for ${request.clubName}?`,
+      confirmText: isApprove ? 'Approve' : 'Reject',
+      tone: isApprove ? 'warning' : 'danger',
+    })
+
+    if (!accepted) return
+
+    setRegistrationRequests((items) =>
+      items.map((item) =>
+        item.id === request.id ? { ...item, status: nextStatus } : item
+      )
+    )
+    setDetailRequest((current) =>
+      current?.id === request.id ? { ...current, status: nextStatus } : current
+    )
+    // Hiển thị thông báo cho chức năng duyệt hoặc từ chối yêu cầu tạo câu lạc bộ.
+    showToast({
+      type: 'success',
+      title: isApprove ? 'Request approved' : 'Request rejected',
+      message: `${request.clubName} has been ${isApprove ? 'approved' : 'rejected'}.`,
+    })
   }
 
   function renderMemberManagement() {
@@ -772,13 +836,21 @@ function AdminDashboardPage({ onLogout }) {
                 </div>
 
                 <div className="admin-detail-actions">
-                  <button type="button" className="admin-detail-approve">
+                  <button
+                    type="button"
+                    className="admin-detail-approve"
+                    onClick={() => updateRegistrationRequestStatus(detailRequest, 'approved')}
+                  >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                       <path d="m5 12 4 4L19 6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     Approve request
                   </button>
-                  <button type="button" className="admin-detail-reject">
+                  <button
+                    type="button"
+                    className="admin-detail-reject"
+                    onClick={() => updateRegistrationRequestStatus(detailRequest, 'rejected')}
+                  >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                       <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
                     </svg>
@@ -866,12 +938,22 @@ function AdminDashboardPage({ onLogout }) {
                   <span>{item.leader || item.sender || 'Unknown'}</span>
                   <span>{item.sentDate}</span>
                   <span className="admin-status-actions">
-                    <button type="button" className="admin-status-actions__approve" aria-label="Approve request">
+                    <button
+                      type="button"
+                      className="admin-status-actions__approve"
+                      aria-label="Approve request"
+                      onClick={() => updateRegistrationRequestStatus(item, 'approved')}
+                    >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
                         <path d="m5 12 4 4L19 6" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </button>
-                    <button type="button" className="admin-status-actions__reject" aria-label="Reject request">
+                    <button
+                      type="button"
+                      className="admin-status-actions__reject"
+                      aria-label="Reject request"
+                      onClick={() => updateRegistrationRequestStatus(item, 'rejected')}
+                    >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
                         <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
                       </svg>

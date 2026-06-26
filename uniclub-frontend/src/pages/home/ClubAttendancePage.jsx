@@ -9,6 +9,7 @@ import '../../styles/club-attendance.css'
 import { getClubById } from '../../api/club.api'
 import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getClubEventsForMember } from '../../api/event.api'
+import { useConfirm, useToast } from '../../components/common/notificationContext'
 
 const CLUB_FALLBACK = ALL_CLUBS[0]
 
@@ -119,6 +120,8 @@ function AttendanceSelect({ value, options, onChange, placeholder, disabled = fa
 }
 
 function ClubAttendancePage({ clubId }) {
+  const confirm = useConfirm()
+  const showToast = useToast()
   const [club, setClub] = useState(null)
   const [membership, setMembership] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -235,6 +238,7 @@ function ClubAttendancePage({ clubId }) {
       : 'Select member to check in'
 
   function updateCheckinStatus(attendanceId) {
+    const target = attendanceItems.find((item) => item.id === attendanceId)
     setAttendanceItems((items) =>
       items.map((item) =>
         item.id === attendanceId
@@ -243,15 +247,36 @@ function ClubAttendancePage({ clubId }) {
       )
     )
     setManualMemberId((current) => (current === attendanceId ? '' : current))
+    // Hiển thị thông báo cho chức năng check-in thành viên.
+    showToast({
+      type: 'success',
+      title: 'Checked in',
+      message: `${target?.memberName || 'The member'} has been checked in.`,
+    })
   }
 
-  function toggleCheckinOpen() {
+  async function toggleCheckinOpen() {
     if (!selectedEvent) return
+    const nextOpen = !checkinOpen
+    const accepted = await confirm({
+      title: nextOpen ? 'Open check-in?' : 'Close check-in?',
+      message: `${nextOpen ? 'Open' : 'Close'} check-in for ${selectedEvent.name}?`,
+      confirmText: nextOpen ? 'Open check-in' : 'Close check-in',
+      tone: nextOpen ? 'warning' : 'danger',
+    })
+
+    if (!accepted) return
 
     setCheckinOpenByEvent((current) => ({
       ...current,
       [selectedEvent.id]: !current[selectedEvent.id],
     }))
+    // Hiển thị thông báo cho chức năng bật hoặc tắt check-in.
+    showToast({
+      type: 'success',
+      title: nextOpen ? 'Check-in opened' : 'Check-in closed',
+      message: `Check-in for ${selectedEvent.name} is now ${nextOpen ? 'open' : 'closed'}.`,
+    })
   }
 
   if (!canManageAttendance) {

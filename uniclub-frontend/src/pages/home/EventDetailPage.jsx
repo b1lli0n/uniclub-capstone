@@ -14,6 +14,7 @@ import {
 } from '../../api/feedback.api'
 import { getMyClubs } from '../../api/memberClubMembership.api'
 import { EVENT_TIMELINES } from '../../data/mockData'
+import { useConfirm, useToast } from '../../components/common/notificationContext'
 import '../../styles/clubs.css'
 
 function parseEventDate(dateText) {
@@ -239,6 +240,8 @@ function TicketQr({ value }) {
 function EventDetailPage() {
   const { clubId, eventId } = useParams()
   const navigate = useNavigate()
+  const confirm = useConfirm()
+  const showToast = useToast()
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState('')
   const [event, setEvent] = useState(null)
@@ -336,24 +339,59 @@ function EventDetailPage() {
     .sort((firstItem, secondItem) => firstItem.time.localeCompare(secondItem.time))
 
   async function registerForEvent() {
+    const accepted = await confirm({
+      title: 'Register for event?',
+      message: `Register for ${event?.name || 'this event'}?`,
+      confirmText: 'Register',
+    })
+
+    if (!accepted) return
+
     try {
       const res = await registerForEventApi(eventId)
-      alert(res.message || 'Registered successfully!')
+      // Hiển thị thông báo cho chức năng đăng ký sự kiện.
+      showToast({
+        type: 'success',
+        title: 'Registered',
+        message: res.message || 'You have registered for this event successfully.',
+      })
       loadEventData()
     } catch (err) {
       console.error(err)
-      alert(err.message || 'Failed to register')
+      showToast({
+        type: 'error',
+        title: 'Registration failed',
+        message: err.message || 'Failed to register for this event.',
+      })
     }
   }
 
   async function cancelEventRegistration() {
+    const accepted = await confirm({
+      title: 'Cancel registration?',
+      message: `Cancel your registration for ${event?.name || 'this event'}?`,
+      confirmText: 'Cancel registration',
+      tone: 'danger',
+    })
+
+    if (!accepted) return
+
     try {
       const res = await cancelEventRegistrationApi(eventId)
-      alert(res.message || 'Registration cancelled successfully!')
+      // Hiển thị thông báo cho chức năng hủy đăng ký sự kiện.
+      showToast({
+        type: 'success',
+        title: 'Registration cancelled',
+        message: res.message || 'Your event registration has been cancelled.',
+      })
       loadEventData()
     } catch (err) {
       console.error(err)
-      alert(err.message || 'Failed to cancel registration')
+      showToast({
+        type: 'error',
+        title: 'Cancel failed',
+        message: err.message || 'Failed to cancel registration.',
+      })
     }
   }
 
@@ -380,28 +418,59 @@ function EventDetailPage() {
     try {
       if (editingFeedback) {
         const res = await updateEventFeedbackApi(eventId, { rating: feedbackRating, comment })
-        alert(res.message || 'Feedback updated successfully!')
+        // Hiển thị thông báo cho chức năng cập nhật feedback sự kiện.
+        showToast({
+          type: 'success',
+          title: 'Feedback updated',
+          message: res.message || 'Your feedback has been updated successfully.',
+        })
       } else {
         const res = await submitEventFeedbackApi(eventId, { rating: feedbackRating, comment })
-        alert(res.message || 'Feedback submitted successfully!')
+        // Hiển thị thông báo cho chức năng gửi feedback sự kiện.
+        showToast({
+          type: 'success',
+          title: 'Feedback submitted',
+          message: res.message || 'Your feedback has been submitted successfully.',
+        })
       }
       loadEventData()
       closeFeedbackModal()
     } catch (err) {
       console.error(err)
-      alert(err.message || 'Failed to save feedback')
+      showToast({
+        type: 'error',
+        title: 'Feedback failed',
+        message: err.message || 'Failed to save feedback.',
+      })
     }
   }
 
   async function deleteEventFeedback(feedbackId) {
-    if (!confirm('Are you sure you want to delete your feedback?')) return
+    const accepted = await confirm({
+      title: 'Delete feedback?',
+      message: 'This feedback will be removed permanently.',
+      confirmText: 'Delete',
+      tone: 'danger',
+    })
+
+    if (!accepted) return
+
     try {
       const res = await deleteEventFeedbackApi(eventId)
-      alert(res.message || 'Feedback deleted successfully!')
+      // Hiển thị thông báo cho chức năng xóa feedback sự kiện.
+      showToast({
+        type: 'success',
+        title: 'Feedback deleted',
+        message: res.message || 'Your feedback has been deleted successfully.',
+      })
       loadEventData()
     } catch (err) {
       console.error(err)
-      alert(err.message || 'Failed to delete feedback')
+      showToast({
+        type: 'error',
+        title: 'Delete failed',
+        message: err.message || 'Failed to delete feedback.',
+      })
     }
   }
 
@@ -447,10 +516,33 @@ function EventDetailPage() {
       return [...items, nextTimeline]
     })
     closeTimelineModal()
+    // Hiển thị thông báo cho chức năng tạo hoặc cập nhật timeline sự kiện.
+    showToast({
+      type: 'success',
+      title: editingTimeline ? 'Timeline updated' : 'Timeline added',
+      message: editingTimeline
+        ? 'The timeline item has been updated.'
+        : 'A new timeline item has been added.',
+    })
   }
 
-  function deleteTimeline(timelineId) {
+  async function deleteTimeline(timelineId) {
+    const accepted = await confirm({
+      title: 'Delete timeline item?',
+      message: 'This timeline item will be removed from the event.',
+      confirmText: 'Delete',
+      tone: 'danger',
+    })
+
+    if (!accepted) return
+
     setTimelines((items) => items.filter((item) => item.id !== timelineId))
+    // Hiển thị thông báo cho chức năng xóa timeline sự kiện.
+    showToast({
+      type: 'success',
+      title: 'Timeline deleted',
+      message: 'The timeline item has been removed.',
+    })
   }
 
   if (loading) {

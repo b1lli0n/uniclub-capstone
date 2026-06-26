@@ -14,6 +14,7 @@ import {
 } from '../../api/event.api'
 import { formatRoleLabel, mapClubFromApi, mapMemberFromApi } from '../../api/clubMappers'
 import { CLUB_DETAIL_COPY } from '../../data/mockData'
+import { useConfirm, useToast } from '../../components/common/notificationContext'
 import '../../styles/club-detail.css'
 
 function EventIcon() {
@@ -46,6 +47,8 @@ function mapEventFromApi(apiEvent) {
 
 function ClubDetailPage({ clubId, onBack }) {
   const navigate = useNavigate()
+  const confirm = useConfirm()
+  const showToast = useToast()
   const [joinModalOpen, setJoinModalOpen] = useState(false)
   const [leaveModalOpen, setLeaveModalOpen] = useState(false)
   const [membersModalOpen, setMembersModalOpen] = useState(false)
@@ -139,7 +142,11 @@ function ClubDetailPage({ clubId, onBack }) {
       setJoinModalOpen(true)
     } catch (error) {
       console.error(error)
-      alert(error.message)
+      showToast({
+        type: 'error',
+        title: 'Form unavailable',
+        message: error.message || 'Could not load the join form.',
+      })
     }
   }
 
@@ -154,10 +161,19 @@ function ClubDetailPage({ clubId, onBack }) {
         answers: joinAnswers,
       })
       setJoinModalOpen(false)
-      alert('Join request submitted successfully')
+      // Hiển thị thông báo cho chức năng gửi yêu cầu tham gia câu lạc bộ.
+      showToast({
+        type: 'success',
+        title: 'Join request sent',
+        message: 'Your join request has been submitted successfully.',
+      })
     } catch (error) {
       console.error(error)
-      alert(error.message)
+      showToast({
+        type: 'error',
+        title: 'Submit failed',
+        message: error.message || 'Could not submit your join request.',
+      })
     } finally {
       setSubmitting(false)
     }
@@ -168,20 +184,50 @@ function ClubDetailPage({ clubId, onBack }) {
       await leaveClub(clubId)
       setCurrentMembership(null)
       setLeaveModalOpen(false)
+      // Hiển thị thông báo cho chức năng rời câu lạc bộ.
+      showToast({
+        type: 'success',
+        title: 'Left club',
+        message: `You have left ${club?.name || 'this club'}.`,
+      })
       onBack?.()
     } catch (error) {
       console.error(error)
-      alert(error.message)
+      showToast({
+        type: 'error',
+        title: 'Leave failed',
+        message: error.message || 'Could not leave this club.',
+      })
     }
   }
 
   async function handleRemoveMember(memberId) {
+    const targetMember = memberRows.find((member) => member.id === memberId)
+    const accepted = await confirm({
+      title: 'Remove member?',
+      message: `Remove ${targetMember?.name || 'this member'} from ${club?.name || 'this club'}?`,
+      confirmText: 'Remove',
+      tone: 'danger',
+    })
+
+    if (!accepted) return
+
     try {
       await removeMember(clubId, memberId)
       setMemberRows((members) => members.filter((member) => member.id !== memberId))
+      // Hiển thị thông báo cho chức năng xóa thành viên khỏi câu lạc bộ.
+      showToast({
+        type: 'success',
+        title: 'Member removed',
+        message: `${targetMember?.name || 'The member'} has been removed from the club.`,
+      })
     } catch (error) {
       console.error(error)
-      alert(error.message)
+      showToast({
+        type: 'error',
+        title: 'Remove failed',
+        message: error.message || 'Could not remove this member.',
+      })
     }
   }
 

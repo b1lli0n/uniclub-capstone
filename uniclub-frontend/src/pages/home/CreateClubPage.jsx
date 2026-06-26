@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { requestCreateClub } from '../../api/club.api'
 import { apiRequest, toQueryString } from '../../api/api'
+import { useToast } from '../../components/common/notificationContext'
 import '../../styles/create-club.css'
 
 const CREATE_CLUB_CATEGORIES = [
@@ -43,6 +44,7 @@ function SectionIcon({ type }) {
 }
 
 function CreateClubPage({ onCancel, onSubmit }) {
+  const showToast = useToast()
   const fileInputRef = useRef(null)
   const [name, setName] = useState('')
   const [category, setCategory] = useState('')
@@ -116,10 +118,20 @@ function CreateClubPage({ onCancel, onSubmit }) {
         logo_url: logoUrl || 'https://placehold.co/200x200/png',
         member_ids: members.map((member) => member.value),
       })
+      // Hiển thị thông báo cho chức năng gửi yêu cầu tạo câu lạc bộ.
+      showToast({
+        type: 'success',
+        title: 'Request submitted',
+        message: 'Your club creation request has been sent for review.',
+      })
       onSubmit?.({ name, category, description, members, logoName })
     } catch (error) {
       console.error(error)
-      alert(error.message)
+      showToast({
+        type: 'error',
+        title: 'Submit failed',
+        message: error.message || 'Could not submit club creation request.',
+      })
     } finally {
       setSubmitting(false)
     }

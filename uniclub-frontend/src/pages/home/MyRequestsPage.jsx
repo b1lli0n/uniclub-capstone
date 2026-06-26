@@ -7,8 +7,10 @@ import {
 } from '../../api/studentClubMembership.api'
 import { mapJoinRequestFromApi } from '../../api/clubMappers'
 import { MY_REQUEST_TABS, REQUEST_STATUS_OPTIONS } from '../../data/mockData'
+import { useToast } from '../../components/common/notificationContext'
 
 function MyRequestsPage() {
+  const showToast = useToast()
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [cancelTarget, setCancelTarget] = useState(null)
@@ -52,9 +54,19 @@ function MyRequestsPage() {
       await cancelJoinRequest(cancelTarget.id)
       setRequests((items) => items.filter((item) => item.id !== cancelTarget.id))
       setCancelTarget(null)
+      // Hiển thị thông báo cho chức năng hủy yêu cầu tham gia câu lạc bộ.
+      showToast({
+        type: 'success',
+        title: 'Request cancelled',
+        message: `Your request for ${cancelTarget.club} has been cancelled.`,
+      })
     } catch (error) {
       console.error(error)
-      alert(error.message)
+      showToast({
+        type: 'error',
+        title: 'Cancel failed',
+        message: error.message || 'Could not cancel this request.',
+      })
     }
   }
 
