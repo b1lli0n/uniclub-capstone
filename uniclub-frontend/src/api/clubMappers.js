@@ -1,0 +1,160 @@
+const CATEGORY_GRADIENTS = {
+  sport: 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)',
+  academic: 'linear-gradient(135deg, #a8d8ff 0%, #7eb8f0 100%)',
+  art: 'linear-gradient(135deg, #f5b0d8 0%, #e88fc4 100%)',
+  event: 'linear-gradient(135deg, #c4f0a8 0%, #9ed87e 100%)',
+}
+
+const ROLE_LABELS = {
+  president: 'Leader',
+  member: 'Member',
+  secretary: 'Secretary',
+  treasurer: 'Treasurer',
+  event_manager: 'Event manager',
+}
+
+export function formatRoleLabel(role = '') {
+  return ROLE_LABELS[role] || role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+export function formatDate(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleDateString('vi-VN')
+}
+
+export function mapClubFromApi(club, extras = {}) {
+  const category = (club.category || 'academic').toLowerCase()
+
+  return {
+    id: club._id || club.id,
+    name: club.name || '',
+    description: club.description || '',
+    category,
+    categoryLabel: (club.category || 'ACADEMIC').toUpperCase(),
+    members: extras.memberCount ?? club.member_count ?? club.members ?? 0,
+    events: extras.eventCount ?? club.event_count ?? club.events ?? 0,
+    logoUrl: club.logo_url || '',
+    status: club.status || 'active',
+    gradient: CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.academic,
+  }
+}
+
+export function mapMyClubFromApi(membership) {
+  const club = membership.club_id || membership.club || {}
+
+  return {
+    ...mapClubFromApi(club),
+    membershipRole: formatRoleLabel(membership.role),
+    joinedDate: formatDate(membership.joined_at),
+    membershipId: membership._id,
+    rawRole: membership.role,
+  }
+}
+
+export function mapMemberFromApi(member, index = 0) {
+  const user = member.user_id || member.user || {}
+  const tones = ['#f5b87a', '#7eb8f0', '#e88fc4', '#9ed87e', '#c9a0f5']
+
+  return {
+    id: member._id || user._id,
+    name: user.full_name || user.name || 'Unknown',
+    role: formatRoleLabel(member.role),
+    rawRole: member.role,
+    tone: tones[index % tones.length],
+    email: user.email || '',
+    avatarUrl: user.avatar_url || '',
+  }
+}
+
+export function mapJoinRequestFromApi(request) {
+  const club = request.club_id || {}
+  const form = request.form_id || {}
+
+  return {
+    id: request._id,
+    requestId: request._id,
+    club: club.name || '',
+    clubId: club._id || '',
+    category: (club.category || '').toUpperCase(),
+    status: request.status || 'pending',
+    sentDate: formatDate(request.create_at || request.created_at),
+    type: 'Join Request',
+    content: form.title || 'Club join request',
+    responder: request.reviewed_by?.full_name || '-',
+    sender: request.user_id?.full_name || '-',
+    responseTime: formatDate(request.reviewed_at),
+    sentTime: '',
+    answers: request.answers || [],
+    reviewNote: request.review_note || '',
+    questions: form.questions || [],
+  }
+}
+
+export function mapPresidentJoinRequestFromApi(request, formQuestions = []) {
+  const user = request.user_id || {}
+  const answers = (request.answers || []).map((answer, index) => ({
+    question: formQuestions[index] || `Question ${index + 1}`,
+    answer,
+  }))
+
+  return {
+    id: request._id,
+    clubId: request.club_id?._id || request.club_id,
+    applicantName: user.full_name || 'Unknown',
+    email: user.email || '',
+    status: request.status || 'pending',
+    submittedAt: formatDate(request.create_at || request.created_at),
+    requestedRole: 'Member',
+    reason: request.answers?.[0] || '',
+    answers,
+    reviewNote: request.review_note || '',
+    avatarUrl: user.avatar_url || '',
+  }
+}
+
+const ADMIN_ROLE_TO_BE = {
+  Leader: 'president',
+  'Vice leader': 'president',
+  Secretary: 'secretary',
+  Treasurer: 'treasurer',
+  Member: 'member',
+}
+
+export function mapAdminRoleToApi(role) {
+  return ADMIN_ROLE_TO_BE[role] || role.toLowerCase().replace(/\s+/g, '_')
+}
+
+export function mapCreationRequestFromApi(request) {
+  return {
+    id: request._id,
+    clubName: request.club_name || '',
+    sender: request.requested_by?.full_name || 'Unknown',
+    leader: request.requested_by?.full_name || 'Unknown',
+    sentDate: formatDate(request.created_at),
+    status: request.status || 'pending',
+    category: request.category || 'Not specified',
+    memberCount: request.member_ids?.length || 0,
+    description: request.description || request.reason || '',
+    logoText: (request.club_name || 'CL').slice(0, 2).toUpperCase(),
+    logoUrl: request.logo_url || '',
+  }
+}
+
+export function mapAdminClubFromApi(club) {
+  const createdBy = club.created_by || {}
+
+  return {
+    id: club._id,
+    clubName: club.name || '',
+    leader: createdBy.full_name || 'Unknown',
+    members: club.member_count || 0,
+    status: club.status || 'active',
+    category: club.category || '',
+    createdAt: new Date(club.created_at || Date.now()).getTime(),
+    description: club.description || '',
+    logoUrl: club.logo_url || '',
+    memberList: (club.members || []).map((member, index) => mapMemberFromApi(member, index)),
+  }
+}
