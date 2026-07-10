@@ -24,8 +24,8 @@ import ClubJoinFormPage from '../pages/home/ClubJoinFormPage'
 import ClubAttendancePage from '../pages/home/ClubAttendancePage'
 import ClubPointRulesPage from '../pages/home/ClubPointRulesPage'
 import ClubRewardsPage from '../pages/home/ClubRewardsPage'
-
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
+
 import { getMyProfile } from '../api/profile.api'
 import { getMyClubs } from '../api/memberClubMembership.api'
 
@@ -118,25 +118,15 @@ function ProtectedLayout({
     else if (screen === 'create-club') navigate('/create-club')
     else if (screen === 'clubs') navigate('/clubs')
     else if (screen === 'events') navigate('/events')
-    else if (screen === 'club-detail') {
-      navigate(clubId ? `/clubs/${clubId}` : '/clubs')
-    } else if (screen === 'club-ranking') {
-      navigate(clubId ? `/clubs/${clubId}/ranking` : '/club-ranking')
-    } else if (screen === 'point-rules' && clubId) {
-      navigate(`/clubs/${clubId}/point-rules`)
-    } else if (screen === 'rewards' && clubId) {
-      navigate(`/clubs/${clubId}/rewards`)
-    } else if (screen === 'member-approval' && clubId) {
-      navigate(`/clubs/${clubId}/join-requests`)
-    } else if (screen === 'join-form' && clubId) {
-      navigate(`/clubs/${clubId}/join-form`)
-    } else if (screen === 'manage-events' && clubId) {
-      navigate(`/clubs/${clubId}/manage-events`)
-    } else if (screen === 'attendance' && clubId) {
-      navigate(`/clubs/${clubId}/attendance`)
-    } else {
-      navigate('/')
-    }
+    else if (screen === 'club-detail') navigate(clubId ? `/clubs/${clubId}` : '/clubs')
+    else if (screen === 'club-ranking') navigate(clubId ? `/clubs/${clubId}/ranking` : '/club-ranking')
+    else if (screen === 'point-rules' && clubId) navigate(`/clubs/${clubId}/point-rules`)
+    else if (screen === 'rewards' && clubId) navigate(`/clubs/${clubId}/rewards`)
+    else if (screen === 'member-approval' && clubId) navigate(`/clubs/${clubId}/join-requests`)
+    else if (screen === 'join-form' && clubId) navigate(`/clubs/${clubId}/join-form`)
+    else if (screen === 'manage-events' && clubId) navigate(`/clubs/${clubId}/manage-events`)
+    else if (screen === 'attendance' && clubId) navigate(`/clubs/${clubId}/attendance`)
+    else navigate('/')
   }
 
   if (!isAuthenticated) {
@@ -245,10 +235,37 @@ function ClubPointRulesRoute() {
 
 function ClubRewardsRoute() {
   const { clubId } = useParams()
+  const [isManager, setIsManager] = useState(false)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadRole() {
+      try {
+        const myClubsRes = await getMyClubs()
+        if (!active) return
+
+        const membership = (myClubsRes.data || []).find((item) => {
+          const id = item.club_id?._id || item.club_id
+          return String(id) === String(clubId)
+        })
+
+        setIsManager(membership?.role === 'president')
+      } catch (error) {
+        console.error('Failed to load reward permissions:', error)
+      }
+    }
+
+    loadRole()
+
+    return () => {
+      active = false
+    }
+  }, [clubId])
 
   return (
     <ProtectedLayout pageId="rewards" activeItem="clubs" clubId={clubId}>
-      <ClubRewardsPage />
+      <ClubRewardsPage isManager={isManager} />
     </ProtectedLayout>
   )
 }
@@ -274,39 +291,20 @@ function AppRouter() {
               onCreateClub={() => navigate('/create-club')}
               onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)}
               onSelectEvent={(eventId) => navigate(`/events/${eventId}`)}
-              onViewAll={(target) =>
-                navigate(target === 'events' ? '/events' : '/clubs')
-              }
+              onViewAll={(target) => navigate(target === 'events' ? '/events' : '/clubs')}
             />
           </ProtectedLayout>
         }
       />
 
-      <Route
-        path="/profile"
-        element={
-          <ProtectedLayout pageId="profile">
-            <MyProfilePage />
-          </ProtectedLayout>
-        }
-      />
-
-      <Route
-        path="/my-requests"
-        element={
-          <ProtectedLayout pageId="requests">
-            <MyRequestsPage />
-          </ProtectedLayout>
-        }
-      />
+      <Route path="/profile" element={<ProtectedLayout pageId="profile"><MyProfilePage /></ProtectedLayout>} />
+      <Route path="/my-requests" element={<ProtectedLayout pageId="requests"><MyRequestsPage /></ProtectedLayout>} />
 
       <Route
         path="/my-clubs"
         element={
           <ProtectedLayout pageId="my-clubs" activeItem="clubs">
-            <MyClubsPage
-              onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)}
-            />
+            <MyClubsPage onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)} />
           </ProtectedLayout>
         }
       />
@@ -327,47 +325,18 @@ function AppRouter() {
         path="/clubs"
         element={
           <ProtectedLayout pageId="clubs" activeItem="clubs">
-            <ClubsPage
-              onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)}
-            />
+            <ClubsPage onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)} />
           </ProtectedLayout>
         }
       />
 
-      <Route
-        path="/events"
-        element={
-          <ProtectedLayout pageId="events" activeItem="events">
-            <EventsPage />
-          </ProtectedLayout>
-        }
-      />
-
-      <Route
-        path="/my-events"
-        element={
-          <ProtectedLayout pageId="my-events" activeItem="events">
-            <MyEventsPage />
-          </ProtectedLayout>
-        }
-      />
-
-      <Route
-        path="/events/:eventId"
-        element={
-          <ProtectedLayout pageId="event-detail" activeItem="events">
-            <EventDetailPage />
-          </ProtectedLayout>
-        }
-      />
+      <Route path="/events" element={<ProtectedLayout pageId="events" activeItem="events"><EventsPage /></ProtectedLayout>} />
+      <Route path="/my-events" element={<ProtectedLayout pageId="my-events" activeItem="events"><MyEventsPage /></ProtectedLayout>} />
+      <Route path="/events/:eventId" element={<ProtectedLayout pageId="event-detail" activeItem="events"><EventDetailPage /></ProtectedLayout>} />
 
       <Route
         path="/clubs/:clubId/events/:eventId"
-        element={
-          <ProtectedLayout pageId="event-detail" activeItem="clubs">
-            <EventDetailPage />
-          </ProtectedLayout>
-        }
+        element={<ProtectedLayout pageId="event-detail" activeItem="clubs"><EventDetailPage /></ProtectedLayout>}
       />
 
       <Route path="/clubs/:clubId/point-rules" element={<ClubPointRulesRoute />} />
@@ -382,18 +351,10 @@ function AppRouter() {
 
       <Route
         path="/club-ranking"
-        element={
-          <ProtectedLayout pageId="club-ranking" activeItem="clubs">
-            <ClubRankingPage />
-          </ProtectedLayout>
-        }
+        element={<ProtectedLayout pageId="club-ranking" activeItem="clubs"><ClubRankingPage /></ProtectedLayout>}
       />
 
-      <Route
-        path="/admin"
-        element={<AdminDashboardPage onLogout={() => navigate('/login')} />}
-      />
-
+      <Route path="/admin" element={<AdminDashboardPage onLogout={() => navigate('/login')} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
