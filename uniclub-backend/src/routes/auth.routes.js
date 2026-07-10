@@ -16,18 +16,24 @@ router.get(
 
 router.get(
   "/google/callback",
-  passport.authenticate("google", {
-    session: false,
-    failureRedirect: `${env.frontendURL}/login`,
-  }),
-  (req, res) => {
-    const token = createToken({
-      id: req.user._id,
-      email: req.user.email,
-      role: req.user.role,
-    });
+  (req, res, next) => {
+    passport.authenticate("google", { session: false }, (err, user, info) => {
+      if (err) {
+        return res.redirect(`${env.frontendURL}/login?error=${encodeURIComponent(err.message || "Authentication failed")}`);
+      }
+      if (!user) {
+        const msg = info?.message || "Only FPT email is allowed";
+        return res.redirect(`${env.frontendURL}/login?error=${encodeURIComponent(msg)}`);
+      }
+      
+      const token = createToken({
+        id: user._id,
+        email: user.email,
+        role: user.role,
+      });
 
-    res.redirect(`${env.frontendURL}/auth/callback?token=${token}`);
+      return res.redirect(`${env.frontendURL}/auth/callback?token=${token}`);
+    })(req, res, next);
   }
 );
 

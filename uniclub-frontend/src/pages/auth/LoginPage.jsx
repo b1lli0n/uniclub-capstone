@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { useToast } from '../../components/common/notificationContext'
 import fptUniversityLogo from '../../assets/Logo-Dai-hoc-FPT.webp'
 import heroGroup from '../../assets/hero-group.png'
 import '../../styles/login.css'
@@ -17,7 +19,32 @@ function FptLogo() {
 }
 
 export default function LoginPage() {
+  const showToast = useToast()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [selectedEmail, setSelectedEmail] = useState(MOCK_ACCOUNTS[1].email)
+
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    if (errorParam) {
+      let msg = 'Đăng nhập không thành công.'
+      if (errorParam === 'Only FPT email is allowed') {
+        msg = 'Tài khoản đăng nhập không hợp lệ! Vui lòng sử dụng email FPT (@fpt.edu.vn).'
+      } else if (errorParam === 'Account is inactive') {
+        msg = 'Tài khoản của bạn đã bị khóa hoặc chưa kích hoạt.'
+      } else {
+        msg = errorParam
+      }
+
+      showToast({
+        type: 'error',
+        title: 'Đăng nhập thất bại',
+        message: msg,
+      })
+
+      // Clean up search param from URL
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, setSearchParams, showToast])
 
   function handleLogin1() {
     window.location.href =
