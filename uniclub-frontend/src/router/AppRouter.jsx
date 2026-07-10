@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
+import { useEffect, useState } from 'react'
+
 import LoginPage from '../pages/auth/LoginPage'
 import AuthCallbackPage from '../pages/auth/AuthCallbackPage'
 
@@ -20,12 +22,11 @@ import ClubRankingPage from '../pages/home/ClubRankingPage'
 import ClubJoinRequestsPage from '../pages/home/ClubJoinRequestsPage'
 import ClubJoinFormPage from '../pages/home/ClubJoinFormPage'
 import ClubAttendancePage from '../pages/home/ClubAttendancePage'
+import ClubPointRulesPage from '../pages/home/ClubPointRulesPage'
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 
-import { useEffect, useState } from 'react'
 import { getMyProfile } from '../api/profile.api'
 import { getMyClubs } from '../api/memberClubMembership.api'
-
 
 function ProtectedLayout({
   pageId,
@@ -35,12 +36,14 @@ function ProtectedLayout({
 }) {
   const navigate = useNavigate()
   const isAuthenticated = Boolean(localStorage.getItem('token'))
+
   const [currentUser, setCurrentUser] = useState({
     fullName: 'Loading...',
     email: '',
     avatarUrl: '',
     avatarInitial: 'U',
   })
+
   const [canManageMembers, setCanManageMembers] = useState(false)
   const [canManageEvents, setCanManageEvents] = useState(false)
 
@@ -48,11 +51,14 @@ function ProtectedLayout({
     if (!isAuthenticated) return
 
     let active = true
+
     async function loadData() {
       try {
         const profileRes = await getMyProfile()
         if (!active) return
+
         const user = profileRes.data.user
+
         setCurrentUser({
           id: user._id,
           fullName: user.full_name || '',
@@ -64,26 +70,32 @@ function ProtectedLayout({
         if (clubId) {
           const myClubsRes = await getMyClubs()
           if (!active) return
+
           const membership = (myClubsRes.data || []).find((item) => {
             const id = item.club_id?._id || item.club_id
             return String(id) === String(clubId)
           })
+
           const isPresident = membership?.role === 'president'
           const isEventManager = membership?.role === 'event_manager'
+
           setCanManageMembers(isPresident)
           setCanManageEvents(isPresident || isEventManager)
         } else {
           setCanManageMembers(false)
           setCanManageEvents(false)
         }
-      } catch (err) {
-        console.error("Failed to load layout data:", err)
+      } catch (error) {
+        console.error('Failed to load layout data:', error)
       }
     }
-    loadData()
-    return () => { active = false }
-  }, [isAuthenticated, clubId])
 
+    loadData()
+
+    return () => {
+      active = false
+    }
+  }, [isAuthenticated, clubId])
 
   const handleLogout = async () => {
     try {
@@ -105,13 +117,23 @@ function ProtectedLayout({
     else if (screen === 'create-club') navigate('/create-club')
     else if (screen === 'clubs') navigate('/clubs')
     else if (screen === 'events') navigate('/events')
-    else if (screen === 'club-detail') navigate(clubId ? `/clubs/${clubId}` : '/clubs')
-    else if (screen === 'club-ranking') navigate(clubId ? `/clubs/${clubId}/ranking` : '/club-ranking')
-    else if (screen === 'member-approval' && clubId) navigate(`/clubs/${clubId}/join-requests`)
-    else if (screen === 'join-form' && clubId) navigate(`/clubs/${clubId}/join-form`)
-    else if (screen === 'manage-events' && clubId) navigate(`/clubs/${clubId}/manage-events`)
-    else if (screen === 'attendance' && clubId) navigate(`/clubs/${clubId}/attendance`)
-    else navigate('/')
+    else if (screen === 'club-detail') {
+      navigate(clubId ? `/clubs/${clubId}` : '/clubs')
+    } else if (screen === 'club-ranking') {
+      navigate(clubId ? `/clubs/${clubId}/ranking` : '/club-ranking')
+    } else if (screen === 'point-rules' && clubId) {
+      navigate(`/clubs/${clubId}/point-rules`)
+    } else if (screen === 'member-approval' && clubId) {
+      navigate(`/clubs/${clubId}/join-requests`)
+    } else if (screen === 'join-form' && clubId) {
+      navigate(`/clubs/${clubId}/join-form`)
+    } else if (screen === 'manage-events' && clubId) {
+      navigate(`/clubs/${clubId}/manage-events`)
+    } else if (screen === 'attendance' && clubId) {
+      navigate(`/clubs/${clubId}/attendance`)
+    } else {
+      navigate('/')
+    }
   }
 
   if (!isAuthenticated) {
@@ -236,6 +258,20 @@ function ClubAttendanceRoute() {
   )
 }
 
+function ClubPointRulesRoute() {
+  const { clubId } = useParams()
+
+  return (
+    <ProtectedLayout
+      pageId="point-rules"
+      activeItem="clubs"
+      clubId={clubId}
+    >
+      <ClubPointRulesPage clubId={clubId} />
+    </ProtectedLayout>
+  )
+}
+
 function AppRouter() {
   const isAuthenticated = Boolean(localStorage.getItem('token'))
   const navigate = useNavigate()
@@ -259,7 +295,9 @@ function AppRouter() {
               onCreateClub={() => navigate('/create-club')}
               onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)}
               onSelectEvent={(eventId) => navigate(`/events/${eventId}`)}
-              onViewAll={(target) => navigate(target === 'events' ? '/events' : '/clubs')}
+              onViewAll={(target) =>
+                navigate(target === 'events' ? '/events' : '/clubs')
+              }
             />
           </ProtectedLayout>
         }
@@ -353,13 +391,45 @@ function AppRouter() {
         }
       />
 
-      <Route path="/clubs/:clubId/ranking" element={<ClubRankingRoute />} />
-      <Route path="/clubs/:clubId/join-requests" element={<ClubJoinRequestsRoute />} />
-      <Route path="/clubs/:clubId/join-form" element={<ClubJoinFormRoute />} />
-      <Route path="/clubs/:clubId/manage-events" element={<ClubEventManagementRoute />} />
-      <Route path="/clubs/:clubId/attendance" element={<ClubAttendanceRoute />} />
-      <Route path="/clubs/:clubId/events" element={<ClubEventsRoute />} />
-      <Route path="/clubs/:clubId" element={<ClubDetailRoute />} />
+      <Route
+        path="/clubs/:clubId/point-rules"
+        element={<ClubPointRulesRoute />}
+      />
+
+      <Route
+        path="/clubs/:clubId/ranking"
+        element={<ClubRankingRoute />}
+      />
+
+      <Route
+        path="/clubs/:clubId/join-requests"
+        element={<ClubJoinRequestsRoute />}
+      />
+
+      <Route
+        path="/clubs/:clubId/join-form"
+        element={<ClubJoinFormRoute />}
+      />
+
+      <Route
+        path="/clubs/:clubId/manage-events"
+        element={<ClubEventManagementRoute />}
+      />
+
+      <Route
+        path="/clubs/:clubId/attendance"
+        element={<ClubAttendanceRoute />}
+      />
+
+      <Route
+        path="/clubs/:clubId/events"
+        element={<ClubEventsRoute />}
+      />
+
+      <Route
+        path="/clubs/:clubId"
+        element={<ClubDetailRoute />}
+      />
 
       <Route
         path="/club-ranking"
