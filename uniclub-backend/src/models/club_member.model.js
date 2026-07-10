@@ -39,6 +39,12 @@ const clubMemberSchema = Schema(
       type: Date,
       default: null,
     },
+
+    reward_point: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
   },
   {
     timestamps: false,

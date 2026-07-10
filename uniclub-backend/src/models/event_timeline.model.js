@@ -50,6 +50,12 @@ const eventTimelineSchema = Schema(
       ref: "User",
       default: null,
     },
+
+    action_type_id: {
+      type: Schema.Types.ObjectId,
+      ref: "ActionType",
+      default: null,
+    },
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
