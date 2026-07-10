@@ -52,3 +52,25 @@ export function getClubEventsForMember(clubId) {
 export function getMyRegistrations() {
   return apiRequest('/events/my-registrations')
 }
+
+/**
+ * Get event attendance list (Lấy danh sách điểm danh sự kiện)
+ * GET /api/events/:eventId/attendance
+ */
+export function getEventAttendanceList(eventId, params = {}) {
+  return apiRequest(`/events/${eventId}/attendance${toQueryString(params)}`)
+}
+
+/**
+ * Update event attendance status (Cập nhật trạng thái điểm danh: check-in đơn lẻ hoặc bật/tắt check-in sự kiện)
+ * PATCH /api/events/:eventId/attendance/status
+ */
+export function updateEventAttendanceStatus(eventId, data) {
+  return apiRequest(`/events/${eventId}/attendance/status`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+}

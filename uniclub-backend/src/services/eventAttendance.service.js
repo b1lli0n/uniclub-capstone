@@ -222,6 +222,21 @@ const updateAttendanceStatus = async ({
 
     await registration.save();
 
+    if (status === "attended") {
+      try {
+        const { awardRewardPoints } = require("./pointsAward.helper");
+        await awardRewardPoints({
+          clubId: event.club_id,
+          userId: registration.user_id,
+          actionTypeCode: "attendance",
+          eventId: event._id,
+          presidentId: userId,
+        });
+      } catch (err) {
+        console.error("[Points Hook] Failed to award attendance points:", err);
+      }
+    }
+
     return {
       target: "registration",
       registration,

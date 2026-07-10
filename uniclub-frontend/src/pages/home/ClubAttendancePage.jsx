@@ -8,8 +8,9 @@ import {
 import '../../styles/club-attendance.css'
 import { getClubById } from '../../api/club.api'
 import { getMyClubs } from '../../api/memberClubMembership.api'
-import { getClubEventsForMember } from '../../api/event.api'
+import { getClubEventsForMember, getEventAttendanceList, updateEventAttendanceStatus } from '../../api/event.api'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
+import QrScannerModal from '../../components/common/QrScannerModal'
 
 const CLUB_FALLBACK = ALL_CLUBS[0]
 
@@ -132,6 +133,7 @@ function ClubAttendancePage({ clubId }) {
   const [manualMemberId, setManualMemberId] = useState('')
   const [attendanceItems, setAttendanceItems] = useState([])
   const [checkinOpenByEvent, setCheckinOpenByEvent] = useState({})
+  const [scannerOpen, setScannerOpen] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -170,16 +172,6 @@ function ClubAttendancePage({ clubId }) {
         // Initialize state variables based on loaded events
         const firstEventId = loadedEvents[0]?.id || ''
         setSelectedEventId(firstEventId)
-
-        // Try to load attendance items matching loaded events
-        const filteredAttendances = EVENT_ATTENDANCES.filter((item) => 
-          loadedEvents.some((event) => event.id === item.eventId)
-        )
-        setAttendanceItems(filteredAttendances)
-
-        setCheckinOpenByEvent(
-          Object.fromEntries(loadedEvents.map((event) => [event.id, Boolean(event.checkinOpen)]))
-        )
       } catch (err) {
         console.error("Failed to load attendance data:", err)
       } finally {
@@ -189,6 +181,49 @@ function ClubAttendancePage({ clubId }) {
     loadData()
     return () => { active = false }
   }, [clubId])
+
+  // Fetch real attendance list when selectedEventId changes
+  useEffect(() => {
+    if (!selectedEventId) return undefined
+
+    let active = true
+    async function loadAttendance() {
+      try {
+        const res = await getEventAttendanceList(selectedEventId)
+        if (!active) return
+        
+        // Map backend attendance list to UI items
+        const mapped = (res.data?.attendance || []).map((item) => ({
+          id: item.registration_id || item._id,
+          memberName: item.user?.full_name || 'N/A',
+          email: item.user?.email || 'N/A',
+          checkedIn: item.status === 'attended',
+          checkedInAt: item.check_in_time 
+            ? new Date(item.check_in_time).toLocaleTimeString('vi-VN') + ' ' + new Date(item.check_in_time).toLocaleDateString('vi-VN')
+            : '',
+          registeredAt: item.registered_at 
+            ? new Date(item.registered_at).toLocaleDateString('vi-VN')
+            : '',
+        }))
+
+        setAttendanceItems(mapped)
+
+        // Update check-in status mapping
+        setCheckinOpenByEvent((current) => ({
+          ...current,
+          [selectedEventId]: res.data?.event?.check_in_status === 'open',
+        }))
+      } catch (err) {
+        console.error("Failed to load attendance list from API:", err)
+        // Fallback to mock if API fails/empty
+        const filteredMock = EVENT_ATTENDANCES.filter((item) => item.eventId === selectedEventId)
+        setAttendanceItems(filteredMock)
+      }
+    }
+
+    loadAttendance()
+    return () => { active = false }
+  }, [selectedEventId])
 
   const selectedEvent = clubEvents.find((event) => event.id === selectedEventId) || clubEvents[0]
 
@@ -237,22 +272,45 @@ function ClubAttendancePage({ clubId }) {
       ? 'All members checked in'
       : 'Select member to check in'
 
-  function updateCheckinStatus(attendanceId) {
-    const target = attendanceItems.find((item) => item.id === attendanceId)
-    setAttendanceItems((items) =>
-      items.map((item) =>
-        item.id === attendanceId
-          ? { ...item, checkedIn: true, checkedInAt: getNowLabel() }
-          : item
-      )
-    )
-    setManualMemberId((current) => (current === attendanceId ? '' : current))
-    // Hiển thị thông báo cho chức năng check-in thành viên.
-    showToast({
-      type: 'success',
-      title: 'Checked in',
-      message: `${target?.memberName || 'The member'} has been checked in.`,
-    })
+  async function updateCheckinStatus(attendanceId) {
+    if (!selectedEventId) return
+
+    try {
+      const res = await updateEventAttendanceStatus(selectedEventId, {
+        target: 'registration',
+        registration_id: attendanceId,
+        status: 'attended',
+      })
+
+      if (res.success) {
+        setAttendanceItems((items) =>
+          items.map((item) =>
+            item.id === attendanceId
+              ? {
+                  ...item,
+                  checkedIn: true,
+                  checkedInAt: new Date().toLocaleTimeString('vi-VN') + ' ' + new Date().toLocaleDateString('vi-VN'),
+                }
+              : item
+          )
+        )
+        setManualMemberId('')
+
+        const target = attendanceItems.find((item) => item.id === attendanceId)
+        showToast({
+          type: 'success',
+          title: 'Checked in',
+          message: `${target?.memberName || 'Thành viên'} đã được điểm danh thành công.`,
+        })
+      }
+    } catch (err) {
+      console.error("Check-in error:", err)
+      showToast({
+        type: 'error',
+        title: 'Check-in thất bại',
+        message: err.message || 'Có lỗi xảy ra khi thực hiện điểm danh.',
+      })
+    }
   }
 
   async function toggleCheckinOpen() {
@@ -267,16 +325,56 @@ function ClubAttendancePage({ clubId }) {
 
     if (!accepted) return
 
-    setCheckinOpenByEvent((current) => ({
-      ...current,
-      [selectedEvent.id]: !current[selectedEvent.id],
-    }))
-    // Hiển thị thông báo cho chức năng bật hoặc tắt check-in.
-    showToast({
-      type: 'success',
-      title: nextOpen ? 'Check-in opened' : 'Check-in closed',
-      message: `Check-in for ${selectedEvent.name} is now ${nextOpen ? 'open' : 'closed'}.`,
-    })
+    try {
+      const checkInStatus = nextOpen ? 'open' : 'closed'
+      const res = await updateEventAttendanceStatus(selectedEvent.id, {
+        target: 'event',
+        check_in_status: checkInStatus,
+      })
+
+      if (res.success) {
+        setCheckinOpenByEvent((current) => ({
+          ...current,
+          [selectedEvent.id]: nextOpen,
+        }));
+        showToast({
+          type: 'success',
+          title: nextOpen ? 'Check-in opened' : 'Check-in closed',
+          message: `Check-in for ${selectedEvent.name} is now ${nextOpen ? 'open' : 'closed'}.`,
+        })
+      }
+    } catch (err) {
+      console.error("Failed to toggle check-in status:", err)
+      showToast({
+        type: 'error',
+        title: 'Thao tác thất bại',
+        message: err.message || 'Không thể thay đổi trạng thái check-in của sự kiện.',
+      })
+    }
+  }
+
+  function playSuccessBeep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.frequency.value = 800
+      gain.gain.setValueAtTime(0, ctx.currentTime)
+      gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.05)
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.15)
+      osc.start(ctx.currentTime)
+      osc.stop(ctx.currentTime + 0.15)
+    } catch (err) {
+      console.error("Failed to play success beep:", err)
+    }
+  }
+
+  const handleScanSuccess = async (registrationId) => {
+    setScannerOpen(false)
+    playSuccessBeep()
+    await updateCheckinStatus(registrationId)
   }
 
   if (!canManageAttendance) {
@@ -359,7 +457,7 @@ function ClubAttendancePage({ clubId }) {
           <h2>Manual check-in</h2>
           <p>Select a registered student who has not checked in yet.</p>
         </div>
-        <div className="club-attendance-manual__controls">
+        <div className="club-attendance-manual__controls" style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
           <AttendanceSelect
             value={manualMemberId}
             options={manualOptions}
@@ -373,6 +471,34 @@ function ClubAttendancePage({ clubId }) {
             onClick={() => updateCheckinStatus(manualMemberId)}
           >
             Check in
+          </button>
+          
+          <button
+            type="button"
+            className="club-attendance-qr-scan-btn"
+            disabled={!checkinOpen}
+            onClick={() => setScannerOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              backgroundColor: '#ff8e0b',
+              color: '#fff',
+              border: 'none',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '500',
+              opacity: !checkinOpen ? 0.6 : 1,
+              transition: 'all 0.2s',
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '18px', height: '18px' }}>
+              <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" strokeLinecap="round" />
+              <path d="M7 7h2v2H7zM15 7h2v2h-2zM7 15h2v2H7z" />
+            </svg>
+            Quét QR
           </button>
         </div>
       </section>
@@ -454,6 +580,12 @@ function ClubAttendancePage({ clubId }) {
           </div>
         ) : null}
       </section>
+
+      <QrScannerModal
+        isOpen={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScanSuccess={handleScanSuccess}
+      />
     </main>
   )
 }

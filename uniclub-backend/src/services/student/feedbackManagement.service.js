@@ -63,6 +63,21 @@ const createFeedbackEvent = async (userId, eventId, { rating, comment }) => {
     comment
   });
 
+  try {
+    const event = await Event.findById(eventId).select("club_id");
+    if (event) {
+      const { awardRewardPoints } = require("../pointsAward.helper");
+      await awardRewardPoints({
+        clubId: event.club_id,
+        userId: userId,
+        actionTypeCode: "feedback",
+        eventId: eventId,
+      });
+    }
+  } catch (err) {
+    console.error("[Points Hook] Failed to award feedback points:", err);
+  }
+
   return feedback.populate([
     { path: "event_id", select: "_id title" },
     { path: "user_id", select: "_id full_name avatar_url" }
