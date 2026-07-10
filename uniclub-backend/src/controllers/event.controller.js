@@ -123,6 +123,7 @@ const getEventDetail = async (req, res, next) => {
     // Lấy thông tin đăng ký của user hiện tại (nếu đã đăng nhập)
     let isRegistered = false;
     let registrationStatus = null;
+    let registrationId = null;
 
     if (req.user?.id) {
       const reg = await EventRegistration.findOne({
@@ -134,6 +135,7 @@ const getEventDetail = async (req, res, next) => {
         // user is registered if registration is approved, attended or pending approval
         isRegistered = ["pending", "approved", "attended"].includes(reg.status);
         registrationStatus = reg.status;
+        registrationId = reg._id;
       }
     }
 
@@ -149,6 +151,7 @@ const getEventDetail = async (req, res, next) => {
         ...event,
         isRegistered,
         registrationStatus,
+        registrationId,
         registeredCount,
       },
     });

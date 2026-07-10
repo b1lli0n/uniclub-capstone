@@ -145,6 +145,7 @@ function mapEventFromApi(apiEvent) {
     registeredCount: apiEvent.registeredCount || 0,
     isRegistered: apiEvent.isRegistered || false,
     registrationStatus: apiEvent.registrationStatus || null,
+    registrationId: apiEvent.registrationId || null,
   }
 }
 
@@ -312,6 +313,42 @@ function EventDetailPage() {
       document.body.classList.remove('event-ticket-open')
     }
   }, [ticketOpen])
+
+  useEffect(() => {
+    if (!ticketOpen || !event || event.registrationStatus === 'attended') {
+      return undefined
+    }
+
+    let active = true
+    const interval = setInterval(async () => {
+      try {
+        const res = await getEventDetail(eventId)
+        if (!active) return
+        const mapped = mapEventFromApi(res.data)
+        if (mapped.registrationStatus === 'attended') {
+          setEvent(mapped)
+          setRegistration({
+            status: 'attended',
+            registeredAt: '',
+            checkedIn: true,
+          })
+          showToast({
+            type: 'success',
+            title: 'Check-in thành công',
+            message: 'Chúc mừng! Bạn đã check-in thành công và được cộng điểm thưởng.',
+          })
+          clearInterval(interval)
+        }
+      } catch (err) {
+        console.error("Polling check-in status error:", err)
+      }
+    }, 3000)
+
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
+  }, [ticketOpen, eventId, event?.registrationStatus])
 
   const isRegistered = event?.isRegistered
   const canCancel = isRegistered && (registration?.status === 'registered' || registration?.status === 'approved' || registration?.status === 'pending') && isBeforeEventStart(event)
@@ -953,13 +990,31 @@ function EventDetailPage() {
 
             <div className="event-ticket__divider" aria-hidden="true" />
 
-            <div className="event-ticket__checkin">
-              <div>
-                <TicketQr value={ticketCode} />
-                <strong>{ticketCode}</strong>
+            {registration?.checkedIn || registration?.status === 'attended' ? (
+              <div className="event-ticket__checkin" style={{ backgroundColor: '#e8f5e9', borderRadius: '8px', padding: '1.2rem', border: '1px solid #c8e6c9', margin: '1rem auto', maxWidth: '320px' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '2.5rem', color: '#2e7d32', marginBottom: '0.3rem' }}>✓</div>
+                  <strong style={{ color: '#2e7d32', display: 'block', fontSize: '1.1rem', marginBottom: '0.2rem' }}>Đã check-in thành công!</strong>
+                  <span style={{ fontSize: '0.85rem', color: '#558b2f' }}>Chúc bạn có một buổi trải nghiệm vui vẻ!</span>
+                </div>
               </div>
-              <p>Show this QR code to event management at the check-in counter.</p>
-            </div>
+            ) : (
+              <div className="event-ticket__checkin">
+                <div>
+                  {event.registrationId ? (
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${event.registrationId}`}
+                      alt="Ticket QR Code"
+                      style={{ display: 'block', margin: '0.8rem auto', border: '4px solid #fff', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                    />
+                  ) : (
+                    <TicketQr value={ticketCode} />
+                  )}
+                  <strong>{event.registrationId || ticketCode}</strong>
+                </div>
+                <p>Show this QR code to event management at the check-in counter.</p>
+              </div>
+            )}
           </section>
         </div>
       ) : null}
