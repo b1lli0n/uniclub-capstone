@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const { getHealth } = require("./controllers/health.controller");
-const memberActivityScheduleRoutes = require("./routes/member/activitySchedule.routes");
+const secretaryActivityScheduleRoutes = require("./routes/secretary/activitySchedule.routes");
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
 
@@ -22,8 +22,8 @@ app.get("/", (req, res) => {
 
 app.get("/api/v1/health", getHealth);
 app.use(
-  "/api/member/clubs/:clubId/activity-schedule",
-  memberActivityScheduleRoutes
+  "/api/secretary/clubs/:clubId/activity-schedule",
+  secretaryActivityScheduleRoutes
 );
 
 app.use(notFound);
