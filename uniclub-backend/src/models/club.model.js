@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
+// Schema lưu thông tin câu lạc bộ.
 const clubSchema = Schema(
   {
     name: {
