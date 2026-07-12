@@ -1,10 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-<<<<<<< HEAD
-const { getHealth } = require("./controllers/health.controller");
-const memberActivityScheduleRoutes = require("./routes/member/activitySchedule.routes");
-=======
 const path = require("path");
 
 const passport = require("passport");
@@ -27,9 +23,8 @@ const studentClubMembershipRoutes = require("./routes/student/clubMembership.rou
 const presidentJoinRequestManagementRoutes = require("./routes/president/joinRequestManagement.routes");
 const presidentJoinFormManagementRoutes = require("./routes/president/joinFormManagement.routes");
 const eventManagerRoutes = require("./routes/eventManager/eventManagement.routes");
+const memberActivityScheduleRoutes = require("./routes/member/activitySchedule.routes");
 
-
->>>>>>> feature/fe-Club-Activity-Schedule
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
 const env = require("./config/env");
@@ -68,24 +63,15 @@ app.use("/api/president/join-request-management", presidentJoinRequestManagement
 app.use("/api/president/clubs", presidentJoinFormManagementRoutes);
 app.use("/api/student/feedback-management", feedbackManagementRoutes);
 app.use("/api/event-manager/event-management", eventManagerRoutes);
-
+app.use("/api/member/clubs/:clubId/activity-schedule",memberActivityScheduleRoutes);
 
 app.get("/", (req, res) => {
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     message: "Welcome to Uniclub backend API",
   });
 });
 
-<<<<<<< HEAD
-app.get("/api/v1/health", getHealth);
-app.use(
-  "/api/member/clubs/:clubId/activity-schedule",
-  memberActivityScheduleRoutes
-);
-
-=======
->>>>>>> feature/fe-Club-Activity-Schedule
 app.use(notFound);
 app.use(errorHandler);
 
