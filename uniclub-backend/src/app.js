@@ -1,8 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-const { getHealth } = require("./controllers/health.controller");
-const secretaryActivityScheduleRoutes = require("./routes/secretary/activitySchedule.routes");
 const path = require("path");
 
 const passport = require("passport");
@@ -25,7 +23,8 @@ const studentClubMembershipRoutes = require("./routes/student/clubMembership.rou
 const presidentJoinRequestManagementRoutes = require("./routes/president/joinRequestManagement.routes");
 const presidentJoinFormManagementRoutes = require("./routes/president/joinFormManagement.routes");
 const eventManagerRoutes = require("./routes/eventManager/eventManagement.routes");
-
+const memberActivityScheduleRoutes = require("./routes/member/activitySchedule.routes");
+const secretaryActivityScheduleRoutes = require("./routes/secretary/activitySchedule.routes");
 
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
@@ -65,7 +64,8 @@ app.use("/api/president/join-request-management", presidentJoinRequestManagement
 app.use("/api/president/clubs", presidentJoinFormManagementRoutes);
 app.use("/api/student/feedback-management", feedbackManagementRoutes);
 app.use("/api/event-manager/event-management", eventManagerRoutes);
-app.use("/api/secretary/clubs/:clubId/activity-schedule", secretaryActivityScheduleRoutes);
+app.use("/api/member/clubs/:clubId/activity-schedule",memberActivityScheduleRoutes);
+app.use("/api/secretary/clubs/:clubId/activity-schedule",secretaryActivityScheduleRoute);
 
 app.get("/", (req, res) => {
   res.status(200).json({
