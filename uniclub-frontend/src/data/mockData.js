@@ -279,6 +279,11 @@ export const MY_CLUB_MEMBERSHIPS = [
   { clubId: 'dance', role: 'Member', joinedDate: '26/3/2026' },
   { clubId: 'volunteer', role: 'Treasurer', joinedDate: '26/3/2026' },
   { clubId: 'debate', role: 'Vice leader', joinedDate: '26/3/2026' },
+  // Seeded database ObjectIds
+  { clubId: '6a3c34121f6805a34580c4ae', role: 'Leader', joinedDate: '26/3/2026' },
+  { clubId: '6a3c34121f6805a34580c4b0', role: 'Secretary', joinedDate: '26/3/2026' },
+  { clubId: '6a3c34121f6805a34580c4b2', role: 'Event management', joinedDate: '26/3/2026' },
+  { clubId: '6a3c34121f6805a34580c4b4', role: 'Member', joinedDate: '26/3/2026' },
 ]
 
 export const MY_CLUB_ITEMS = MY_CLUB_MEMBERSHIPS
