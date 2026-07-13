@@ -15,6 +15,7 @@ function HomeLayout({
   currentUser,
   canManageMembers = false,
   canManageEvents = false,
+  canManageSchedule = false,
   canViewFees = false,
   canManageFinance = false,
 }) {
@@ -136,9 +137,8 @@ function HomeLayout({
         pageId === 'attendance' ||
         pageId === 'fees' ||
         pageId === 'finance' ||
-        pageId === 'point-rules' ||
-        pageId === 'rewards' ||
-        pageId === 'activity-schedule' ? (
+        pageId === 'activity-schedule' ||
+        pageId === 'manage-activity-schedule' ? (
           <>
             <div className="home-bottom-dock-spacer" aria-hidden="true" />
             <HomeBottomDock
@@ -146,6 +146,7 @@ function HomeLayout({
               onNavigate={onNavigate}
               canManageMembers={canManageMembers}
               canManageEvents={canManageEvents}
+              canManageSchedule={canManageSchedule}
               canViewFees={canViewFees}
               canManageFinance={canManageFinance}
             />

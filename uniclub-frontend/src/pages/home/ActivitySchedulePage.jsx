@@ -3,6 +3,13 @@ import {
   getActivityScheduleDetail,
   getClubActivitySchedule,
 } from '../../api/activitySchedule.api'
+import {
+  createSecretaryActivity,
+  deleteSecretaryActivity,
+  getSecretaryActivityScheduleDetail,
+  getSecretaryClubActivitySchedule,
+  updateSecretaryActivity,
+} from '../../api/secretaryActivitySchedule.api'
 import { useToast } from '../../components/common/notificationContext'
 import '../../styles/schedule.css'
 
@@ -29,6 +36,23 @@ const STATUS_META = {
   opening: { label: 'Opening', emoji: '🟢', cardType: 'workshop' },
   closed: { label: 'Closed', emoji: '✅', cardType: 'outing' },
   cancelled: { label: 'Cancelled', emoji: '⛔', cardType: 'outing' },
+}
+
+const PROGRESS_OPTIONS = [
+  { id: 'draft', label: 'Draft' },
+  { id: 'published', label: 'Published' },
+]
+
+const EMPTY_FORM = {
+  id: null,
+  title: '',
+  date: '',
+  startTime: '',
+  endTime: '',
+  location: '',
+  description: '',
+  status: 'coming_soon',
+  progressStatus: 'draft',
 }
 
 function startOfDay(date) {
@@ -62,6 +86,28 @@ function getDayIndex(dateValue) {
   return day === 0 ? 6 : day - 1
 }
 
+function toDateInputValue(dateValue) {
+  if (!dateValue) return ''
+  const d = new Date(dateValue)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+function toTimeInputValue(dateValue) {
+  if (!dateValue) return ''
+  const d = new Date(dateValue)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function toIsoDateTime(dateStr, timeStr) {
+  if (!dateStr || !timeStr) return null
+  const date = new Date(`${dateStr}T${timeStr}:00`)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
 function mapActivityFromApi(apiActivity) {
   if (!apiActivity) return null
 
@@ -78,6 +124,7 @@ function mapActivityFromApi(apiActivity) {
     time: formatTimeRange(apiActivity.start_time, apiActivity.end_time),
     dayIndex: apiActivity.start_time != null ? getDayIndex(apiActivity.start_time) : 0,
     status,
+    progressStatus: apiActivity.progress_status || 'draft',
     type: meta.cardType,
     statusLabel: meta.label,
     statusEmoji: meta.emoji,
@@ -87,14 +134,24 @@ function mapActivityFromApi(apiActivity) {
   }
 }
 
-function ActivitySchedulePage({ clubId }) {
+function ActivitySchedulePage({ clubId, isSecretary = false }) {
   const showToast = useToast()
+
   const [selectedActivity, setSelectedActivity] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [weekOffset, setWeekOffset] = useState(0)
   const [activeFilter, setActiveFilter] = useState('all')
   const [activitiesList, setActivitiesList] = useState([])
   const [loading, setLoading] = useState(true)
+  const [reloadKey, setReloadKey] = useState(0)
+
+  const [showFormModal, setShowFormModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [formData, setFormData] = useState(EMPTY_FORM)
+  const [activityToDelete, setActivityToDelete] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const today = useMemo(() => startOfDay(new Date()), [])
   const monday = useMemo(() => getMondayOfWeek(today, weekOffset), [today, weekOffset])
@@ -112,12 +169,16 @@ function ActivitySchedulePage({ clubId }) {
     async function loadSchedule() {
       setLoading(true)
       try {
-        const res = await getClubActivitySchedule(clubId, {
+        const params = {
           start_date: monday.toISOString(),
           end_date: sunday.toISOString(),
           page: 1,
           limit: 100,
-        })
+        }
+
+        const res = isSecretary
+          ? await getSecretaryClubActivitySchedule(clubId, params)
+          : await getClubActivitySchedule(clubId, params)
 
         if (!active) return
 
@@ -140,7 +201,7 @@ function ActivitySchedulePage({ clubId }) {
     return () => {
       active = false
     }
-  }, [clubId, monday, sunday, showToast])
+  }, [clubId, monday, sunday, isSecretary, showToast, reloadKey])
 
   const getWeekRangeString = () => {
     const options = { month: 'long', day: 'numeric' }
@@ -160,7 +221,9 @@ function ActivitySchedulePage({ clubId }) {
 
     setDetailLoading(true)
     try {
-      const res = await getActivityScheduleDetail(clubId, activity.id)
+      const res = isSecretary
+        ? await getSecretaryActivityScheduleDetail(clubId, activity.id)
+        : await getActivityScheduleDetail(clubId, activity.id)
       const mapped = mapActivityFromApi(res?.data)
       if (mapped) setSelectedActivity(mapped)
     } catch (err) {
@@ -174,17 +237,138 @@ function ActivitySchedulePage({ clubId }) {
     }
   }
 
+  const handleOpenCreate = () => {
+    setIsEditing(false)
+    setFormData({
+      ...EMPTY_FORM,
+      date: toDateInputValue(monday),
+    })
+    setShowFormModal(true)
+  }
+
+  const handleOpenEdit = (e, activity) => {
+    e.stopPropagation()
+    setIsEditing(true)
+    setFormData({
+      id: activity.id,
+      title: activity.title || '',
+      date: toDateInputValue(activity.startTime),
+      startTime: toTimeInputValue(activity.startTime),
+      endTime: toTimeInputValue(activity.endTime),
+      location: activity.location || '',
+      description: activity.description || '',
+      status: activity.status || 'coming_soon',
+      progressStatus: activity.progressStatus || 'draft',
+    })
+    setShowFormModal(true)
+  }
+
+  const handleOpenDelete = (e, activity) => {
+    e.stopPropagation()
+    setActivityToDelete(activity)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!clubId || !activityToDelete?.id) return
+
+    setDeleting(true)
+    try {
+      await deleteSecretaryActivity(clubId, activityToDelete.id)
+      showToast({ type: 'success', message: 'Activity deleted successfully' })
+      setShowDeleteModal(false)
+      if (selectedActivity?.id === activityToDelete.id) setSelectedActivity(null)
+      setActivityToDelete(null)
+      setReloadKey((k) => k + 1)
+    } catch (err) {
+      showToast({
+        type: 'error',
+        message: err.message || 'Failed to delete activity',
+      })
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleSaveActivity = async () => {
+    if (!clubId) return
+
+    const title = formData.title.trim()
+    const description = formData.description.trim()
+    const location = formData.location.trim()
+    const startTime = toIsoDateTime(formData.date, formData.startTime)
+    const endTime = toIsoDateTime(formData.date, formData.endTime)
+
+    if (!title || !description || !location || !startTime || !endTime) {
+      showToast({
+        type: 'error',
+        message: 'Please fill in all required fields',
+      })
+      return
+    }
+
+    if (new Date(startTime) >= new Date(endTime)) {
+      showToast({
+        type: 'error',
+        message: 'End time must be after start time',
+      })
+      return
+    }
+
+    const payload = {
+      title,
+      description,
+      location,
+      start_time: startTime,
+      end_time: endTime,
+      status: formData.status,
+      progress_status: formData.progressStatus,
+    }
+
+    setSaving(true)
+    try {
+      if (isEditing && formData.id) {
+        await updateSecretaryActivity(clubId, formData.id, payload)
+        showToast({ type: 'success', message: 'Activity updated successfully' })
+      } else {
+        await createSecretaryActivity(clubId, payload)
+        showToast({ type: 'success', message: 'Activity created successfully' })
+      }
+      setShowFormModal(false)
+      setReloadKey((k) => k + 1)
+    } catch (err) {
+      showToast({
+        type: 'error',
+        message: err.message || 'Failed to save activity',
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="schedule-page">
       <header className="schedule-header">
         <div className="schedule-header__title">
           <h1>Weekly Activity Schedule</h1>
           <p className="schedule-header__subtitle">
-            View your club activities & upcoming sessions
+            {isSecretary
+              ? 'Manage club activities & publish the weekly schedule'
+              : 'View your club activities & upcoming sessions'}
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          {isSecretary && (
+            <button className="btn-create-activity" onClick={handleOpenCreate} type="button">
+              <svg style={{ width: '18px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Create Activity
+            </button>
+          )}
+
           <div className="schedule-nav">
             <button
               className="schedule-nav__btn"
@@ -254,13 +438,52 @@ function ActivitySchedulePage({ clubId }) {
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                         <span className="activity-card__time">{activity.time}</span>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>
-                          {activity.statusLabel}
-                        </span>
+                        {isSecretary ? (
+                          <div style={{ display: 'flex', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={(e) => handleOpenEdit(e, activity)}
+                              style={{
+                                background: 'rgba(253, 126, 20, 0.1)',
+                                border: 'none',
+                                padding: '4px',
+                                borderRadius: '6px',
+                                color: '#fd7e14',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <svg style={{ width: '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => handleOpenDelete(e, activity)}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                border: 'none',
+                                padding: '4px',
+                                borderRadius: '6px',
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <svg style={{ width: '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+                              </svg>
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>
+                            {activity.statusLabel}
+                          </span>
+                        )}
                       </div>
                       <h3 className="activity-card__title">{activity.title}</h3>
                       <div className="activity-card__pts" style={{ opacity: 0.85 }}>
-                        {activity.location || 'No location'}
+                        {isSecretary
+                          ? `${activity.statusLabel} · ${activity.progressStatus}`
+                          : activity.location || 'No location'}
                       </div>
                     </div>
                   ))}
@@ -306,6 +529,7 @@ function ActivitySchedulePage({ clubId }) {
                     style={{ fontSize: '13px', padding: '6px 12px', borderRadius: '12px', marginBottom: '24px' }}
                   >
                     Status: {selectedActivity.statusLabel}
+                    {isSecretary ? ` · ${selectedActivity.progressStatus}` : ''}
                   </div>
                   <div className="activity-detail-meta">
                     <div className="meta-box">
@@ -370,8 +594,310 @@ function ActivitySchedulePage({ clubId }) {
           </div>
         </div>
       )}
+
+      {showFormModal && isSecretary && (
+        <div
+          className="points-modal-overlay"
+          style={{
+            backdropFilter: 'blur(8px)',
+            background: 'rgba(0, 0, 0, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            zIndex: 1000,
+          }}
+          onClick={() => !saving && setShowFormModal(false)}
+        >
+          <div
+            className="points-modal shadow-2xl"
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              maxHeight: '90vh',
+              padding: '0',
+              borderRadius: '32px',
+              border: 'none',
+              background: 'white',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                padding: '32px 40px 20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                flexShrink: 0,
+              }}
+            >
+              <h2 style={{ fontSize: '28px', fontWeight: '800', color: '#1e293b', margin: 0 }}>
+                {isEditing ? 'Update Activity' : 'Create New Activity'}
+              </h2>
+              <button
+                type="button"
+                onClick={() => !saving && setShowFormModal(false)}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  fontSize: '20px',
+                }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div style={{ padding: '0 40px 20px', overflowY: 'auto', flex: 1 }}>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={labelStyle}>Title *</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="e.g. Weekly Meeting"
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+                <div>
+                  <label style={labelStyle}>Date *</label>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    style={{ ...inputStyle, background: 'white' }}
+                  >
+                    {STATUS_FILTERS.filter((s) => s.id !== 'all').map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+                <div>
+                  <label style={labelStyle}>Start Time *</label>
+                  <input
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>End Time *</label>
+                  <input
+                    type="time"
+                    value={formData.endTime}
+                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={labelStyle}>Progress</label>
+                <select
+                  value={formData.progressStatus}
+                  onChange={(e) => setFormData({ ...formData, progressStatus: e.target.value })}
+                  style={{ ...inputStyle, background: 'white' }}
+                >
+                  {PROGRESS_OPTIONS.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={labelStyle}>Location *</label>
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="e.g. Room A1, Main Hall"
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <label style={labelStyle}>Description *</label>
+                <textarea
+                  rows="3"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Describe the activity..."
+                  style={{ ...inputStyle, resize: 'none' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ padding: '0 40px 40px', display: 'flex', gap: '16px', justifyContent: 'center', flexShrink: 0 }}>
+              <button
+                type="button"
+                style={secondaryBtnStyle}
+                onClick={() => setShowFormModal(false)}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                style={primaryBtnStyle}
+                onClick={handleSaveActivity}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : isEditing ? 'Save Changes' : 'Create New'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && isSecretary && (
+        <div
+          className="points-modal-overlay"
+          style={{
+            backdropFilter: 'blur(8px)',
+            background: 'rgba(0, 0, 0, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            zIndex: 1100,
+          }}
+          onClick={() => !deleting && setShowDeleteModal(false)}
+        >
+          <div
+            className="points-modal shadow-2xl"
+            style={{
+              maxWidth: '450px',
+              width: '100%',
+              padding: '40px',
+              borderRadius: '32px',
+              border: 'none',
+              background: 'white',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <div
+                style={{
+                  background: '#fef2f2',
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 20px',
+                  color: '#ef4444',
+                }}
+              >
+                <svg style={{ width: '32px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+                </svg>
+              </div>
+              <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#1e293b', margin: '0 0 12px' }}>
+                Delete Activity?
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.6', margin: 0 }}>
+                Are you sure you want to delete <strong>&quot;{activityToDelete?.title}&quot;</strong>? This action
+                cannot be undone.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <button
+                type="button"
+                style={secondaryBtnStyle}
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+              >
+                No, Keep it
+              </button>
+              <button
+                type="button"
+                style={{ ...primaryBtnStyle, background: '#ef4444', boxShadow: '0 8px 20px rgba(239, 68, 68, 0.2)' }}
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+const labelStyle = {
+  display: 'block',
+  fontSize: '13px',
+  fontWeight: '800',
+  color: '#334155',
+  textTransform: 'uppercase',
+  marginBottom: '10px',
+  letterSpacing: '0.5px',
+}
+
+const inputStyle = {
+  width: '100%',
+  padding: '16px 20px',
+  borderRadius: '16px',
+  border: '1px solid #e2e8f0',
+  fontSize: '16px',
+  color: '#1e293b',
+  outline: 'none',
+}
+
+const secondaryBtnStyle = {
+  flex: 1,
+  padding: '18px',
+  borderRadius: '16px',
+  border: 'none',
+  background: '#f1f5f9',
+  color: '#334155',
+  fontWeight: '800',
+  fontSize: '16px',
+  cursor: 'pointer',
+}
+
+const primaryBtnStyle = {
+  flex: 1,
+  padding: '18px',
+  borderRadius: '16px',
+  border: 'none',
+  background: '#fd7e14',
+  color: 'white',
+  fontWeight: '800',
+  fontSize: '16px',
+  cursor: 'pointer',
+  boxShadow: '0 8px 20px rgba(253, 126, 20, 0.2)',
 }
 
 export default ActivitySchedulePage

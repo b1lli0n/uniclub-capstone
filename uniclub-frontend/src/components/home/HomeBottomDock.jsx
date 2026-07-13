@@ -57,6 +57,19 @@ const dockItems = [
     ),
   },
   {
+    id: 'manage-activity-schedule',
+    label: 'Manage Schedule',
+    access: 'schedule-management',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="17" rx="2" />
+        <path d="M8 2v4M16 2v4M3 10h18" strokeLinecap="round" />
+        <path d="M8 14h4M8 18h6" strokeLinecap="round" />
+        <path d="m16 14 1.5 1.5L21 12" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
     id: 'member-approval',
     label: 'Member Approval',
     access: 'member-management',
@@ -139,10 +152,12 @@ function HomeBottomDock({
   canManageEvents = false,
   canViewFees = false,
   canManageFinance = false,
+  canManageSchedule = false,
 }) {
   const visibleDockItems = dockItems.filter((item) => {
     if (item.access === 'member-management') return canManageMembers
     if (item.access === 'event-management') return canManageEvents
+    if (item.access === 'schedule-management') return canManageSchedule
     if (item.access === 'member') return canViewFees
     if (item.access === 'finance-management') return canManageFinance
     return true
@@ -159,6 +174,8 @@ function HomeBottomDock({
       onNavigate?.('rewards')
     } else if (itemId === 'activity-schedule') {
       onNavigate?.('activity-schedule')
+    } else if (itemId === 'manage-activity-schedule') {
+      onNavigate?.('manage-activity-schedule')
     } else if (itemId === 'member-approval') {
       onNavigate?.('member-approval')
     } else if (itemId === 'join-form') {
@@ -180,6 +197,7 @@ function HomeBottomDock({
     if (itemId === 'point-rules') return pageId === 'point-rules'
     if (itemId === 'rewards') return pageId === 'rewards'
     if (itemId === 'activity-schedule') return pageId === 'activity-schedule'
+    if (itemId === 'manage-activity-schedule') return pageId === 'manage-activity-schedule'
     if (itemId === 'member-approval') return pageId === 'member-approval'
     if (itemId === 'join-form') return pageId === 'join-form'
     if (itemId === 'manage-events') return pageId === 'manage-events'

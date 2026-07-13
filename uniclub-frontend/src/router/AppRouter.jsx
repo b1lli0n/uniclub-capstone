@@ -48,12 +48,17 @@ function canManageClubRewards(clubId) {
   return role === 'leader' || role === 'vice leader'
 }
 
+function canManageActivitySchedule(clubId) {
+  return getMembership(clubId)?.role?.toLowerCase() === 'secretary'
+}
+
 function ProtectedLayout({
   pageId,
   activeItem = null,
   clubId = null,
   canManageMembers = false,
   canManageEvents = false,
+  canManageSchedule = false,
   canViewFees = false,
   children,
 }) {
@@ -77,6 +82,9 @@ function ProtectedLayout({
     else if (screen === 'point-rules' && clubId) navigate(`/clubs/${clubId}/point-rules`)
     else if (screen === 'rewards' && clubId) navigate(`/clubs/${clubId}/rewards`)
     else if (screen === 'activity-schedule' && clubId) navigate(`/clubs/${clubId}/activity-schedule`)
+    else if (screen === 'manage-activity-schedule' && clubId) {
+      navigate(`/clubs/${clubId}/manage-activity-schedule`)
+    }
     else if (screen === 'member-approval' && clubId) navigate(`/clubs/${clubId}/join-requests`)
     else if (screen === 'join-form' && clubId) navigate(`/clubs/${clubId}/join-form`)
     else if (screen === 'manage-events' && clubId) navigate(`/clubs/${clubId}/manage-events`)
@@ -97,6 +105,7 @@ function ProtectedLayout({
       onLogout={handleLogout}
       canManageMembers={canManageMembers}
       canManageEvents={canManageEvents}
+      canManageSchedule={canManageSchedule}
       canViewFees={canViewFees}
     >
       {children}
@@ -110,6 +119,7 @@ function ClubRoute({ pageId, guard = 'member', children }) {
   const membership = getMembership(clubId)
   const canManageMembers = canManageClubMembers(clubId)
   const canManageEvents = canManageClubEvents(clubId)
+  const canManageSchedule = canManageActivitySchedule(clubId)
   const canViewFees = isClubMember(clubId)
 
   const isAllowed =
@@ -119,7 +129,9 @@ function ClubRoute({ pageId, guard = 'member', children }) {
         ? canManageMembers
         : guard === 'event-manager'
           ? canManageEvents
-          : true
+          : guard === 'secretary'
+            ? canManageSchedule
+            : true
 
   if (!isAllowed) {
     return <Navigate to={`/clubs/${clubId}`} replace />
@@ -132,6 +144,7 @@ function ClubRoute({ pageId, guard = 'member', children }) {
       clubId={clubId}
       canManageMembers={canManageMembers}
       canManageEvents={canManageEvents}
+      canManageSchedule={canManageSchedule}
       canViewFees={canViewFees}
     >
       {children({
@@ -139,6 +152,7 @@ function ClubRoute({ pageId, guard = 'member', children }) {
         membership,
         navigate,
         canManageRewards: canManageClubRewards(clubId),
+        canManageSchedule,
       })}
     </ProtectedLayout>
   )
@@ -227,7 +241,19 @@ function ClubRewardsRoute() {
 function ClubActivityScheduleRoute() {
   return (
     <ClubRoute pageId="activity-schedule" guard="member">
-      {({ clubId }) => <ActivitySchedulePage clubId={clubId} />}
+      {({ clubId }) => (
+        <ActivitySchedulePage clubId={clubId} isSecretary={false} />
+      )}
+    </ClubRoute>
+  )
+}
+
+function ClubManageActivityScheduleRoute() {
+  return (
+    <ClubRoute pageId="manage-activity-schedule" guard="secretary">
+      {({ clubId }) => (
+        <ActivitySchedulePage clubId={clubId} isSecretary />
+      )}
     </ClubRoute>
   )
 }
@@ -349,6 +375,7 @@ function AppRouter() {
       <Route path="/clubs/:clubId/point-rules" element={<ClubPointRulesRoute />} />
       <Route path="/clubs/:clubId/rewards" element={<ClubRewardsRoute />} />
       <Route path="/clubs/:clubId/activity-schedule" element={<ClubActivityScheduleRoute />} />
+      <Route path="/clubs/:clubId/manage-activity-schedule" element={<ClubManageActivityScheduleRoute />}/>
       <Route path="/clubs/:clubId/events" element={<ClubEventsRoute />} />
       <Route path="/clubs/:clubId" element={<ClubDetailRoute />} />
 
