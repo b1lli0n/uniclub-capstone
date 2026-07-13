@@ -60,15 +60,18 @@ function AuthCallbackPage() {
         }
 
         .callback-container {
-          height: 100vh;
-          width: 100vw;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
           display: flex;
           justify-content: center;
           align-items: center;
           background: radial-gradient(circle at top right, #2c1810, #0f172a 60%);
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
           overflow: hidden;
-          position: relative;
+          z-index: 9999;
         }
 
         .callback-container::before {
