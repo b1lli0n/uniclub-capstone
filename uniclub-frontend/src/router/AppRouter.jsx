@@ -95,8 +95,10 @@ function ProtectedLayout({
   }, [isAuthenticated])
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    navigate('/login', { replace: true })
+    if (window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi UniClub không?')) {
+      localStorage.removeItem('token')
+      navigate('/login', { replace: true })
+    }
   }
 
   const handleNavigate = (screen) => {
@@ -419,7 +421,16 @@ function AppRouter() {
 
       <Route
         path="/admin"
-        element={<AdminDashboardPage onLogout={() => navigate('/login')} />}
+        element={
+          <AdminDashboardPage
+            onLogout={() => {
+              if (window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống Admin không?')) {
+                localStorage.removeItem('token')
+                navigate('/login', { replace: true })
+              }
+            }}
+          />
+        }
       />
 
       <Route path="*" element={<Navigate to="/" replace />} />
