@@ -131,7 +131,8 @@ function HomeLayout({
         pageId === 'member-approval' ||
         pageId === 'join-form' ||
         pageId === 'manage-events' ||
-        pageId === 'attendance' ? (
+        pageId === 'attendance' ||
+        pageId === 'rewards' ? (
           <>
             <div className="home-bottom-dock-spacer" aria-hidden="true" />
             <HomeBottomDock

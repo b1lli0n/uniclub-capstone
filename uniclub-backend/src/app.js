@@ -13,6 +13,7 @@ const clubMemberRoutes = require("./routes/clubMember.routes");
 const profileRoutes = require("./routes/profile.routes");
 const eventRoutes = require("./routes/event.routes");
 const feedbackManagementRoutes = require("./routes/student/feedbackManagement.routes");
+const rewardManagementRoutes = require("./routes/rewardManagement.route");
 
 require("./config/passport");
 
@@ -63,6 +64,7 @@ app.use("/api/president/join-request-management", presidentJoinRequestManagement
 app.use("/api/president/clubs", presidentJoinFormManagementRoutes);
 app.use("/api/student/feedback-management", feedbackManagementRoutes);
 app.use("/api/event-manager/event-management", eventManagerRoutes);
+app.use("/api/president/reward-management", rewardManagementRoutes);
 
 
 app.get("/", (req, res) => {

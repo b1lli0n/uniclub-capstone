@@ -18,7 +18,16 @@ const dockItems = [
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
         <path d="M8 21h8M12 17v4" strokeLinecap="round" />
         <path d="M7 4h10v4a5 5 0 0 1-10 0V4Z" strokeLinejoin="round" />
-        <path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    id: 'rewards',
+    label: 'Rewards',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
       </svg>
     ),
   },
@@ -98,6 +107,8 @@ function HomeBottomDock({
       onNavigate?.('manage-events')
     } else if (itemId === 'attendance') {
       onNavigate?.('attendance')
+    } else if (itemId === 'rewards') {
+      onNavigate?.('rewards')
     }
   }
 
@@ -108,6 +119,7 @@ function HomeBottomDock({
     if (itemId === 'join-form') return pageId === 'join-form'
     if (itemId === 'manage-events') return pageId === 'manage-events'
     if (itemId === 'attendance') return pageId === 'attendance'
+    if (itemId === 'rewards') return pageId === 'rewards'
     return false
   }
 

@@ -1,13 +1,24 @@
-import { useMemo, useState } from 'react'
+// import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import {
   INITIAL_REDEMPTION_HISTORY,
   INITIAL_REDEMPTION_REQUESTS,
-  REWARDS,
+  //REWARDS,
   REWARD_POINTS_BALANCE,
 } from '../../data/rewardsMockData'
+import { getRewards, getRewardDetail } from '../../api/reward.api'
 import '../../styles/club-rewards.css'
 
 const EMPTY_REWARD = { title: '', points: '', type: '', stock: '', image: '🎁', description: '' }
+
+function RewardImage({ src, alt, className }) {
+  const isUrl = src && (src.startsWith('http') || src.startsWith('/'))
+  if (isUrl) {
+    return <img src={src} alt={alt || 'Reward'} className={className} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+  }
+  return <span className={className}>{src}</span>
+}
 
 function RewardEditor({ reward, onClose, onSave }) {
   const [draft, setDraft] = useState(reward || EMPTY_REWARD)
@@ -31,7 +42,7 @@ function RewardEditor({ reward, onClose, onSave }) {
         </div>
         <div className="club-rewards-form-grid">
           <label>Type<input value={draft.type} onChange={(event) => change('type', event.target.value)} placeholder="Voucher, ticket..." /></label>
-          <label>Icon<input value={draft.image} maxLength="3" onChange={(event) => change('image', event.target.value)} /></label>
+          <label>Image URL / Icon<input value={draft.image} onChange={(event) => change('image', event.target.value)} placeholder="URL or Emoji" /></label>
         </div>
         <label>Description<textarea rows="3" value={draft.description} onChange={(event) => change('description', event.target.value)} /></label>
         <footer><button type="button" onClick={onClose}>Cancel</button><button type="submit">Save Reward</button></footer>
@@ -47,7 +58,7 @@ function RewardDetail({ reward, isManager, points, onClose, onRedeem, onEdit }) 
       <section className="club-rewards-modal__panel club-rewards-detail">
         <header><h2>Reward Detail</h2><button type="button" onClick={onClose}>×</button></header>
         <div className="club-rewards-detail__body">
-          <span className="club-rewards-detail__emoji">{reward.image}</span>
+          <RewardImage src={reward.image} alt={reward.title} className="club-rewards-detail__emoji" />
           <div><p className="club-rewards-eyebrow">{reward.type || 'Reward'} · {reward.club}</p><h3>{reward.title}</h3><strong>{reward.points} pts</strong><p>{reward.description}</p><small>Stock available: {reward.stock}</small></div>
         </div>
         <footer><button type="button" onClick={onClose}>Close</button>{isManager ? <button type="button" onClick={onEdit}>Edit Reward</button> : <button type="button" disabled={points < reward.points || !reward.stock} onClick={onRedeem}>{points < reward.points ? 'Insufficient points' : 'Redeem reward'}</button>}</footer>
@@ -61,7 +72,63 @@ function Status({ value }) {
 }
 
 function ClubRewardsPage({ isManager = false }) {
-  const [rewards, setRewards] = useState(REWARDS)
+  // const [rewards, setRewards] = useState(REWARDS)
+  const { clubId } = useParams()
+  const [rewards, setRewards] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (!clubId) return
+    let active = true
+    setIsLoading(true)
+
+    getRewards(clubId, { limit: 100, status: isManager ? undefined : 'active' })
+      .then((res) => {
+        if (!active) return
+        const mapped = res.data.map((r) => ({
+          id: r._id,
+          title: r.name,
+          type: 'Reward',
+          club: 'Club',
+          points: r.point_cost,
+          stock: r.quantity,
+          image: r.image_url || '🎁',
+          description: r.description,
+          isVisible: r.status === 'active',
+        }))
+        setRewards(mapped)
+        setIsLoading(false)
+      })
+      .catch((err) => {
+        console.error(err)
+        setIsLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [clubId, isManager])
+
+  function fetchDetail(reward) {
+    setDetailReward(reward)
+    if (!clubId) return
+    getRewardDetail(clubId, reward.id)
+      .then((res) => {
+        const r = res.data
+        setDetailReward({
+          id: r._id,
+          title: r.name,
+          type: 'Reward',
+          club: 'Club',
+          points: r.point_cost,
+          stock: r.quantity,
+          image: r.image_url || '🎁',
+          description: r.description,
+          isVisible: r.status === 'active',
+        })
+      })
+      .catch((err) => console.error('Failed to fetch reward detail', err))
+  }
   const [history, setHistory] = useState(INITIAL_REDEMPTION_HISTORY)
   const [requests, setRequests] = useState(INITIAL_REDEMPTION_REQUESTS)
   const [tab, setTab] = useState('inventory')
@@ -112,8 +179,10 @@ function ClubRewardsPage({ isManager = false }) {
 
       {tab === 'inventory' && <section className="club-rewards-grid">
         {isManager && <button className="club-reward-card club-reward-card--add" onClick={() => { setEditorReward(null); setEditorOpen(true) }}>+<span>Create Reward</span></button>}
-        {visibleRewards.map((reward) => <article key={reward.id} className={`club-reward-card${!reward.isVisible ? ' is-hidden' : ''}`} onClick={() => setDetailReward(reward)}>
-          <div className="club-reward-card__image"><span>{reward.image}</span><small>{reward.type}</small></div>
+        {/* {visibleRewards.map((reward) => <article key={reward.id} className={`club-reward-card${!reward.isVisible ? ' is-hidden' : ''}`} onClick={() => setDetailReward(reward)}></article> */}
+        {isLoading && <p>Loading rewards...</p>}
+        {!isLoading && visibleRewards.map((reward) => <article key={reward.id} className={`club-reward-card${!reward.isVisible ? ' is-hidden' : ''}`} onClick={() => fetchDetail(reward)}>
+          <div className="club-reward-card__image"><RewardImage src={reward.image} alt={reward.title} /><small>{reward.type}</small></div>
           <div className="club-reward-card__body"><h2>{reward.title}</h2><p>{reward.club}</p><strong>{reward.points} pts</strong><small>Stock: {reward.stock}</small>
             {isManager ? <label className="club-reward-visibility" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={reward.isVisible} onChange={() => setRewards((items) => items.map((item) => item.id === reward.id ? { ...item, isVisible: !item.isVisible } : item))} />{reward.isVisible ? 'Visible' : 'Hidden'}</label> : <button type="button" disabled={points < reward.points || !reward.stock} onClick={(event) => { event.stopPropagation(); setConfirmReward(reward) }}>Redeem</button>}
           </div>
