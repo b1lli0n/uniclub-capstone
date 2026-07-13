@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
 
 import LoginPage from '../pages/auth/LoginPage'
@@ -25,6 +26,7 @@ import ActivitySchedulePage from '../pages/home/ActivitySchedulePage'
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 
 import { CURRENT_USER, MY_CLUB_MEMBERSHIPS } from '../data/mockData'
+import { getMyProfile } from '../api/profile.api'
 
 function getMembership(clubId) {
   return MY_CLUB_MEMBERSHIPS.find((item) => item.clubId === clubId)
@@ -64,6 +66,33 @@ function ProtectedLayout({
 }) {
   const navigate = useNavigate()
   const isAuthenticated = Boolean(localStorage.getItem('token'))
+  const [currentUser, setCurrentUser] = useState(CURRENT_USER)
+
+  useEffect(() => {
+    let active = true
+    async function loadUser() {
+      try {
+        const res = await getMyProfile()
+        if (active) {
+          const user = res.data.user
+          setCurrentUser({
+            id: user._id,
+            fullName: user.full_name || '',
+            email: user.email || '',
+            avatarUrl: user.avatar_url || '',
+            avatarInitial: user.full_name?.slice(0, 1).toUpperCase() || 'U',
+            role: user.role || 'UniClub member',
+          })
+        }
+      } catch (err) {
+        console.error("Failed to load user profile in ProtectedLayout:", err)
+      }
+    }
+    if (isAuthenticated) {
+      loadUser()
+    }
+    return () => { active = false }
+  }, [isAuthenticated])
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -100,7 +129,7 @@ function ProtectedLayout({
     <HomeLayout
       activeItem={activeItem}
       pageId={pageId}
-      currentUser={CURRENT_USER}
+      currentUser={currentUser}
       onNavigate={handleNavigate}
       onLogout={handleLogout}
       canManageMembers={canManageMembers}
