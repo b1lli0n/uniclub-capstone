@@ -25,7 +25,7 @@ const presidentJoinRequestManagementRoutes = require("./routes/president/joinReq
 const presidentJoinFormManagementRoutes = require("./routes/president/joinFormManagement.routes");
 const presidentPointRuleManagementRoutes = require("./routes/president/pointRuleManagement.routes");
 const eventManagerRoutes = require("./routes/eventManager/eventManagement.routes");
-
+const memberActivityScheduleRoutes = require("./routes/member/activitySchedule.routes");
 
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
@@ -67,10 +67,10 @@ app.use("/api/president/clubs", presidentJoinFormManagementRoutes);
 app.use("/api/president/clubs", presidentPointRuleManagementRoutes);
 app.use("/api/student/feedback-management", feedbackManagementRoutes);
 app.use("/api/event-manager/event-management", eventManagerRoutes);
-
+app.use("/api/member/clubs/:clubId/activity-schedule",memberActivityScheduleRoutes);
 
 app.get("/", (req, res) => {
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     message: "Welcome to Uniclub backend API",
   });

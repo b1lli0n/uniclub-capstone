@@ -227,12 +227,7 @@ function ClubRewardsRoute() {
 function ClubActivityScheduleRoute() {
   return (
     <ClubRoute pageId="activity-schedule" guard="member">
-      {({ clubId, membership }) => (
-        <ActivitySchedulePage
-          clubId={clubId}
-          userRole={membership?.role}
-        />
-      )}
+      {({ clubId }) => <ActivitySchedulePage clubId={clubId} />}
     </ClubRoute>
   )
 }
