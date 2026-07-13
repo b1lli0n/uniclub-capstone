@@ -195,6 +195,7 @@ function ClubAttendancePage({ clubId }) {
         // Map backend attendance list to UI items
         const mapped = (res.data?.attendance || []).map((item) => ({
           id: item.registration_id || item._id,
+          eventId: selectedEventId,
           memberName: item.user?.full_name || 'N/A',
           email: item.user?.email || 'N/A',
           checkedIn: item.status === 'attended',
