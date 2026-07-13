@@ -23,6 +23,40 @@ const dockItems = [
     ),
   },
   {
+    id: 'point-rules',
+    label: 'Point Rules',
+    access: 'member',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+        <path d="M9 11l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="4" y="4" width="16" height="16" rx="3" />
+        <path d="M8 2v4M16 2v4M4 9h16" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    id: 'rewards',
+    label: 'Rewards',
+    access: 'member',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+        <path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8" strokeLinecap="round" />
+        <path d="M2 8h20v4H2zM12 8v14M12 8H7a2.5 2.5 0 1 1 2.2-3.7L12 8Zm0 0h5a2.5 2.5 0 1 0-2.2-3.7L12 8Z" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    id: 'activity-schedule',
+    label: 'Schedule',
+    access: 'member',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="17" rx="2" />
+        <path d="M8 2v4M16 2v4M3 10h18M8 14h3M8 18h6" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
     id: 'member-approval',
     label: 'Member Approval',
     access: 'member-management',
@@ -71,6 +105,31 @@ const dockItems = [
       </svg>
     ),
   },
+  {
+    id: 'fees',
+    label: 'Fees',
+    access: 'member',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+        <rect x="4" y="5" width="16" height="14" rx="2" />
+        <path d="M4 9h16" strokeLinecap="round" />
+        <path d="M8 14h3M15 14h1" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    id: 'finance',
+    label: 'Finance',
+    access: 'finance-management',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+        <path d="M4 19V5" strokeLinecap="round" />
+        <path d="M4 19h16" strokeLinecap="round" />
+        <path d="M8 15v-4M12 15V8M16 15v-6" strokeLinecap="round" />
+        <path d="M7 6h10" strokeLinecap="round" />
+      </svg>
+    ),
+  },
 ]
 
 function HomeBottomDock({
@@ -78,10 +137,14 @@ function HomeBottomDock({
   onNavigate,
   canManageMembers = false,
   canManageEvents = false,
+  canViewFees = false,
+  canManageFinance = false,
 }) {
   const visibleDockItems = dockItems.filter((item) => {
     if (item.access === 'member-management') return canManageMembers
     if (item.access === 'event-management') return canManageEvents
+    if (item.access === 'member') return canViewFees
+    if (item.access === 'finance-management') return canManageFinance
     return true
   })
 
@@ -90,6 +153,12 @@ function HomeBottomDock({
       onNavigate?.('club-detail')
     } else if (itemId === 'ranking') {
       onNavigate?.('club-ranking')
+    } else if (itemId === 'point-rules') {
+      onNavigate?.('point-rules')
+    } else if (itemId === 'rewards') {
+      onNavigate?.('rewards')
+    } else if (itemId === 'activity-schedule') {
+      onNavigate?.('activity-schedule')
     } else if (itemId === 'member-approval') {
       onNavigate?.('member-approval')
     } else if (itemId === 'join-form') {
@@ -98,16 +167,25 @@ function HomeBottomDock({
       onNavigate?.('manage-events')
     } else if (itemId === 'attendance') {
       onNavigate?.('attendance')
+    } else if (itemId === 'fees') {
+      onNavigate?.('fees')
+    } else if (itemId === 'finance') {
+      onNavigate?.('finance')
     }
   }
 
   function isActive(itemId) {
     if (itemId === 'overview') return pageId === 'club-detail'
     if (itemId === 'ranking') return pageId === 'club-ranking'
+    if (itemId === 'point-rules') return pageId === 'point-rules'
+    if (itemId === 'rewards') return pageId === 'rewards'
+    if (itemId === 'activity-schedule') return pageId === 'activity-schedule'
     if (itemId === 'member-approval') return pageId === 'member-approval'
     if (itemId === 'join-form') return pageId === 'join-form'
     if (itemId === 'manage-events') return pageId === 'manage-events'
     if (itemId === 'attendance') return pageId === 'attendance'
+    if (itemId === 'fees') return pageId === 'fees'
+    if (itemId === 'finance') return pageId === 'finance'
     return false
   }
 

@@ -15,6 +15,8 @@ function HomeLayout({
   currentUser,
   canManageMembers = false,
   canManageEvents = false,
+  canViewFees = false,
+  canManageFinance = false,
 }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
@@ -131,7 +133,12 @@ function HomeLayout({
         pageId === 'member-approval' ||
         pageId === 'join-form' ||
         pageId === 'manage-events' ||
-        pageId === 'attendance' ? (
+        pageId === 'attendance' ||
+        pageId === 'fees' ||
+        pageId === 'finance' ||
+        pageId === 'point-rules' ||
+        pageId === 'rewards' ||
+        pageId === 'activity-schedule' ? (
           <>
             <div className="home-bottom-dock-spacer" aria-hidden="true" />
             <HomeBottomDock
@@ -139,6 +146,8 @@ function HomeLayout({
               onNavigate={onNavigate}
               canManageMembers={canManageMembers}
               canManageEvents={canManageEvents}
+              canViewFees={canViewFees}
+              canManageFinance={canManageFinance}
             />
           </>
         ) : null}

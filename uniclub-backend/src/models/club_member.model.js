@@ -40,10 +40,12 @@ const clubMemberSchema = Schema(
       default: null,
     },
 
+    // Số điểm mà thành viên có thể dùng để đổi thưởng trong CLB này.
     reward_point: {
       type: Number,
       required: true,
       default: 0,
+      min: 0,
     },
   },
   {
