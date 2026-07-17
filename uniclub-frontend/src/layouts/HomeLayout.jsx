@@ -138,7 +138,8 @@ function HomeLayout({
         pageId === 'fees' ||
         pageId === 'finance' ||
         pageId === 'activity-schedule' ||
-        pageId === 'manage-activity-schedule' ? (
+        pageId === 'manage-activity-schedule' ||
+        pageId === 'rewards' ? (
           <>
             <div className="home-bottom-dock-spacer" aria-hidden="true" />
             <HomeBottomDock
