@@ -22,6 +22,7 @@ import ClubAttendancePage from '../pages/home/ClubAttendancePage'
 import ClubPointRulesPage from '../pages/home/ClubPointRulesPage'
 import ClubRewardsPage from '../pages/home/ClubRewardsPage'
 import ActivitySchedulePage from '../pages/home/ActivitySchedulePage'
+import ClubInvitationsPage from '../pages/home/ClubInvitationsPage'
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 
 import { CURRENT_USER, MY_CLUB_MEMBERSHIPS } from '../data/mockData'
@@ -78,6 +79,7 @@ function ProtectedLayout({
     else if (screen === 'rewards' && clubId) navigate(`/clubs/${clubId}/rewards`)
     else if (screen === 'activity-schedule' && clubId) navigate(`/clubs/${clubId}/activity-schedule`)
     else if (screen === 'member-approval' && clubId) navigate(`/clubs/${clubId}/join-requests`)
+    else if (screen === 'invitations' && clubId) navigate(`/clubs/${clubId}/invitations`)
     else if (screen === 'join-form' && clubId) navigate(`/clubs/${clubId}/join-form`)
     else if (screen === 'manage-events' && clubId) navigate(`/clubs/${clubId}/manage-events`)
     else if (screen === 'attendance' && clubId) navigate(`/clubs/${clubId}/attendance`)
@@ -174,6 +176,14 @@ function ClubJoinRequestsRoute() {
   )
 }
 
+function ClubInvitationsRoute() {
+  return (
+    <ClubRoute pageId="invitations" guard="leader">
+      {({ clubId }) => <ClubInvitationsPage clubId={clubId} />}
+    </ClubRoute>
+  )
+}
+
 function ClubJoinFormRoute() {
   return (
     <ClubRoute pageId="join-form" guard="leader">
@@ -245,9 +255,7 @@ function AppRouter() {
     <Routes>
       <Route
         path="/login"
-        element={
-          isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
-        }
+        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
       />
 
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -348,6 +356,7 @@ function AppRouter() {
 
       <Route path="/clubs/:clubId/ranking" element={<ClubRankingRoute />} />
       <Route path="/clubs/:clubId/join-requests" element={<ClubJoinRequestsRoute />} />
+      <Route path="/clubs/:clubId/invitations" element={<ClubInvitationsRoute />} />
       <Route path="/clubs/:clubId/join-form" element={<ClubJoinFormRoute />} />
       <Route path="/clubs/:clubId/manage-events" element={<ClubEventManagementRoute />} />
       <Route path="/clubs/:clubId/attendance" element={<ClubAttendanceRoute />} />
