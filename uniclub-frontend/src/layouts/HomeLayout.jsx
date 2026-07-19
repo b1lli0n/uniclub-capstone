@@ -16,6 +16,7 @@ function HomeLayout({
   canManageMembers = false,
   canManageEvents = false,
   canViewFees = false,
+  canManagePolls = false,
   canManageFinance = false,
 }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -152,6 +153,7 @@ function HomeLayout({
         pageId === 'club-ranking' ||
         pageId === 'member-approval' ||
         pageId === 'invitations' ||
+        pageId === 'polls' ||
         pageId === 'join-form' ||
         pageId === 'manage-events' ||
         pageId === 'attendance' ||
@@ -169,6 +171,7 @@ function HomeLayout({
               canManageMembers={canManageMembers}
               canManageEvents={canManageEvents}
               canViewFees={canViewFees}
+              canManagePolls={canManagePolls}
               canManageFinance={canManageFinance}
             />
           </>

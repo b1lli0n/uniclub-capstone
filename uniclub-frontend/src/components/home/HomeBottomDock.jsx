@@ -80,6 +80,17 @@ const dockItems = [
     ),
   },
   {
+    id: 'polls',
+    label: 'Polls',
+    access: 'poll-management',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+        <path d="M5 20V10M12 20V4M19 20v-7" strokeLinecap="round" />
+        <path d="M3 20h18" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
     id: 'join-form',
     label: 'Join Form',
     access: 'member-management',
@@ -150,12 +161,14 @@ function HomeBottomDock({
   canManageEvents = false,
   canViewFees = false,
   canManageFinance = false,
+  canManagePolls = false,
 }) {
   const visibleDockItems = dockItems.filter((item) => {
     if (item.access === 'member-management') return canManageMembers
     if (item.access === 'event-management') return canManageEvents
     if (item.access === 'member') return canViewFees
     if (item.access === 'finance-management') return canManageFinance
+    if (item.access === 'poll-management') return canManagePolls
     return true
   })
 
@@ -174,6 +187,8 @@ function HomeBottomDock({
       onNavigate?.('member-approval')
     } else if (itemId === 'invitations') {
       onNavigate?.('invitations')
+    } else if (itemId === 'polls') {
+      onNavigate?.('polls')
     } else if (itemId === 'join-form') {
       onNavigate?.('join-form')
     } else if (itemId === 'manage-events') {
@@ -195,6 +210,7 @@ function HomeBottomDock({
     if (itemId === 'activity-schedule') return pageId === 'activity-schedule'
     if (itemId === 'member-approval') return pageId === 'member-approval'
     if (itemId === 'invitations') return pageId === 'invitations'
+    if (itemId === 'polls') return pageId === 'polls'
     if (itemId === 'join-form') return pageId === 'join-form'
     if (itemId === 'manage-events') return pageId === 'manage-events'
     if (itemId === 'attendance') return pageId === 'attendance'
