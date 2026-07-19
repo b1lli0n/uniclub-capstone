@@ -24,6 +24,7 @@ import ClubRewardsPage from '../pages/home/ClubRewardsPage'
 import ActivitySchedulePage from '../pages/home/ActivitySchedulePage'
 import ClubInvitationsPage from '../pages/home/ClubInvitationsPage'
 import ClubPollsPage from '../pages/home/ClubPollsPage'
+import ClubFinancePage from '../pages/home/ClubFinancePage'
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 
 import { CURRENT_USER, MY_CLUB_MEMBERSHIPS } from '../data/mockData'
@@ -55,6 +56,10 @@ function canManageClubPolls(clubId) {
   return role === 'secretary'
 }
 
+function canManageClubFinance(clubId) {
+  return getMembership(clubId)?.role?.toLowerCase() === 'treasurer'
+}
+
 function ProtectedLayout({
   pageId,
   activeItem = null,
@@ -63,6 +68,7 @@ function ProtectedLayout({
   canManageEvents = false,
   canViewFees = false,
   canManagePolls = false,
+  canManageFinance = false,
   children,
 }) {
   const navigate = useNavigate()
@@ -88,6 +94,7 @@ function ProtectedLayout({
     else if (screen === 'member-approval' && clubId) navigate(`/clubs/${clubId}/join-requests`)
     else if (screen === 'invitations' && clubId) navigate(`/clubs/${clubId}/invitations`)
     else if (screen === 'polls' && clubId) navigate(`/clubs/${clubId}/polls`)
+    else if (screen === 'finance' && clubId) navigate(`/clubs/${clubId}/finance`)
     else if (screen === 'join-form' && clubId) navigate(`/clubs/${clubId}/join-form`)
     else if (screen === 'manage-events' && clubId) navigate(`/clubs/${clubId}/manage-events`)
     else if (screen === 'attendance' && clubId) navigate(`/clubs/${clubId}/attendance`)
@@ -109,6 +116,7 @@ function ProtectedLayout({
       canManageEvents={canManageEvents}
       canViewFees={canViewFees}
       canManagePolls={canManagePolls}
+      canManageFinance={canManageFinance}
     >
       {children}
     </HomeLayout>
@@ -123,6 +131,7 @@ function ClubRoute({ pageId, guard = 'member', children }) {
   const canManageEvents = canManageClubEvents(clubId)
   const canViewFees = isClubMember(clubId)
   const canManagePolls = canManageClubPolls(clubId)
+  const canManageFinance = canManageClubFinance(clubId)
 
   const isAllowed =
     guard === 'member'
@@ -133,6 +142,8 @@ function ClubRoute({ pageId, guard = 'member', children }) {
           ? canManageEvents
           : guard === 'secretary'
             ? canManagePolls
+            : guard === 'treasurer'
+              ? canManageFinance
           : true
 
   if (!isAllowed) {
@@ -148,6 +159,7 @@ function ClubRoute({ pageId, guard = 'member', children }) {
       canManageEvents={canManageEvents}
       canViewFees={canViewFees}
       canManagePolls={canManagePolls}
+      canManageFinance={canManageFinance}
     >
       {children({
         clubId,
@@ -201,6 +213,14 @@ function ClubPollsRoute() {
   return (
     <ClubRoute pageId="polls" guard="secretary">
       {({ clubId }) => <ClubPollsPage clubId={clubId} />}
+    </ClubRoute>
+  )
+}
+
+function ClubFinanceRoute() {
+  return (
+    <ClubRoute pageId="finance" guard="treasurer">
+      {({ clubId }) => <ClubFinancePage clubId={clubId} />}
     </ClubRoute>
   )
 }
@@ -379,6 +399,7 @@ function AppRouter() {
       <Route path="/clubs/:clubId/join-requests" element={<ClubJoinRequestsRoute />} />
       <Route path="/clubs/:clubId/invitations" element={<ClubInvitationsRoute />} />
       <Route path="/clubs/:clubId/polls" element={<ClubPollsRoute />} />
+      <Route path="/clubs/:clubId/finance" element={<ClubFinanceRoute />} />
       <Route path="/clubs/:clubId/join-form" element={<ClubJoinFormRoute />} />
       <Route path="/clubs/:clubId/manage-events" element={<ClubEventManagementRoute />} />
       <Route path="/clubs/:clubId/attendance" element={<ClubAttendanceRoute />} />
