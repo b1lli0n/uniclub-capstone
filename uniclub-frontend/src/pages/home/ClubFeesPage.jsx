@@ -69,10 +69,11 @@ export default function ClubFeesPage({ clubId: propClubId }) {
     try {
       setProcessing(true)
       const res = await createPaymentUrl({
-        club_id: clubId,
+        club_id: selectedPayment.club_id || clubId,
         payment_id: selectedPayment._id,
         orderInfo: selectedPayment.order_info || `Thanh toan phi ${selectedPayment.period}`
       })
+
 
       if (res.paymentUrl) {
         toast.info?.('Đang chuyển hướng sang cổng thanh toán VNPay...')

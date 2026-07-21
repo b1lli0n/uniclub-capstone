@@ -140,7 +140,7 @@ function normalizeClubId(options = {}) {
   if (value === undefined || value === null) return null
 
   const trimmed = String(value).trim()
-  if (!trimmed) return null
+  if (!trimmed || trimmed === 'undefined' || trimmed === 'null') return null
 
   if (!mongoose.isValidObjectId(trimmed)) {
     throw new Error('Invalid club_id')
@@ -148,6 +148,7 @@ function normalizeClubId(options = {}) {
 
   return trimmed
 }
+
 
 function applyMemberPaymentFilters(query, options = {}) {
   const normalizedStatus = normalizeStatus(options.status)
