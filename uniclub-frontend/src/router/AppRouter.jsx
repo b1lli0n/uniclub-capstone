@@ -32,6 +32,8 @@ import PaymentReturnPage from '../pages/auth/PaymentReturnPage'
 
 import { CURRENT_USER, MY_CLUB_MEMBERSHIPS } from '../data/mockData'
 import { getMyProfile } from '../api/profile.api'
+import { getMyClubs } from '../api/memberClubMembership.api'
+
 
 function getMembership(clubId) {
   return MY_CLUB_MEMBERSHIPS.find((item) => item.clubId === clubId)
@@ -154,11 +156,70 @@ function ProtectedLayout({
 function ClubRoute({ pageId, guard = 'member', children }) {
   const { clubId } = useParams()
   const navigate = useNavigate()
-  const membership = getMembership(clubId)
-  const canManageMembers = canManageClubMembers(clubId)
-  const canManageEvents = canManageClubEvents(clubId)
-  const canManageSchedule = canManageActivitySchedule(clubId)
-  const canViewFees = isClubMember(clubId)
+  const [loading, setLoading] = useState(true)
+  const [membership, setMembership] = useState(null)
+
+  useEffect(() => {
+    let active = true
+    async function checkAccess() {
+      try {
+        const res = await getMyClubs()
+        if (!active) return
+        const list = res.data || []
+        
+        // Find membership matching clubId (supporting both string or populated object)
+        const found = list.find(item => {
+          const id = item.club_id?._id || item.club_id
+          return String(id) === String(clubId)
+        })
+
+        if (found) {
+          setMembership({
+            clubId,
+            role: found.role,
+            joinedDate: found.joined_at || found.joinedDate || ''
+          })
+        } else {
+          // Fallback to mock data if not found in backend response (for mock compatibility)
+          const mockFound = MY_CLUB_MEMBERSHIPS.find(item => String(item.clubId) === String(clubId))
+          if (mockFound) {
+            setMembership(mockFound)
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch clubs membership:", err)
+        // Fallback to mock data on error
+        const mockFound = MY_CLUB_MEMBERSHIPS.find(item => String(item.clubId) === String(clubId))
+        if (mockFound && active) {
+          setMembership(mockFound)
+        }
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    checkAccess()
+    return () => { active = false }
+  }, [clubId])
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+        <p>Đang xác thực quyền truy cập...</p>
+      </div>
+    )
+  }
+
+  // Calculate permissions based on dynamic membership
+  const role = membership?.role?.toLowerCase()
+  const isMember = Boolean(membership)
+  
+  // Back-end roles: president, secretary, event_manager, treasurer, member
+  // Front-end mock roles: leader, vice leader, event management, secretary, member
+  const canManageMembers = role === 'president' || role === 'leader'
+  const canManageEvents = role === 'president' || role === 'leader' || role === 'event_manager' || role === 'event management'
+  const canManageSchedule = role === 'secretary'
+  const canViewFees = isMember
 
   const isAllowed =
     guard === 'member'
@@ -189,12 +250,13 @@ function ClubRoute({ pageId, guard = 'member', children }) {
         clubId,
         membership,
         navigate,
-        canManageRewards: canManageClubRewards(clubId),
+        canManageRewards: role === 'president' || role === 'leader' || role === 'vice leader',
         canManageSchedule,
       })}
     </ProtectedLayout>
   )
 }
+
 
 function ClubDetailRoute() {
   return (
