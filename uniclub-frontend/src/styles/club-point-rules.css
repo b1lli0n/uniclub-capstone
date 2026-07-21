@@ -1,0 +1,620 @@
+.club-point-rules-page {
+  min-height: 100%;
+  padding: 1rem 0 2.75rem;
+  background: transparent;
+  color: #3d2e24;
+}
+
+.club-point-rules-hero {
+  width: min(1180px, calc(100% - 3rem));
+  min-height: 176px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: clamp(1.15rem, 3vw, 1.8rem);
+  border: 1px solid rgba(240, 228, 216, 0.95);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 15% 8%, rgba(255, 255, 255, 0.95), transparent 30%),
+    radial-gradient(circle at 88% 20%, rgba(255, 232, 196, 0.78), transparent 32%),
+    linear-gradient(135deg, #fff1de 0%, #fffaf4 48%, #f3edff 100%);
+  box-shadow: 0 18px 44px rgba(92, 64, 51, 0.1);
+}
+
+.club-point-rules-hero span {
+  display: inline-flex;
+  margin-bottom: 0.45rem;
+  color: #6b5a4a;
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.club-point-rules-hero h1 {
+  margin: 0;
+  color: #151515;
+  font-size: clamp(1.8rem, 4vw, 2.55rem);
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.club-point-rules-hero p {
+  max-width: 610px;
+  margin: 0.65rem 0 0;
+  color: #6b5a4a;
+  font-size: 0.92rem;
+  font-weight: 780;
+  line-height: 1.5;
+}
+
+.club-point-rules-hero button,
+.club-point-rules-modal__footer button:last-child {
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ff9f2f 0%, #f57c00 100%);
+  color: #ffffff;
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(245, 124, 0, 0.18);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+
+.club-point-rules-hero button {
+  min-height: 44px;
+  padding: 0 1.05rem;
+  white-space: nowrap;
+}
+
+.club-point-rules-hero button:hover { transform: translateY(-2px); }
+
+.club-point-rules-grid {
+  width: min(1180px, calc(100% - 3rem));
+  margin: 1rem auto 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 1rem;
+}
+
+.club-point-rule-card {
+  min-height: 335px;
+  box-sizing: border-box;
+  border: 1px solid rgba(240, 228, 216, 0.95);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 1.15rem;
+  box-shadow: 0 14px 36px rgba(92, 64, 51, 0.08);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+
+.club-point-rule-card:not(.club-point-rule-card--add):hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 40px rgba(92, 64, 51, 0.14);
+}
+
+.club-point-rule-card.is-disabled {
+  opacity: 0.64;
+  filter: grayscale(0.45);
+}
+
+.club-point-rule-card--add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  border: 2px dashed rgba(245, 124, 0, 0.34);
+  background: #fffaf4;
+  color: #6b5a4a;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+}
+
+.club-point-rule-card--add:hover {
+  border-color: #f57c00;
+  background: #fff1de;
+  color: #b35a00;
+  transform: translateY(-3px);
+}
+
+.club-point-rule-card__add-icon {
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(245, 124, 0, 0.2);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #f57c00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+}
+
+.club-point-rule-card__add-icon::after {
+  content: '+';
+  font-size: 36px;
+  line-height: 1;
+  transform: translateY(-2px);
+}
+
+.club-point-rule-card__header {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 0.85rem;
+}
+
+.club-point-rule-card__icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.club-point-rule-card__icon svg {
+  width: 23px;
+  height: 23px;
+}
+
+.club-point-rule-card__icon--blue {
+  background: #fff1de;
+  color: #d86c00;
+}
+
+.club-point-rule-card__icon--indigo {
+  background: #fff7ed;
+  color: #f08a16;
+}
+
+.club-point-rule-card__icon--purple {
+  background: #f5edff;
+  color: #8d5fc4;
+}
+
+.club-point-rule-card__icon--pink {
+  background: #fff1ef;
+  color: #c76d58;
+}
+
+.club-point-rule-card__title-group {
+  min-width: 0;
+  flex: 1;
+}
+
+.club-point-rule-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.club-point-rule-card__top h2 {
+  margin: 0;
+  color: #151515;
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.club-point-rule-card__tag,
+.club-point-rule-card__status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 23px;
+  border-radius: 7px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.club-point-rule-card__tag {
+  background: #f3ece5;
+  color: #7a6a5d;
+}
+
+.club-point-rule-card__status {
+  margin-top: 0.35rem;
+  background: #e7f8ee;
+  color: #2f9d62;
+}
+
+.club-point-rule-card__status.is-inactive {
+  background: #f3ece5;
+  color: #9a8a7d;
+}
+
+.club-point-rule-card__edit-btn {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 10px;
+  background: #fffaf4;
+  color: #9a8a7d;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.club-point-rule-card__edit-btn:hover {
+  background: #fff1de;
+  color: #b35a00;
+}
+
+.club-point-rule-card__edit-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.club-point-rule-card__admin-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.club-point-rule-card__description {
+  min-height: 40px;
+  margin: 0.65rem 0 1rem;
+  color: #7a6a5d;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.club-point-rule-card__boxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.club-point-rule-card__boxes > div {
+  border: 1px solid rgba(245, 124, 0, 0.12);
+  border-radius: 14px;
+  background: #fffaf4;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.club-point-rule-card__boxes span,
+.club-point-rule-card__limits span {
+  color: #9a8a7d;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+.club-point-rule-card__boxes strong {
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.club-point-rule-card__boxes .is-achievement {
+  color: #b35a00;
+}
+
+.club-point-rule-card__boxes .is-reward {
+  color: #b35a00;
+}
+
+.club-point-rule-card__limits {
+  border-top: 1px dashed rgba(240, 228, 216, 0.95);
+  padding-top: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.club-point-rule-card__limits > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.club-point-rule-card__limits strong {
+  color: #3d2e24;
+  font-size: 0.75rem;
+  font-weight: 950;
+}
+
+.club-point-rules-switch {
+  position: relative;
+  width: 38px;
+  height: 20px;
+  margin: 6px 0 0;
+}
+
+.club-point-rules-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.club-point-rules-switch span {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #cbd5e1;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.club-point-rules-switch span::before {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  left: 3px;
+  top: 3px;
+  border-radius: 999px;
+  background: #ffffff;
+  transition: transform 0.2s;
+}
+
+.club-point-rules-switch input:checked + span {
+  background: #4eaf80;
+}
+
+.club-point-rules-switch input:checked + span::before {
+  transform: translateX(18px);
+}
+
+.club-point-rules-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.club-point-rules-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(8px);
+}
+
+.club-point-rules-modal__panel {
+  position: relative;
+  width: min(520px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border-radius: 24px;
+  background: #ffffff;
+  color: #0f172a;
+  color-scheme: light;
+  padding: 30px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+}
+
+.club-point-rules-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.club-point-rules-modal__header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 21px;
+  font-weight: 900;
+}
+
+.club-point-rules-modal__header button,
+.club-point-rules-modal__footer button:first-child {
+  border: 0;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.club-point-rules-modal__header button {
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.club-point-rules-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.club-point-rules-field span {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.club-point-rules-field input,
+.club-point-rules-field textarea {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 13px;
+  background-color: #ffffff;
+  padding: 12px 15px;
+  color: #0f172a;
+  caret-color: #ea580c;
+  color-scheme: light;
+  font: inherit;
+  outline: none;
+}
+
+.club-point-rules-field input::placeholder,
+.club-point-rules-field textarea::placeholder {
+  color: #94a3b8;
+  opacity: 1;
+}
+
+.club-point-rules-field input:focus,
+.club-point-rules-field textarea:focus {
+  background-color: #ffffff;
+  border-color: #ea580c;
+  box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.08);
+}
+
+.club-point-rules-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.club-point-rules-select {
+  position: relative;
+}
+
+.club-point-rules-select__trigger {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #e2e8f0;
+  border-radius: 13px;
+  background: #ffffff;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.club-point-rules-select__trigger.is-open {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.08);
+}
+
+.club-point-rules-select__trigger svg {
+  width: 16px;
+  height: 16px;
+  color: #64748b;
+}
+
+.club-point-rules-select__menu {
+  position: absolute;
+  inset: calc(100% + 8px) 0 auto;
+  z-index: 4;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 15px;
+  background: #ffffff;
+  padding: 6px;
+  box-shadow: 0 18px 28px rgba(15, 23, 42, 0.12);
+}
+
+.club-point-rules-select__option {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #475569;
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.club-point-rules-select__option:hover,
+.club-point-rules-select__option.is-selected {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.club-point-rules-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 20px;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 900;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.club-point-rules-check input {
+  position: absolute;
+  opacity: 0;
+}
+
+.club-point-rules-check span {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #cbd5e1;
+  border-radius: 7px;
+  background: #ffffff;
+  position: relative;
+}
+
+.club-point-rules-check span::after {
+  content: "";
+  position: absolute;
+  display: none;
+  left: 6px;
+  top: 2px;
+  width: 6px;
+  height: 11px;
+  border: solid #ffffff;
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+
+.club-point-rules-check input:checked + span {
+  border-color: #ea580c;
+  background: #ea580c;
+}
+
+.club-point-rules-check input:checked + span::after {
+  display: block;
+}
+
+.club-point-rules-modal__footer {
+  border-top: 1px solid #f1f5f9;
+  margin: 8px -30px -30px;
+  padding: 20px 30px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.club-point-rules-modal__footer button {
+  min-height: 44px;
+  padding: 0 20px;
+}
+
+.club-point-rules-modal__footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 760px) {
+  .club-point-rules-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .club-point-rules-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .club-point-rules-form-grid,
+  .club-point-rule-card__boxes {
+    grid-template-columns: 1fr;
+  }
+}
