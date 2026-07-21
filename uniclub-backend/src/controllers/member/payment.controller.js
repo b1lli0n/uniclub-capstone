@@ -88,7 +88,11 @@ async function createPaymentUrl(req, res) {
       || req.socket?.remoteAddress
       || req.connection?.socket?.remoteAddress
       || '127.0.0.1'
-    const ipAddr = String(ipRaw).split(',')[0].trim()
+    let ipAddr = String(ipRaw).split(',')[0].trim()
+    if (ipAddr === '::1' || ipAddr === '::ffff:127.0.0.1' || !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ipAddr)) {
+      ipAddr = '127.0.0.1'
+    }
+
 
     const result = await createVnpayPaymentUrl({
       clubId,

@@ -348,6 +348,7 @@ async function createVnpayPaymentUrl({ clubId, requesterId, payload = {}, ipAddr
 
   const { signedQuery } = buildSignedQuery(vnpParams, config.hashSecret)
   const paymentUrl = `${config.vnpUrl}?${signedQuery}`
+  console.log('=== GENERATED VNPAY URL ===', paymentUrl)
 
   return {
     paymentUrl,
