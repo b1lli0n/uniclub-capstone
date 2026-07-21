@@ -25,5 +25,13 @@ module.exports = {
   feidTokenEndpoint: process.env.FEID_TOKEN_ENDPOINT,
   feidUserInfoEndpoint: process.env.FEID_USERINFO_ENDPOINT,
   
-  universityEmailDomain: process.env.UNIVERSITY_EMAIL_DOMAIN
+  universityEmailDomain: process.env.UNIVERSITY_EMAIL_DOMAIN,
+
+  vnpTmnCode: process.env.vnp_TmnCode,
+  vnpHashSecret: process.env.vnp_HashSecret,
+  vnpUrl: process.env.vnp_Url,
+  vnpReturnUrl: process.env.vnp_ReturnUrl,
+  vnpIpnUrl: process.env.vnp_IpnUrl,
+  frontendVnpReturnUrl: process.env.FRONTEND_VNP_RETURN_URL
 };
+

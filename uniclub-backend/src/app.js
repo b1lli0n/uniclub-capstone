@@ -27,6 +27,7 @@ const presidentPointRuleManagementRoutes = require("./routes/president/pointRule
 const eventManagerRoutes = require("./routes/eventManager/eventManagement.routes");
 const memberActivityScheduleRoutes = require("./routes/member/activitySchedule.routes");
 const secretaryActivityScheduleRoutes = require("./routes/secretary/activitySchedule.routes");
+const memberPaymentRoutes = require("./routes/member/payment.routes");
 
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
@@ -70,6 +71,9 @@ app.use("/api/event-manager/event-management", eventManagerRoutes);
 app.use("/api/member/clubs/:clubId/activity-schedule",memberActivityScheduleRoutes);
 app.use("/api/secretary/clubs/:clubId/activity-schedule",secretaryActivityScheduleRoutes);
 app.use("/api/president/reward-management", rewardManagementRoutes);
+app.use("/api/payment", memberPaymentRoutes);
+app.use("/api/member/payment", memberPaymentRoutes);
+
 
 app.get("/", (req, res) => {
   return res.status(200).json({
