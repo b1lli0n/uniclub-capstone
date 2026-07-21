@@ -23,7 +23,12 @@ import ClubAttendancePage from '../pages/home/ClubAttendancePage'
 import ClubPointRulesPage from '../pages/home/ClubPointRulesPage'
 import ClubRewardsPage from '../pages/home/ClubRewardsPage'
 import ActivitySchedulePage from '../pages/home/ActivitySchedulePage'
+import MyEventsPage from '../pages/home/MyEventsPage'
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
+import ClubFeesPage from '../pages/home/ClubFeesPage'
+import ClubReceiptDetailPage from '../pages/home/ClubReceiptDetailPage'
+import PaymentReturnPage from '../pages/auth/PaymentReturnPage'
+
 
 import { CURRENT_USER, MY_CLUB_MEMBERSHIPS } from '../data/mockData'
 import { getMyProfile } from '../api/profile.api'
@@ -120,7 +125,9 @@ function ProtectedLayout({
     else if (screen === 'join-form' && clubId) navigate(`/clubs/${clubId}/join-form`)
     else if (screen === 'manage-events' && clubId) navigate(`/clubs/${clubId}/manage-events`)
     else if (screen === 'attendance' && clubId) navigate(`/clubs/${clubId}/attendance`)
+    else if (screen === 'fees' && clubId) navigate(`/clubs/${clubId}/fees`)
     else navigate('/')
+
   }
 
   if (!isAuthenticated) {
@@ -254,7 +261,9 @@ function ClubAttendanceRoute() {
 function ClubPointRulesRoute() {
   return (
     <ClubRoute pageId="point-rules" guard="member">
-      {({ clubId }) => <ClubPointRulesPage clubId={clubId} />}
+      {({ clubId, canManageRewards }) => (
+        <ClubPointRulesPage clubId={clubId} isLeader={canManageRewards} />
+      )}
     </ClubRoute>
   )
 }
@@ -288,6 +297,23 @@ function ClubManageActivityScheduleRoute() {
     </ClubRoute>
   )
 }
+
+function ClubFeesRoute() {
+  return (
+    <ClubRoute pageId="fees" guard="member">
+      {({ clubId }) => <ClubFeesPage clubId={clubId} />}
+    </ClubRoute>
+  )
+}
+
+function ClubReceiptRoute() {
+  return (
+    <ClubRoute pageId="fees" guard="member">
+      {({ clubId }) => <ClubReceiptDetailPage clubId={clubId} />}
+    </ClubRoute>
+  )
+}
+
 
 function AppRouter() {
   const isAuthenticated = Boolean(localStorage.getItem('token'))
@@ -324,6 +350,15 @@ function AppRouter() {
         element={
           <ProtectedLayout pageId="profile">
             <MyProfilePage currentUser={CURRENT_USER} />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/my-events"
+        element={
+          <ProtectedLayout pageId="my-events" activeItem="events">
+            <MyEventsPage />
           </ProtectedLayout>
         }
       />
@@ -398,6 +433,17 @@ function AppRouter() {
         }
       />
 
+      <Route path="/payment/return" element={<PaymentReturnPage />} />
+      <Route path="/clubs/:clubId/fees" element={<ClubFeesRoute />} />
+      <Route path="/clubs/:clubId/receipts/:receiptId" element={<ClubReceiptRoute />} />
+      <Route
+        path="/clubs/my-fees/receipts/:receiptId"
+        element={
+          <ProtectedLayout pageId="fees" activeItem="clubs">
+            <ClubReceiptDetailPage />
+          </ProtectedLayout>
+        }
+      />
       <Route path="/clubs/:clubId/ranking" element={<ClubRankingRoute />} />
       <Route path="/clubs/:clubId/join-requests" element={<ClubJoinRequestsRoute />} />
       <Route path="/clubs/:clubId/join-form" element={<ClubJoinFormRoute />} />
@@ -409,6 +455,7 @@ function AppRouter() {
       <Route path="/clubs/:clubId/manage-activity-schedule" element={<ClubManageActivityScheduleRoute />}/>
       <Route path="/clubs/:clubId/events" element={<ClubEventsRoute />} />
       <Route path="/clubs/:clubId" element={<ClubDetailRoute />} />
+
 
       <Route
         path="/club-ranking"
