@@ -23,6 +23,7 @@ const studentClubMembershipRoutes = require("./routes/student/clubMembership.rou
 const presidentJoinRequestManagementRoutes = require("./routes/president/joinRequestManagement.routes");
 const presidentJoinFormManagementRoutes = require("./routes/president/joinFormManagement.routes");
 const eventManagerRoutes = require("./routes/eventManager/eventManagement.routes");
+const treasurerTransactionManagementRoutes = require("./routes/treasurer/transactionManagement.routes");
 
 
 const notFound = require("./middlewares/notFound");
@@ -63,6 +64,7 @@ app.use("/api/president/join-request-management", presidentJoinRequestManagement
 app.use("/api/president/clubs", presidentJoinFormManagementRoutes);
 app.use("/api/student/feedback-management", feedbackManagementRoutes);
 app.use("/api/event-manager/event-management", eventManagerRoutes);
+app.use("/api/treasurer/transaction-management", treasurerTransactionManagementRoutes);
 
 
 app.get("/", (req, res) => {
