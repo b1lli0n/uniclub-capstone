@@ -2,41 +2,49 @@ const express = require("express");
 const { verifyToken, protect } = require("../../middlewares/auth.middleware");
 const { requireClubRole } = require("../../middlewares/clubAuth.middleware");
 const {
-  getJoinRequestList,
-  getJoinRequestDetail,
-  approveJoinRequest,
-  rejectJoinRequest,
-} = require("../../controllers/president/joinRequestManagement.controller");
+  getInvitationList,
+  getInvitationDetail,
+  sendInvitation,
+  cancelInvitation,
+  resendInvitation,
+} = require("../../controllers/president/invitationManagement.controller");
 
 const router = express.Router();
 
 router.get(
-  "/:clubId/join-requests",
+  "/:clubId/invitations",
   verifyToken,
   protect(["student"]),
   requireClubRole(["president"], "clubId"),
-  getJoinRequestList
+  getInvitationList
 );
 router.get(
-  "/:clubId/join-requests/:requestId",
+  "/:clubId/invitations/:invitationId",
   verifyToken,
   protect(["student"]),
   requireClubRole(["president"], "clubId"),
-  getJoinRequestDetail
+  getInvitationDetail
+);
+router.post(
+  "/:clubId/invitations",
+  verifyToken,
+  protect(["student"]),
+  requireClubRole(["president"], "clubId"),
+  sendInvitation
 );
 router.patch(
-  "/:clubId/join-requests/:requestId/approve",
+  "/:clubId/invitations/:invitationId/cancel",
   verifyToken,
   protect(["student"]),
   requireClubRole(["president"], "clubId"),
-  approveJoinRequest
+  cancelInvitation
 );
 router.patch(
-  "/:clubId/join-requests/:requestId/reject",
+  "/:clubId/invitations/:invitationId/resend",
   verifyToken,
   protect(["student"]),
   requireClubRole(["president"], "clubId"),
-  rejectJoinRequest
+  resendInvitation
 );
 
 module.exports = router;

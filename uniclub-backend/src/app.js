@@ -4,7 +4,8 @@ const morgan = require("morgan");
 const routes = require("./routes");
 
 const { getHealth } = require("./controllers/health.controller");
-const presidentJoinRequestManagementRoutes = require("./routes/president/joinRequestManagement.routes");
+const memberInvitationManagementRoutes = require("./routes/member/invitationManagement.routes");
+const presidentInvitationManagementRoutes = require("./routes/president/invitationManagement.routes");
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
 
@@ -25,7 +26,8 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/v1/health", getHealth);
-app.use("/api/president/join-request-management", presidentJoinRequestManagementRoutes);
+app.use("/api/member/invitation-management", memberInvitationManagementRoutes);
+app.use("/api/president/invitation-management", presidentInvitationManagementRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
