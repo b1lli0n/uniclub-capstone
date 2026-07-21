@@ -6,7 +6,7 @@ const MENU_ITEMS = [
   { id: 'clubs', label: 'My Clubs', href: '/my-clubs' },
   { id: 'my-events', label: 'My Events', href: '/my-events' },
   { id: 'requests', label: 'My Requests', href: '/my-requests'},
-  { id: 'fees', label: 'My Membership Fees', href: '#my-fees' },
+  { id: 'fees', label: 'My Membership Fees', href: '/my-fees' },
 ]
 
 function HomeUserMenuDropdown({ open, onClose, anchorRef }) {

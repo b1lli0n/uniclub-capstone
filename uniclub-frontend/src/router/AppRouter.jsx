@@ -128,7 +128,9 @@ function ProtectedLayout({
     else if (screen === 'manage-events' && clubId) navigate(`/clubs/${clubId}/manage-events`)
     else if (screen === 'attendance' && clubId) navigate(`/clubs/${clubId}/attendance`)
     else if (screen === 'fees' && clubId) navigate(`/clubs/${clubId}/fees`)
+    else if (screen === 'fees') navigate('/my-fees')
     else navigate('/')
+
 
   }
 
@@ -426,7 +428,17 @@ function AppRouter() {
       />
 
       <Route
+        path="/my-fees"
+        element={
+          <ProtectedLayout pageId="fees" activeItem="clubs">
+            <ClubFeesPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
         path="/my-requests"
+
         element={
           <ProtectedLayout pageId="requests">
             <MyRequestsPage />
