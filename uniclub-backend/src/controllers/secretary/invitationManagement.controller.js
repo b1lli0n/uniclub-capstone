@@ -1,15 +1,9 @@
 const mongoose = require("mongoose");
-const invitationManagementService = require("../../services/president/invitationManagement.service");
+const invitationManagementService = require("../../services/secretary/invitationManagement.service");
 const { getStatusError } = require("../../utils/error");
 
 const ALLOWED_INVITATION_STATUS = ["pending", "accepted", "rejected", "cancelled"];
-const ALLOWED_INVITATION_ROLES = [
-  "member",
-  "president",
-  "secretary",
-  "treasurer",
-  "event_manager",
-];
+const ALLOWED_ROLES = ["member", "president", "secretary", "treasurer", "event_manager"];
 
 const getInvitationList = async (req, res, next) => {
   try {
@@ -78,7 +72,7 @@ const sendInvitation = async (req, res, next) => {
       return next(getStatusError("Invalid invited_user_id", 400));
     }
 
-    if (role !== undefined && !ALLOWED_INVITATION_ROLES.includes(role)) {
+    if (role !== undefined && !ALLOWED_ROLES.includes(role)) {
       return next(
         getStatusError(
           "Invalid role. Allowed values: member, president, secretary, treasurer, event_manager",
@@ -144,7 +138,7 @@ const resendInvitation = async (req, res, next) => {
       return next(getStatusError("Invalid invitationId", 400));
     }
 
-    if (role !== undefined && !ALLOWED_INVITATION_ROLES.includes(role)) {
+    if (role !== undefined && !ALLOWED_ROLES.includes(role)) {
       return next(
         getStatusError(
           "Invalid role. Allowed values: member, president, secretary, treasurer, event_manager",

@@ -7,7 +7,7 @@ const {
   sendInvitation,
   cancelInvitation,
   resendInvitation,
-} = require("../../controllers/president/invitationManagement.controller");
+} = require("../../controllers/secretary/invitationManagement.controller");
 
 const router = express.Router();
 
@@ -15,35 +15,35 @@ router.get(
   "/:clubId/invitations",
   verifyToken,
   protect(["student"]),
-  requireClubRole(["president"], "clubId"),
+  requireClubRole(["secretary"], "clubId"),
   getInvitationList
 );
 router.get(
   "/:clubId/invitations/:invitationId",
   verifyToken,
   protect(["student"]),
-  requireClubRole(["president"], "clubId"),
+  requireClubRole(["secretary"], "clubId"),
   getInvitationDetail
 );
 router.post(
   "/:clubId/invitations",
   verifyToken,
   protect(["student"]),
-  requireClubRole(["president"], "clubId"),
+  requireClubRole(["secretary"], "clubId"),
   sendInvitation
 );
 router.patch(
   "/:clubId/invitations/:invitationId/cancel",
   verifyToken,
   protect(["student"]),
-  requireClubRole(["president"], "clubId"),
+  requireClubRole(["secretary"], "clubId"),
   cancelInvitation
 );
 router.patch(
   "/:clubId/invitations/:invitationId/resend",
   verifyToken,
   protect(["student"]),
-  requireClubRole(["president"], "clubId"),
+  requireClubRole(["secretary"], "clubId"),
   resendInvitation
 );
 
