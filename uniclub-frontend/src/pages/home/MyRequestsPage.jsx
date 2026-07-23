@@ -11,7 +11,7 @@ import {
   getReceivedInvitations,
   rejectClubInvitation,
 } from '../../api/clubInvitation.api'
-import { mapClubInvitationFromApi, mapJoinRequestFromApi } from '../../api/clubMappers'
+import { mapMemberInvitationFromApi, mapJoinRequestFromApi } from '../../api/clubMappers'
 import { MY_REQUEST_TABS, REQUEST_STATUS_OPTIONS } from '../../data/mockData'
 import { useToast } from '../../components/common/notificationContext'
 
@@ -47,7 +47,7 @@ function MyRequestsPage() {
             : response.data?.items || response.data?.invitations || response.data?.requests || []
 
           if (activeTab === 'received') {
-            setInvitations(rows.map((item) => mapClubInvitationFromApi(item)))
+            setInvitations(rows.map((item) => mapMemberInvitationFromApi(item)))
           } else {
             setRequests(rows.map((item) => mapJoinRequestFromApi(item)))
           }
@@ -106,7 +106,7 @@ function MyRequestsPage() {
         : await getMyJoinRequestDetail(item.id)
       setDetailTarget(
         activeTab === 'received'
-          ? mapClubInvitationFromApi(response.data)
+          ? mapMemberInvitationFromApi(response.data)
           : mapJoinRequestFromApi(response.data),
       )
     } catch (error) {

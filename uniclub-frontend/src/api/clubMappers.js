@@ -92,7 +92,7 @@ export function mapJoinRequestFromApi(request) {
   }
 }
 
-export function mapClubInvitationFromApi(invitation) {
+export function mapMemberInvitationFromApi(invitation) {
   const club = invitation.club_id || invitation.club || {}
   const sender = invitation.invited_by || invitation.sender || invitation.created_by || {}
 
