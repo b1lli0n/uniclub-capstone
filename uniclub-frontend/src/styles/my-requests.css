@@ -273,6 +273,7 @@
   display: flex;
   gap: 0.6rem;
   align-items: baseline;
+  margin-bottom: 0.35rem;
 }
 
 .my-request-card__meta dt {
@@ -313,6 +314,10 @@
 
 .my-request-card__cancel {
   background: #ee4035;
+}
+
+.my-request-card__accept {
+  background: #16a34a;
 }
 
 .my-request-card__details {
@@ -388,6 +393,11 @@
 .request-cancel-modal__confirm {
   background: #ee4035;
   box-shadow: 0 8px 18px rgba(238, 64, 53, 0.2);
+}
+
+.request-cancel-modal__accept {
+  background: #16a34a;
+  box-shadow: 0 8px 18px rgba(22, 163, 74, 0.2);
 }
 
 .request-cancel-modal__dismiss {

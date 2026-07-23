@@ -92,6 +92,29 @@ export function mapJoinRequestFromApi(request) {
   }
 }
 
+export function mapClubInvitationFromApi(invitation) {
+  const club = invitation.club_id || invitation.club || {}
+  const sender = invitation.invited_by || invitation.sender || invitation.created_by || {}
+
+  return {
+    id: invitation._id || invitation.id,
+    requestId: invitation._id || invitation.id,
+    club: club.name || invitation.club_name || '',
+    clubId: club._id || invitation.club_id || '',
+    category: (club.category || invitation.category || '').toUpperCase(),
+    status: invitation.status || 'pending',
+    sentDate: formatDate(invitation.create_at || invitation.created_at || invitation.createdAt),
+    sentTime: '',
+    type: 'Club Invitation',
+    content: invitation.message || invitation.content || 'You have been invited to join this club.',
+    responder: invitation.responded_by?.full_name || '-',
+    sender: sender.full_name || sender.name || '-',
+    responseTime: formatDate(invitation.responded_at || invitation.reviewed_at),
+    role: formatRoleLabel(invitation.role || invitation.invited_role || 'member'),
+    reviewNote: invitation.review_note || invitation.response_note || '',
+  }
+}
+
 export function mapPresidentJoinRequestFromApi(request, formQuestions = []) {
   const user = request.user_id || {}
   const answers = (request.answers || []).map((answer, index) => ({

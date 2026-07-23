@@ -34,6 +34,8 @@ const memberActivityScheduleRoutes = require("./routes/member/activitySchedule.r
 const secretaryActivityScheduleRoutes = require("./routes/secretary/activitySchedule.routes");
 const memberPaymentRoutes = require("./routes/member/payment.routes");
 const treasurerTransactionManagementRoutes = require("./routes/treasurer/transactionManagement.routes");
+const memberPollRoutes = require("./routes/member/poll.routes");
+const secretaryPollRoutes = require("./routes/secretary/poll.routes");
 
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
@@ -76,6 +78,8 @@ app.use("/api/student/feedback-management", feedbackManagementRoutes);
 app.use("/api/event-manager/event-management", eventManagerRoutes);
 app.use("/api/member/clubs/:clubId/activity-schedule",memberActivityScheduleRoutes);
 app.use("/api/secretary/clubs/:clubId/activity-schedule",secretaryActivityScheduleRoutes);
+app.use("/api/member/clubs/:clubId/polls", memberPollRoutes);
+app.use("/api/secretary/clubs/:clubId/polls", secretaryPollRoutes);
 app.use("/api/president/reward-management", rewardManagementRoutes);
 app.use("/api/payment", memberPaymentRoutes);
 app.use("/api/member/payment", memberPaymentRoutes);
