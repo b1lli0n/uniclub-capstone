@@ -5,48 +5,77 @@ import {
   getMyJoinRequestDetail,
   getMyJoinRequests,
 } from '../../api/studentClubMembership.api'
-import { mapJoinRequestFromApi } from '../../api/clubMappers'
+import {
+  acceptClubInvitation,
+  getReceivedInvitationDetail,
+  getReceivedInvitations,
+  rejectClubInvitation,
+} from '../../api/clubInvitation.api'
+import { mapClubInvitationFromApi, mapJoinRequestFromApi } from '../../api/clubMappers'
 import { MY_REQUEST_TABS, REQUEST_STATUS_OPTIONS } from '../../data/mockData'
 import { useToast } from '../../components/common/notificationContext'
 
 function MyRequestsPage() {
   const showToast = useToast()
   const [requests, setRequests] = useState([])
+  const [invitations, setInvitations] = useState([])
   const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(false)
   const [cancelTarget, setCancelTarget] = useState(null)
   const [detailTarget, setDetailTarget] = useState(null)
+  const [inviteActionTarget, setInviteActionTarget] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all')
   const [statusMenuOpen, setStatusMenuOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState('sent')
 
   useEffect(() => {
     let cancelled = false
 
-    async function loadRequests() {
+    async function loadItems() {
       setLoading(true)
       try {
-        const response = await getMyJoinRequests({
+        const params = {
           status: statusFilter !== 'all' ? statusFilter : undefined,
-        })
+        }
+        const response = activeTab === 'received'
+          ? await getReceivedInvitations(params)
+          : await getMyJoinRequests(params)
+
         if (!cancelled) {
-          setRequests((response.data || []).map((item) => mapJoinRequestFromApi(item)))
+          const rows = Array.isArray(response.data)
+            ? response.data
+            : response.data?.items || response.data?.invitations || response.data?.requests || []
+
+          if (activeTab === 'received') {
+            setInvitations(rows.map((item) => mapClubInvitationFromApi(item)))
+          } else {
+            setRequests(rows.map((item) => mapJoinRequestFromApi(item)))
+          }
         }
       } catch (error) {
         console.error(error)
-        if (!cancelled) setRequests([])
+        if (!cancelled) {
+          if (activeTab === 'received') setInvitations([])
+          else setRequests([])
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
 
-    loadRequests()
+    loadItems()
     return () => {
       cancelled = true
     }
-  }, [statusFilter])
+  }, [activeTab, statusFilter])
 
   const selectedStatus =
     REQUEST_STATUS_OPTIONS.find((option) => option.value === statusFilter) || REQUEST_STATUS_OPTIONS[0]
-  const filteredRequests = requests
+  const visibleItems = activeTab === 'received' ? invitations : requests
+  const tabCounts = {
+    sent: requests.length,
+    received: invitations.length,
+  }
 
   async function handleConfirmCancel() {
     if (!cancelTarget) return
@@ -72,11 +101,57 @@ function MyRequestsPage() {
 
   async function handleViewDetails(item) {
     try {
-      const response = await getMyJoinRequestDetail(item.id)
-      setDetailTarget(mapJoinRequestFromApi(response.data))
+      const response = activeTab === 'received'
+        ? await getReceivedInvitationDetail(item.id)
+        : await getMyJoinRequestDetail(item.id)
+      setDetailTarget(
+        activeTab === 'received'
+          ? mapClubInvitationFromApi(response.data)
+          : mapJoinRequestFromApi(response.data),
+      )
     } catch (error) {
       console.error(error)
       setDetailTarget(item)
+    }
+  }
+
+  async function handleInvitationAction() {
+    if (!inviteActionTarget) return
+
+    setActionLoading(true)
+    try {
+      if (inviteActionTarget.action === 'accept') {
+        await acceptClubInvitation(inviteActionTarget.item.id)
+      } else {
+        await rejectClubInvitation(inviteActionTarget.item.id)
+      }
+
+      setInvitations((items) =>
+        items.map((item) =>
+          item.id === inviteActionTarget.item.id
+            ? {
+                ...item,
+                status: inviteActionTarget.action === 'accept' ? 'accepted' : 'rejected',
+                responseTime: new Date().toLocaleDateString('vi-VN'),
+              }
+            : item,
+        ),
+      )
+      setInviteActionTarget(null)
+      showToast({
+        type: 'success',
+        title: inviteActionTarget.action === 'accept' ? 'Invitation accepted' : 'Invitation rejected',
+        message: `${inviteActionTarget.item.club} invitation has been ${inviteActionTarget.action === 'accept' ? 'accepted' : 'rejected'}.`,
+      })
+    } catch (error) {
+      console.error(error)
+      showToast({
+        type: 'error',
+        title: 'Action failed',
+        message: error.message || 'Could not update this invitation.',
+      })
+    } finally {
+      setActionLoading(false)
     }
   }
 
@@ -88,6 +163,18 @@ function MyRequestsPage() {
     setDetailTarget(null)
   }
 
+  function handleChangeTab(tabId) {
+    setActiveTab(tabId)
+    setStatusFilter('all')
+    setDetailTarget(null)
+    setCancelTarget(null)
+    setInviteActionTarget(null)
+  }
+
+  function isPendingStatus(status) {
+    return String(status || '').toLowerCase() === 'pending'
+  }
+
   return (
     <main className="my-requests-page">
       <section className="my-requests-hero">
@@ -97,8 +184,13 @@ function MyRequestsPage() {
         <div className="my-requests-toolbar">
           <div className="my-requests-tabs" aria-label="Request type">
             {MY_REQUEST_TABS.map((tab) => (
-              <button key={tab.id} type="button" className={tab.id === 'sent' ? 'is-active' : undefined}>
-                {tab.label} ({tab.count})
+              <button
+                key={tab.id}
+                type="button"
+                className={tab.id === activeTab ? 'is-active' : undefined}
+                onClick={() => handleChangeTab(tab.id)}
+              >
+                {tab.label} ({tabCounts[tab.id] ?? tab.count})
               </button>
             ))}
           </div>
@@ -160,10 +252,13 @@ function MyRequestsPage() {
 
       <div className="my-requests-divider" aria-hidden="true" />
 
-      <section className="my-requests-grid" aria-label="Sent requests">
-        {loading ? <p>Loading requests...</p> : null}
+      <section
+        className="my-requests-grid"
+        aria-label={activeTab === 'received' ? 'Received invitations' : 'Sent requests'}
+      >
+        {loading ? <p>{activeTab === 'received' ? 'Loading invitations...' : 'Loading requests...'}</p> : null}
         {!loading
-          ? filteredRequests.map((item) => (
+          ? visibleItems.map((item) => (
           <article key={item.id} className="my-request-card">
             <div className="my-request-card__header">
               <div>
@@ -175,19 +270,44 @@ function MyRequestsPage() {
 
             <dl className="my-request-card__meta">
               <div>
-                <dt>Sent Date</dt>
+                <dt>{activeTab === 'received' ? 'Received Date' : 'Sent Date'}</dt>
                 <dd>{item.sentDate}</dd>
               </div>
+              {activeTab === 'received' ? (
+                <div>
+                  <dt>Role</dt>
+                  <dd>{item.role || 'Member'}</dd>
+                </div>
+              ) : null}
             </dl>
 
             <div className="my-request-card__actions">
-              <button
-                type="button"
-                className="my-request-card__cancel"
-                onClick={() => setCancelTarget(item)}
-              >
-                Cancel Request
-              </button>
+              {activeTab === 'received' && isPendingStatus(item.status) ? (
+                <>
+                  <button
+                    type="button"
+                    className="my-request-card__accept"
+                    onClick={() => setInviteActionTarget({ action: 'accept', item })}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    className="my-request-card__cancel"
+                    onClick={() => setInviteActionTarget({ action: 'reject', item })}
+                  >
+                    Reject
+                  </button>
+                </>
+              ) : activeTab === 'sent' && isPendingStatus(item.status) ? (
+                <button
+                  type="button"
+                  className="my-request-card__cancel"
+                  onClick={() => setCancelTarget(item)}
+                >
+                  Cancel Request
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="my-request-card__details"
@@ -199,6 +319,9 @@ function MyRequestsPage() {
           </article>
             ))
           : null}
+        {!loading && visibleItems.length === 0 ? (
+          <p>{activeTab === 'received' ? 'No invitations found.' : 'No requests found.'}</p>
+        ) : null}
       </section>
 
       {cancelTarget ? (
@@ -217,6 +340,43 @@ function MyRequestsPage() {
                 Confirm
               </button>
               <button type="button" className="request-cancel-modal__dismiss" onClick={closeCancelModal}>
+                Cancel
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {inviteActionTarget ? (
+        <div className="request-cancel-modal" role="dialog" aria-modal="true" aria-labelledby="invitation-action-title">
+          <button
+            type="button"
+            className="request-cancel-modal__backdrop"
+            aria-label="Close confirmation"
+            onClick={() => setInviteActionTarget(null)}
+          />
+          <section className="request-cancel-modal__panel">
+            <h2 id="invitation-action-title">
+              {inviteActionTarget.action === 'accept' ? 'Accept Invitation' : 'Reject Invitation'}
+            </h2>
+            <p>
+              Are you sure you want to {inviteActionTarget.action} the invitation from {inviteActionTarget.item.club}?
+            </p>
+            <div className="request-cancel-modal__actions">
+              <button
+                type="button"
+                className={inviteActionTarget.action === 'accept' ? 'request-cancel-modal__accept' : 'request-cancel-modal__confirm'}
+                onClick={handleInvitationAction}
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Processing...' : 'Confirm'}
+              </button>
+              <button
+                type="button"
+                className="request-cancel-modal__dismiss"
+                onClick={() => setInviteActionTarget(null)}
+                disabled={actionLoading}
+              >
                 Cancel
               </button>
             </div>
@@ -247,6 +407,12 @@ function MyRequestsPage() {
                 <span>Type</span>
                 <strong>{detailTarget.type}</strong>
               </div>
+              {detailTarget.role ? (
+                <div className="request-detail-modal__item">
+                  <span>Role</span>
+                  <strong>{detailTarget.role}</strong>
+                </div>
+              ) : null}
               <div className="request-detail-modal__item">
                 <span>Status</span>
                 <strong className="request-detail-modal__status">{detailTarget.status}</strong>
