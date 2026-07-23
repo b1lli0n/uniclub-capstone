@@ -2,8 +2,6 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const path = require("path");
-
-const { getHealth } = require("./controllers/health.controller");
 const memberInvitationManagementRoutes = require("./routes/member/invitationManagement.routes");
 const secretaryInvitationManagementRoutes = require("./routes/secretary/invitationManagement.routes");
 const passport = require("passport");
@@ -17,8 +15,6 @@ const profileRoutes = require("./routes/profile.routes");
 const eventRoutes = require("./routes/event.routes");
 const feedbackManagementRoutes = require("./routes/student/feedbackManagement.routes");
 const rewardManagementRoutes = require("./routes/rewardManagement.route");
-const memberInvitationManagementRoutes = require("./routes/member/invitationManagement.routes");
-const secretaryInvitationManagementRoutes = require("./routes/secretary/invitationManagement.routes");
 
 require("./config/passport");
 
@@ -26,7 +22,6 @@ const eventTimelineRoutes = require("./routes/eventTimeline.routes");
 const eventAttendanceRoutes = require("./routes/eventAttendance.routes");
 const clubMembershipRoutes = require("./routes/member/clubMembership.routes");
 const memberAchievementPointsRoutes = require("./routes/member/achievementPoints.routes");
-const presidentJoinRequestManagementRoutes = require("./routes/president/joinRequestManagement.routes");
 const presidentJoinFormManagementRoutes = require("./routes/president/joinFormManagement.routes");
 const presidentPointRuleManagementRoutes = require("./routes/president/pointRuleManagement.routes");
 const eventManagerRoutes = require("./routes/eventManager/eventManagement.routes");
@@ -71,7 +66,6 @@ app.use("/api/member/clubs-membership", clubMembershipRoutes);
 app.use("/api/member/clubs-membership", memberAchievementPointsRoutes);
 app.use("/api/club-management", clubManagementRoutes);
 app.use("/api/club-members", clubMemberRoutes);
-app.use("/api/president/join-request-management", presidentJoinRequestManagementRoutes);
 app.use("/api/president/clubs", presidentJoinFormManagementRoutes);
 app.use("/api/president/clubs", presidentPointRuleManagementRoutes);
 app.use("/api/student/feedback-management", feedbackManagementRoutes);
