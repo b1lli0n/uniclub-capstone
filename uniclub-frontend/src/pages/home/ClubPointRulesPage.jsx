@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ALL_CLUBS,
-  MY_CLUB_MEMBERSHIPS,
   POINT_RULES,
 } from '../../data/mockData'
 import '../../styles/club-point-rules.css'
 
 const CLUB_FALLBACK = ALL_CLUBS[0]
-const MANAGER_ROLES = ['leader', 'vice leader']
 const RULE_COLORS = ['blue', 'indigo', 'purple', 'pink']
 
 const ACTION_TYPE_OPTIONS = [
@@ -163,13 +161,33 @@ function createDraft(rule) {
   }
 }
 
-function ClubPointRulesPage({ clubId }) {
+// isLeader prop is passed from AppRouter based on the real DB club membership role.
+// Only 'president' maps to leader-level access in the backend role system.
+function ClubPointRulesPage({ clubId, isLeader = false }) {
   const club = ALL_CLUBS.find((item) => item.id === clubId) || CLUB_FALLBACK
-  const membership = MY_CLUB_MEMBERSHIPS.find((item) => item.clubId === club.id)
-  const isManager = MANAGER_ROLES.includes(membership?.role?.toLowerCase())
+  const [isManager, setIsManager] = useState(isLeader)
   const [rulesList, setRulesList] = useState(POINT_RULES)
   const [editingRule, setEditingRule] = useState(null)
   const [draft, setDraft] = useState(createDraft())
+
+  // Fetch real role from API to override mock-data-based prop
+  useEffect(() => {
+    import('../../api/memberClubMembership.api').then(({ getMyClubs }) => {
+      getMyClubs()
+        .then(res => {
+          const memberships = res.data || []
+          const mine = memberships.find(
+            m => (m.club_id?._id || m.club_id) === clubId
+          )
+          if (mine) {
+            const role = (mine.role || '').toLowerCase()
+            // Only 'president' gets manager controls for point rules
+            setIsManager(role === 'president')
+          }
+        })
+        .catch(() => { /* keep isLeader prop value */ })
+    })
+  }, [clubId])
 
   const visibleRules = useMemo(
     () => rulesList.filter((rule) => isManager || rule.status === 'ACTIVE'),

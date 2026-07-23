@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const Reward = require("../models/reward.model");
 const RewardRedemption = require("../models/reward_redemption.model");
 const ContributionLog = require("../models/contribution_log.model");
+const ClubMember = require("../models/club_member.model");
 
 const { getStatusError } = require("../utils/error");
 
@@ -625,6 +626,13 @@ const approveRewardRedemption = async ({
           409
         );
       }
+
+      // Decrement points in ClubMember document cache
+      await ClubMember.findOneAndUpdate(
+        { _id: redemption.membership_id },
+        { $inc: { reward_point: -redemption.total_point } },
+        { session }
+      );
 
       approvedRedemption = updatedRedemption;
     });

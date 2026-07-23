@@ -2,7 +2,8 @@ const mongoose = require("mongoose");
 const Club = require("../../models/club.model");
 const ClubMember = require("../../models/club_member.model");
 const Reward = require("../../models/reward.model");
-const RewardTransaction = require("../../models/rewardTransaction.model");
+const RewardRedemption = require("../../models/reward_redemption.model");
+const ContributionLog = require("../../models/contribution_log.model");
 const { getStatusError } = require("../../utils/error");
 
 const validateId = (id, fieldName) => {
@@ -71,6 +72,47 @@ const getMemberRewardDetail = async ({ clubId, rewardId, userId }) => {
   };
 };
 
+const getTotalEarnedRewardPoint = async ({ membershipId, session }) => {
+  const result = await ContributionLog.aggregate([
+    {
+      $match: {
+        membership_id: new mongoose.Types.ObjectId(membershipId),
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum: "$reward_point",
+        },
+      },
+    },
+  ]).session(session);
+
+  return result[0]?.total || 0;
+};
+
+const getTotalApprovedRedemptionPoint = async ({ membershipId, session }) => {
+  const result = await RewardRedemption.aggregate([
+    {
+      $match: {
+        membership_id: new mongoose.Types.ObjectId(membershipId),
+        status: "approved",
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum: "$total_point",
+        },
+      },
+    },
+  ]).session(session);
+
+  return result[0]?.total || 0;
+};
+
 const redeemReward = async ({ clubId, rewardId, userId }) => {
   validateId(clubId, "clubId");
   validateId(rewardId, "rewardId");
@@ -110,22 +152,33 @@ const redeemReward = async ({ clubId, rewardId, userId }) => {
         throw getStatusError("You are not an active member of this club", 403);
       }
 
-      if (membership.reward_point < reward.points_required) {
+      // Calculate dynamic available points: earned - approved - pending
+      const totalEarned = await getTotalEarnedRewardPoint({ membershipId: membership._id, session });
+      const approvedPoints = await getTotalApprovedRedemptionPoint({ membershipId: membership._id, session });
+      
+      const pendingRedemptions = await RewardRedemption.find({
+        membership_id: membership._id,
+        status: "pending",
+      }).session(session);
+      
+      const pendingPoints = pendingRedemptions.reduce((sum, r) => sum + (r.total_point || 0), 0);
+      const availablePoints = totalEarned - approvedPoints - pendingPoints;
+
+      if (availablePoints < reward.points_required) {
         throw getStatusError("Insufficient reward points", 400);
       }
 
-      membership.reward_point -= reward.points_required;
-      reward.quantity -= 1;
-
-      await Promise.all([membership.save({ session }), reward.save({ session })]);
-
-      const created = await RewardTransaction.create(
+      // Create pending RewardRedemption request
+      const created = await RewardRedemption.create(
         [
           {
-            membership_id: membership._id,
+            club_id: clubId,
             reward_id: reward._id,
-            points_spent: reward.points_required,
-            status: 0,
+            membership_id: membership._id,
+            quantity: 1,
+            point_cost: reward.points_required,
+            total_point: reward.points_required,
+            status: "pending",
           },
         ],
         { session }
@@ -134,7 +187,7 @@ const redeemReward = async ({ clubId, rewardId, userId }) => {
       redemption = created[0];
     });
 
-    await redemption.populate("reward_id", "_id name description points_required quantity");
+    await redemption.populate("reward_id", "_id name description points_required quantity image_url");
 
     return redemption;
   } finally {
@@ -146,20 +199,20 @@ const getMyRedemptionHistory = async ({ clubId, userId, status }) => {
   validateId(clubId, "clubId");
   const membership = await getActiveMembership(clubId, userId);
 
-  const allowedStatuses = ["0", "1", "2", "3"];
+  const allowedStatuses = ["pending", "approved", "rejected"];
   if (status && !allowedStatuses.includes(status)) {
-    throw getStatusError("Invalid status. Allowed values: 0 (pending), 1 (approved), 2 (rejected), 3 (completed)", 400);
+    throw getStatusError("Invalid status. Allowed values: pending, approved, rejected", 400);
   }
 
-  const filter = { membership_id: membership._id };
+  const filter = { club_id: clubId, membership_id: membership._id };
   if (status) {
-    filter.status = Number(status);
+    filter.status = status;
   }
 
-  return RewardTransaction.find(filter)
+  return RewardRedemption.find(filter)
     .sort({ created_at: -1 })
-    .populate("reward_id", "_id name description points_required quantity")
-    .select("_id reward_id points_spent status created_at updated_at");
+    .populate("reward_id", "_id name description points_required quantity image_url")
+    .lean();
 };
 
 module.exports = {

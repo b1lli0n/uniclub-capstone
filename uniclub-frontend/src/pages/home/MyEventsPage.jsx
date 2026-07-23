@@ -3,206 +3,280 @@ import { useNavigate } from 'react-router-dom'
 import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getMyRegistrations } from '../../api/event.api'
 
+// ── QR Modal ─────────────────────────────────────────────────────────────────
+function QRModal({ registrationId, eventTitle, onClose }) {
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=14&data=${registrationId}`
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '1rem',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: '#fff', borderRadius: '20px', padding: '2rem 2rem 1.5rem',
+          maxWidth: '340px', width: '100%', textAlign: 'center',
+          boxShadow: '0 30px 70px rgba(0,0,0,0.35)',
+        }}
+      >
+        <div style={{ fontSize: '2.2rem', marginBottom: '0.4rem' }}>🎟️</div>
+        <h3 style={{ margin: '0 0 0.3rem', fontSize: '1rem', fontWeight: 700, color: '#1a1a2e' }}>
+          Mã vé check-in
+        </h3>
+        <p style={{ margin: '0 0 1.25rem', fontSize: '0.82rem', color: '#777', lineHeight: 1.4 }}>
+          {eventTitle}
+        </p>
+        <div style={{ background: '#f8f8ff', borderRadius: '12px', padding: '0.75rem', display: 'inline-block', border: '1px solid #e5e5f5' }}>
+          <img src={qrUrl} alt="QR check-in" style={{ width: 220, height: 220, display: 'block' }} />
+        </div>
+        <p style={{ margin: '0.85rem 0 0', fontSize: '0.7rem', color: '#bbb', wordBreak: 'break-all' }}>
+          {registrationId}
+        </p>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1, padding: '0.65rem', background: '#6366f1', color: '#fff',
+              border: 'none', borderRadius: '10px', cursor: 'pointer',
+              fontWeight: 700, fontSize: '0.88rem',
+            }}
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Event Row ─────────────────────────────────────────────────────────────────
+function EventRow({ reg, onShowQR, navigate }) {
+  const event = reg.event_id || {}
+  const club  = event.club_id || {}
+
+  const startDate = event.start_time
+    ? new Date(event.start_time).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : '—'
+  const startTime = event.start_time
+    ? new Date(event.start_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+    : ''
+
+  const checkInOpen = event.check_in_status === 'open'
+
+  const STATUS = {
+    registered: { label: 'Chờ check-in', bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
+    attended:   { label: '✓ Đã check-in', bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
+    absent:     { label: 'Vắng mặt',      bg: '#fef2f2', color: '#991b1b', border: '#fecaca' },
+    cancelled:  { label: 'Đã huỷ',        bg: '#f9fafb', color: '#6b7280', border: '#e5e7eb' },
+  }
+  const st = STATUS[reg.status] || STATUS.registered
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '1.1rem 1.25rem', background: '#fcfaf7',
+      border: '1px solid #f0e4d8', borderRadius: '14px',
+      gap: '1rem', flexWrap: 'wrap', transition: 'box-shadow 0.2s',
+    }}>
+      {/* Left: info */}
+      <div style={{ flex: '1 1 260px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem', flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0, fontSize: '1rem', color: '#3d2e24', fontWeight: 700 }}>
+            {event.title || 'Sự kiện'}
+          </h3>
+          {checkInOpen && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+              padding: '2px 8px', borderRadius: '8px',
+              background: '#dcfce7', color: '#166534', fontSize: '0.7rem', fontWeight: 700,
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+              Check-in OPEN
+            </span>
+          )}
+        </div>
+        <p style={{ margin: 0, fontSize: '0.8rem', color: '#8c7e95' }}>
+          🏢 {club.name || '—'} &nbsp;·&nbsp; 📅 {startDate} {startTime}
+        </p>
+        <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: '#aaa' }}>
+          📍 {event.location || '—'}
+        </p>
+      </div>
+
+      {/* Right: status + actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+        <span style={{
+          padding: '4px 12px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600,
+          background: st.bg, color: st.color, border: `1px solid ${st.border}`,
+          whiteSpace: 'nowrap',
+        }}>
+          {st.label}
+        </span>
+
+        {/* QR button – show when open & not cancelled/absent */}
+        {(reg.status === 'registered' || reg.status === 'attended') && (
+          <button
+            onClick={() => onShowQR(reg)}
+            title="Xem mã QR check-in"
+            style={{
+              padding: '0.5rem 0.9rem', border: 'none', borderRadius: '10px', cursor: 'pointer',
+              background: checkInOpen ? '#6366f1' : '#f3f4f6',
+              color: checkInOpen ? '#fff' : '#6b7280',
+              fontWeight: 700, fontSize: '0.78rem',
+              display: 'flex', alignItems: 'center', gap: '0.3rem',
+              boxShadow: checkInOpen ? '0 2px 10px rgba(99,102,241,0.25)' : 'none',
+              transition: 'all 0.2s',
+            }}
+          >
+            🎟️ {checkInOpen ? 'QR Check-in' : 'Xem vé'}
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => navigate(`/events/${event._id}`)}
+          style={{
+            padding: '0.5rem 0.9rem', background: '#F57C00', color: '#fff',
+            border: 'none', borderRadius: '10px', cursor: 'pointer',
+            fontSize: '0.78rem', fontWeight: 700,
+            boxShadow: '0 2px 8px rgba(245,124,0,0.2)',
+          }}
+        >
+          Chi tiết
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 function MyEventsPage() {
   const navigate = useNavigate()
   const [clubsCount, setClubsCount] = useState(0)
   const [registrations, setRegistrations] = useState([])
   const [loading, setLoading] = useState(true)
+  const [qrReg, setQrReg] = useState(null)
 
   useEffect(() => {
     let active = true
-    async function fetchStatsAndEvents() {
-      setLoading(true)
-      try {
-        const [clubsRes, regRes] = await Promise.all([
-          getMyClubs().catch(() => ({ data: [] })),
-          getMyRegistrations().catch(() => ({ data: [] })),
-        ])
-
-        if (!active) return
-
-        setClubsCount(clubsRes.data?.length || 0)
-        setRegistrations(regRes.data || [])
-      } catch (err) {
-        console.error("Error fetching stats and events:", err)
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-
-    fetchStatsAndEvents()
+    setLoading(true)
+    Promise.all([
+      getMyClubs().catch(() => ({ data: [] })),
+      getMyRegistrations().catch(() => ({ data: [] })),
+    ]).then(([clubsRes, regRes]) => {
+      if (!active) return
+      setClubsCount(clubsRes.data?.length || 0)
+      // API returns { success, data: [...] } – support both shapes
+      const regs = regRes.data?.data || regRes.data || []
+      setRegistrations(Array.isArray(regs) ? regs : [])
+      setLoading(false)
+    }).catch(err => {
+      console.error('MyEventsPage error:', err)
+      if (active) setLoading(false)
+    })
     return () => { active = false }
   }, [])
 
+  const openRegs     = registrations.filter(r => r.event_id?.check_in_status === 'open' && r.status === 'registered')
+  const upcomingRegs = registrations.filter(r => r.event_id?.check_in_status !== 'open' && r.status === 'registered')
+  const doneRegs     = registrations.filter(r => ['attended','absent','cancelled'].includes(r.status))
+
   return (
-    <main className="my-events-page" style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
-      <section className="my-events-hero" style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2.2rem', color: '#3d2e24', margin: '0 0 0.5rem' }}>My Registered Events</h1>
-        <p style={{ color: '#6f6676', margin: 0 }}>View your registration tickets and the status of your event participations.</p>
+    <main style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto' }}>
+      {/* QR Modal */}
+      {qrReg && (
+        <QRModal
+          registrationId={qrReg._id}
+          eventTitle={qrReg.event_id?.title}
+          onClose={() => setQrReg(null)}
+        />
+      )}
+
+      {/* Hero */}
+      <section style={{ marginBottom: '1.75rem' }}>
+        <h1 style={{ fontSize: '2rem', color: '#3d2e24', margin: '0 0 0.4rem', fontWeight: 800 }}>
+          🎟️ My Events
+        </h1>
+        <p style={{ color: '#8c7e95', margin: 0, fontSize: '0.9rem' }}>
+          Các sự kiện bạn đã đăng ký – bấm <strong>QR Check-in</strong> khi cổng đang mở để lấy mã quét.
+        </p>
       </section>
 
-      {/* User Stats Summary */}
-      <section className="my-profile-stats" style={{
-        display: 'flex',
-        gap: '1.5rem',
-        marginBottom: '2rem'
-      }}>
-        <div className="my-profile-stat-card" style={{
-          flex: 1,
-          padding: '1.25rem',
-          background: '#ffffff',
-          border: '1px solid #f0e4d8',
-          borderRadius: '16px',
-          textAlign: 'center',
-          boxShadow: '0 4px 16px rgba(92, 64, 51, 0.03)'
-        }}>
-          <span className="my-profile-stat-num" style={{
-            display: 'block',
-            fontSize: '2rem',
-            fontWeight: '800',
-            color: '#F57C00',
-            marginBottom: '0.2rem'
-          }}>{clubsCount}</span>
-          <span className="my-profile-stat-label" style={{
-            fontSize: '0.85rem',
-            color: '#6f6676',
-            fontWeight: '600'
-          }}>Clubs Joined</span>
-        </div>
-        <div className="my-profile-stat-card" style={{
-          flex: 1,
-          padding: '1.25rem',
-          background: '#ffffff',
-          border: '1px solid #f0e4d8',
-          borderRadius: '16px',
-          textAlign: 'center',
-          boxShadow: '0 4px 16px rgba(92, 64, 51, 0.03)'
-        }}>
-          <span className="my-profile-stat-num" style={{
-            display: 'block',
-            fontSize: '2rem',
-            fontWeight: '800',
-            color: '#F57C00',
-            marginBottom: '0.2rem'
-          }}>{registrations.length}</span>
-          <span className="my-profile-stat-label" style={{
-            fontSize: '0.85rem',
-            color: '#6f6676',
-            fontWeight: '600'
-          }}>Events Registered</span>
-        </div>
+      {/* Stats */}
+      <section style={{ display: 'flex', gap: '1rem', marginBottom: '1.75rem', flexWrap: 'wrap' }}>
+        {[
+          { num: clubsCount,           label: 'Câu lạc bộ' },
+          { num: registrations.length, label: 'Đã đăng ký' },
+          { num: openRegs.length,      label: 'Check-in đang mở', highlight: openRegs.length > 0 },
+          { num: doneRegs.filter(r => r.status === 'attended').length, label: 'Đã tham dự' },
+        ].map(s => (
+          <div key={s.label} style={{
+            flex: '1 1 120px', padding: '1rem 1.25rem', background: '#fff',
+            border: `1px solid ${s.highlight ? '#bbf7d0' : '#f0e4d8'}`,
+            borderRadius: '14px', textAlign: 'center',
+            boxShadow: s.highlight ? '0 2px 12px rgba(34,197,94,0.12)' : '0 2px 8px rgba(92,64,51,0.04)',
+          }}>
+            <span style={{ display: 'block', fontSize: '1.75rem', fontWeight: 800, color: s.highlight ? '#16a34a' : '#F57C00' }}>
+              {s.num}
+            </span>
+            <span style={{ fontSize: '0.78rem', color: '#8c7e95', fontWeight: 600 }}>{s.label}</span>
+          </div>
+        ))}
       </section>
 
-      {/* User's Registered Events Section */}
-      <section className="my-profile-form-card" style={{
-        background: '#ffffff',
-        border: '1px solid #f0e4d8',
-        borderRadius: '20px',
-        boxShadow: '0 4px 16px rgba(92, 64, 51, 0.05)',
-        padding: '1.5rem',
-        margin: '0 auto'
-      }}>
-        {loading ? (
-          <p style={{ textAlign: 'center', color: '#6f6676', margin: '2rem 0' }}>Loading your events...</p>
-        ) : registrations.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-            <p style={{ color: '#6f6676', fontSize: '0.95rem', margin: '0 0 1.5rem' }}>
-              You haven't registered for any events yet.
-            </p>
-            <button
-              type="button"
-              onClick={() => navigate('/events')}
-              style={{
-                padding: '0.6rem 1.5rem',
-                background: '#F57C00',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '0.9rem'
-              }}
-            >
-              Browse Events
+      {/* Content */}
+      <section style={{ background: '#fff', border: '1px solid #f0e4d8', borderRadius: '20px', padding: '1.5rem', boxShadow: '0 4px 16px rgba(92,64,51,0.05)' }}>
+        {loading && <p style={{ textAlign: 'center', color: '#8c7e95', padding: '3rem 0' }}>Đang tải...</p>}
+
+        {!loading && registrations.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '4rem 1.5rem' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
+            <p style={{ color: '#8c7e95', marginBottom: '1.5rem' }}>Bạn chưa đăng ký sự kiện nào.</p>
+            <button onClick={() => navigate('/events')} style={{ padding: '0.6rem 1.5rem', background: '#F57C00', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>
+              Khám phá sự kiện
             </button>
           </div>
-        ) : (
-          <div className="profile-events-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {registrations.map((reg) => {
-              const event = reg.event_id || {}
-              const club = event.club_id || {}
-              const startDate = event.start_time ? new Date(event.start_time).toLocaleDateString('vi-VN') : ''
-              
-              let statusLabel = reg.status
-              if (reg.status === 'approved') statusLabel = 'Approved'
-              else if (reg.status === 'pending') statusLabel = 'Pending'
-              else if (reg.status === 'rejected') statusLabel = 'Rejected'
-              else if (reg.status === 'attended') statusLabel = 'Attended'
-              else if (reg.status === 'cancelled') statusLabel = 'Cancelled'
+        )}
 
-              return (
-                <div key={reg._id} className="profile-event-row" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '1.2rem',
-                  background: '#fcfaf7',
-                  border: '1px solid #f0e4d8',
-                  borderRadius: '14px',
-                  gap: '1rem',
-                  flexWrap: 'wrap',
-                  transition: 'all 0.2s ease'
-                }}>
-                  <div style={{ flex: '1 1 280px' }}>
-                    <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.05rem', color: '#3d2e24', fontWeight: '700' }}>
-                      {event.title || 'Untitled Event'}
-                    </h3>
-                    <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: '#6f6676' }}>
-                      Organizer: <strong style={{ color: '#3d2e24' }}>{club.name || 'UniClub'}</strong>
-                    </p>
-                    <small style={{ color: '#8c7e95', fontSize: '0.8rem' }}>
-                      Date: {startDate} | Location: {event.location || 'Campus'}
-                    </small>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0, marginLeft: 'auto' }}>
-                    <span className={`profile-event-status-badge status-${reg.status}`} style={{
-                      padding: '0.4rem 0.85rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      borderRadius: '999px',
-                      textTransform: 'capitalize',
-                      background: reg.status === 'approved' ? '#e2f9e6' : 
-                                  reg.status === 'pending' ? '#fff4e6' : 
-                                  reg.status === 'attended' ? '#e6f3ff' : 
-                                  reg.status === 'cancelled' ? '#f3f4f6' : '#fce8e6',
-                      color: reg.status === 'approved' ? '#1b8a36' : 
-                             reg.status === 'pending' ? '#d97706' : 
-                             reg.status === 'attended' ? '#0284c7' : 
-                             reg.status === 'cancelled' ? '#4b5563' : '#dc2626'
-                    }}>
-                      {statusLabel}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/events/${event._id || event.id}`)}
-                      style={{
-                        padding: '0.55rem 1.1rem',
-                        background: '#F57C00',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                        fontWeight: '600',
-                        boxShadow: '0 2px 6px rgba(245, 124, 0, 0.15)'
-                      }}
-                    >
-                      View Ticket
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
+        {!loading && registrations.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {/* Check-in open first */}
+            {openRegs.length > 0 && (
+              <>
+                <p style={{ margin: '0 0 0.25rem', fontSize: '0.78rem', fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  🟢 Check-in đang mở
+                </p>
+                {openRegs.map(r => <EventRow key={r._id} reg={r} onShowQR={setQrReg} navigate={navigate} />)}
+                {(upcomingRegs.length > 0 || doneRegs.length > 0) && <hr style={{ border: 'none', borderTop: '1px dashed #f0e4d8', margin: '0.25rem 0' }} />}
+              </>
+            )}
+
+            {/* Upcoming */}
+            {upcomingRegs.length > 0 && (
+              <>
+                <p style={{ margin: '0 0 0.25rem', fontSize: '0.78rem', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  📅 Đã đăng ký
+                </p>
+                {upcomingRegs.map(r => <EventRow key={r._id} reg={r} onShowQR={setQrReg} navigate={navigate} />)}
+                {doneRegs.length > 0 && <hr style={{ border: 'none', borderTop: '1px dashed #f0e4d8', margin: '0.25rem 0' }} />}
+              </>
+            )}
+
+            {/* Done */}
+            {doneRegs.length > 0 && (
+              <>
+                <p style={{ margin: '0 0 0.25rem', fontSize: '0.78rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  📁 Đã qua
+                </p>
+                {doneRegs.map(r => <EventRow key={r._id} reg={r} onShowQR={setQrReg} navigate={navigate} />)}
+              </>
+            )}
           </div>
         )}
       </section>

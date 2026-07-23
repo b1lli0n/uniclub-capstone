@@ -6,12 +6,13 @@ import heroGroup from '../../assets/hero-group.png'
 import '../../styles/login.css'
 
 const MOCK_ACCOUNTS = [
-  { email: 'admin@fpt.edu.vn', label: 'Admin (Student Affairs)' },
-  { email: 'tynce181041@fpt.edu.vn', label: 'Nguyen Ty (K18 President/Member)' },
-  { email: 'bich.tt@fpt.edu.vn', label: 'Tran Thi Bich (Coding Club President)' },
-  { email: 'cuong.lv@fpt.edu.vn', label: 'Le Van Cuong (Dance Club President)' },
-  { email: 'duc.hm@fpt.edu.vn', label: 'Hoang Minh Duc (Basketball Club President)' },
-  { email: 'lan.nt@fpt.edu.vn', label: 'Nguyen Thi Lan (Startup Club President)' },
+  { email: 'tynce181041@fpt.edu.vn', label: '👑 Nguyen Ty – Event Manager (Music Club)' },
+  { email: 'demo1@fpt.edu.vn',       label: '🎵 Tran Thi Bich – Member (Music Club)' },
+  { email: 'demo2@fpt.edu.vn',       label: '🎵 Le Van Cuong – Member (Music Club)' },
+  { email: 'demo3@fpt.edu.vn',       label: '🎵 Pham Thi Dung – Member (Music Club)' },
+  { email: 'demo4@fpt.edu.vn',       label: '🎵 Hoang Minh Duc – Member (Music Club)' },
+  { email: 'demo5@fpt.edu.vn',       label: '🎵 Vo Thanh Long – Member (Music Club)' },
+  { email: 'admin@fpt.edu.vn',       label: '🛡 Nguyen Van Admin – Student Affairs' },
 ]
 
 function FptLogo() {
@@ -106,9 +107,12 @@ export default function LoginPage() {
                 [DEV ONLY] Quick Mock Login
               </p>
               <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
-                <select
+                <input
+                  type="email"
+                  list="mock-emails"
                   value={selectedEmail}
                   onChange={(e) => setSelectedEmail(e.target.value)}
+                  placeholder="Nhập email để đăng nhập nhanh..."
                   style={{
                     flex: 1,
                     padding: '0.6rem 0.8rem',
@@ -117,16 +121,16 @@ export default function LoginPage() {
                     background: '#ffffff',
                     fontSize: '0.85rem',
                     color: '#3d2e24',
-                    cursor: 'pointer',
                     outline: 'none',
                   }}
-                >
+                />
+                <datalist id="mock-emails">
                   {MOCK_ACCOUNTS.map((acc) => (
                     <option key={acc.email} value={acc.email}>
-                      {acc.label} ({acc.email.split('@')[0]})
+                      {acc.label}
                     </option>
                   ))}
-                </select>
+                </datalist>
                 <button
                   type="button"
                   onClick={handleDevLogin}
