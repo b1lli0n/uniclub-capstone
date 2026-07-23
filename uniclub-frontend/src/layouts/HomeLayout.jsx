@@ -14,6 +14,7 @@ function HomeLayout({
   onLogout,
   currentUser,
   canManageMembers = false,
+  canManageInvitations = false,
   canManageEvents = false,
   canManageSchedule = false,
   canViewFees = false,
@@ -170,6 +171,7 @@ function HomeLayout({
               pageId={pageId}
               onNavigate={onNavigate}
               canManageMembers={canManageMembers}
+              canManageInvitations={canManageInvitations}
               canManageEvents={canManageEvents}
               canManageSchedule={canManageSchedule}
               canViewFees={canViewFees}

@@ -5,48 +5,100 @@ import {
   getMyJoinRequestDetail,
   getMyJoinRequests,
 } from '../../api/studentClubMembership.api'
-import { mapJoinRequestFromApi } from '../../api/clubMappers'
+import {
+  acceptInvitation,
+  getReceivedInvitationDetail,
+  getReceivedInvitations,
+  rejectInvitation,
+} from '../../api/memberInvitationManagement.api'
+import { getMyClubs } from '../../api/memberClubMembership.api'
+import { mapJoinRequestFromApi, mapReceivedInvitationFromApi } from '../../api/clubMappers'
 import { MY_REQUEST_TABS, REQUEST_STATUS_OPTIONS } from '../../data/mockData'
 import { useToast } from '../../components/common/notificationContext'
 
+const INVITATION_STATUS_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'accepted', label: 'Accepted' },
+  { value: 'rejected', label: 'Declined' },
+  { value: 'cancelled', label: 'Cancelled' },
+]
+
 function MyRequestsPage() {
   const showToast = useToast()
+  const [activeTab, setActiveTab] = useState('sent')
   const [requests, setRequests] = useState([])
+  const [invitations, setInvitations] = useState([])
   const [loading, setLoading] = useState(true)
   const [cancelTarget, setCancelTarget] = useState(null)
   const [detailTarget, setDetailTarget] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all')
   const [statusMenuOpen, setStatusMenuOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  const statusOptions =
+    activeTab === 'received' ? INVITATION_STATUS_OPTIONS : REQUEST_STATUS_OPTIONS
 
   useEffect(() => {
     let cancelled = false
 
-    async function loadRequests() {
+    async function loadData() {
       setLoading(true)
       try {
-        const response = await getMyJoinRequests({
-          status: statusFilter !== 'all' ? statusFilter : undefined,
-        })
-        if (!cancelled) {
-          setRequests((response.data || []).map((item) => mapJoinRequestFromApi(item)))
+        if (activeTab === 'sent') {
+          const response = await getMyJoinRequests({
+            status: statusFilter !== 'all' ? statusFilter : undefined,
+          })
+          if (!cancelled) {
+            setRequests((response.data || []).map((item) => mapJoinRequestFromApi(item)))
+          }
+        } else {
+          const myClubsResponse = await getMyClubs()
+          const memberships = myClubsResponse.data || []
+          const apiStatus = statusFilter !== 'all' ? statusFilter : undefined
+
+          const results = await Promise.all(
+            memberships.map(async (membership) => {
+              const clubId = membership.club_id?._id || membership.club_id
+              if (!clubId) return []
+              try {
+                const response = await getReceivedInvitations(clubId, { status: apiStatus })
+                return (response.data || []).map((item) => mapReceivedInvitationFromApi(item))
+              } catch (error) {
+                console.error(error)
+                return []
+              }
+            }),
+          )
+
+          if (!cancelled) {
+            setInvitations(results.flat())
+          }
         }
       } catch (error) {
         console.error(error)
-        if (!cancelled) setRequests([])
+        if (!cancelled) {
+          if (activeTab === 'sent') setRequests([])
+          else setInvitations([])
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
 
-    loadRequests()
+    loadData()
     return () => {
       cancelled = true
     }
-  }, [statusFilter])
+  }, [statusFilter, activeTab])
 
   const selectedStatus =
-    REQUEST_STATUS_OPTIONS.find((option) => option.value === statusFilter) || REQUEST_STATUS_OPTIONS[0]
-  const filteredRequests = requests
+    statusOptions.find((option) => option.value === statusFilter) || statusOptions[0]
+
+  const tabCounts = {
+    sent: requests.length,
+    received: invitations.length,
+  }
 
   async function handleConfirmCancel() {
     if (!cancelTarget) return
@@ -54,7 +106,6 @@ function MyRequestsPage() {
       await cancelJoinRequest(cancelTarget.id)
       setRequests((items) => items.filter((item) => item.id !== cancelTarget.id))
       setCancelTarget(null)
-      // Hiển thị thông báo cho chức năng hủy yêu cầu tham gia câu lạc bộ.
       showToast({
         type: 'success',
         title: 'Request cancelled',
@@ -70,22 +121,106 @@ function MyRequestsPage() {
     }
   }
 
-  async function handleViewDetails(item) {
+  async function handleViewRequestDetails(item) {
     try {
       const response = await getMyJoinRequestDetail(item.id)
-      setDetailTarget(mapJoinRequestFromApi(response.data))
+      setDetailTarget({ kind: 'request', data: mapJoinRequestFromApi(response.data) })
     } catch (error) {
       console.error(error)
-      setDetailTarget(item)
+      setDetailTarget({ kind: 'request', data: item })
     }
   }
 
-  function closeCancelModal() {
-    setCancelTarget(null)
+  async function handleViewInvitationDetails(item) {
+    try {
+      const response = await getReceivedInvitationDetail(item.clubId, item.id)
+      setDetailTarget({ kind: 'invitation', data: mapReceivedInvitationFromApi(response.data) })
+    } catch (error) {
+      console.error(error)
+      setDetailTarget({ kind: 'invitation', data: item })
+    }
   }
 
-  function closeDetailModal() {
+  async function handleAcceptInvitation(item) {
+    if (submitting || !item.clubId) return
+    setSubmitting(true)
+    try {
+      await acceptInvitation(item.clubId, item.id)
+      setInvitations((items) =>
+        items.map((invitation) =>
+          invitation.id === item.id
+            ? { ...invitation, status: 'accepted', rawStatus: 'accepted' }
+            : invitation,
+        ),
+      )
+      setDetailTarget((current) =>
+        current?.data?.id === item.id
+          ? {
+              kind: 'invitation',
+              data: { ...current.data, status: 'accepted', rawStatus: 'accepted' },
+            }
+          : current,
+      )
+      showToast({
+        type: 'success',
+        title: 'Invitation accepted',
+        message: `You accepted the invitation from ${item.club}.`,
+      })
+    } catch (error) {
+      console.error(error)
+      showToast({
+        type: 'error',
+        title: 'Accept failed',
+        message: error.message || 'Could not accept this invitation.',
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleRejectInvitation(item) {
+    if (submitting || !item.clubId) return
+    setSubmitting(true)
+    try {
+      await rejectInvitation(item.clubId, item.id)
+      setInvitations((items) =>
+        items.map((invitation) =>
+          invitation.id === item.id
+            ? { ...invitation, status: 'declined', rawStatus: 'rejected' }
+            : invitation,
+        ),
+      )
+      setDetailTarget((current) =>
+        current?.data?.id === item.id
+          ? {
+              kind: 'invitation',
+              data: { ...current.data, status: 'declined', rawStatus: 'rejected' },
+            }
+          : current,
+      )
+      showToast({
+        type: 'success',
+        title: 'Invitation declined',
+        message: `You declined the invitation from ${item.club}.`,
+      })
+    } catch (error) {
+      console.error(error)
+      showToast({
+        type: 'error',
+        title: 'Decline failed',
+        message: error.message || 'Could not decline this invitation.',
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  function handleTabChange(tabId) {
+    setActiveTab(tabId)
+    setStatusFilter('all')
+    setStatusMenuOpen(false)
     setDetailTarget(null)
+    setCancelTarget(null)
   }
 
   return (
@@ -97,8 +232,13 @@ function MyRequestsPage() {
         <div className="my-requests-toolbar">
           <div className="my-requests-tabs" aria-label="Request type">
             {MY_REQUEST_TABS.map((tab) => (
-              <button key={tab.id} type="button" className={tab.id === 'sent' ? 'is-active' : undefined}>
-                {tab.label} ({tab.count})
+              <button
+                key={tab.id}
+                type="button"
+                className={tab.id === activeTab ? 'is-active' : undefined}
+                onClick={() => handleTabChange(tab.id)}
+              >
+                {tab.label} ({tabCounts[tab.id] ?? tab.count})
               </button>
             ))}
           </div>
@@ -134,7 +274,7 @@ function MyRequestsPage() {
                     onClick={() => setStatusMenuOpen(false)}
                   />
                   <ul className="my-requests-select__menu" role="listbox">
-                    {REQUEST_STATUS_OPTIONS.map((option) => (
+                    {statusOptions.map((option) => (
                       <li key={option.value} role="none">
                         <button
                           type="button"
@@ -160,46 +300,110 @@ function MyRequestsPage() {
 
       <div className="my-requests-divider" aria-hidden="true" />
 
-      <section className="my-requests-grid" aria-label="Sent requests">
-        {loading ? <p>Loading requests...</p> : null}
-        {!loading
-          ? filteredRequests.map((item) => (
-          <article key={item.id} className="my-request-card">
-            <div className="my-request-card__header">
-              <div>
-                <h2>{item.club}</h2>
-                <span className="my-request-card__category">{item.category}</span>
-              </div>
-              <span className="my-request-card__status">{item.status}</span>
-            </div>
+      {activeTab === 'sent' ? (
+        <section className="my-requests-grid" aria-label="Sent requests">
+          {loading ? <p>Loading requests...</p> : null}
+          {!loading
+            ? requests.map((item) => (
+                <article key={item.id} className="my-request-card">
+                  <div className="my-request-card__header">
+                    <div>
+                      <h2>{item.club}</h2>
+                      <span className="my-request-card__category">{item.category}</span>
+                    </div>
+                    <span className="my-request-card__status">{item.status}</span>
+                  </div>
 
-            <dl className="my-request-card__meta">
-              <div>
-                <dt>Sent Date</dt>
-                <dd>{item.sentDate}</dd>
-              </div>
-            </dl>
+                  <dl className="my-request-card__meta">
+                    <div>
+                      <dt>Sent Date</dt>
+                      <dd>{item.sentDate}</dd>
+                    </div>
+                  </dl>
 
-            <div className="my-request-card__actions">
-              <button
-                type="button"
-                className="my-request-card__cancel"
-                onClick={() => setCancelTarget(item)}
-              >
-                Cancel Request
-              </button>
-              <button
-                type="button"
-                className="my-request-card__details"
-                onClick={() => handleViewDetails(item)}
-              >
-                View Details
-              </button>
-            </div>
-          </article>
-            ))
-          : null}
-      </section>
+                  <div className="my-request-card__actions">
+                    {item.status === 'pending' ? (
+                      <button
+                        type="button"
+                        className="my-request-card__cancel"
+                        onClick={() => setCancelTarget(item)}
+                      >
+                        Cancel Request
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="my-request-card__details"
+                      onClick={() => handleViewRequestDetails(item)}
+                    >
+                      View Details
+                    </button>
+                  </div>
+                </article>
+              ))
+            : null}
+          {!loading && !requests.length ? <p>No join requests found.</p> : null}
+        </section>
+      ) : (
+        <section className="my-requests-grid" aria-label="Received invitations">
+          {loading ? <p>Loading invitations...</p> : null}
+          {!loading
+            ? invitations.map((item) => (
+                <article key={`${item.clubId}-${item.id}`} className="my-request-card">
+                  <div className="my-request-card__header">
+                    <div>
+                      <h2>{item.club}</h2>
+                      <span className="my-request-card__category">{item.category}</span>
+                    </div>
+                    <span className="my-request-card__status">{item.status}</span>
+                  </div>
+
+                  <dl className="my-request-card__meta">
+                    <div>
+                      <dt>Sent Date</dt>
+                      <dd>{item.sentDate}</dd>
+                    </div>
+                    <div>
+                      <dt>Invited Role</dt>
+                      <dd>{item.role}</dd>
+                    </div>
+                  </dl>
+
+                  <div className="my-request-card__actions">
+                    {item.status === 'pending' ? (
+                      <>
+                        <button
+                          type="button"
+                          className="my-request-card__details"
+                          disabled={submitting}
+                          onClick={() => handleAcceptInvitation(item)}
+                        >
+                          Accept
+                        </button>
+                        <button
+                          type="button"
+                          className="my-request-card__cancel"
+                          disabled={submitting}
+                          onClick={() => handleRejectInvitation(item)}
+                        >
+                          Decline
+                        </button>
+                      </>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="my-request-card__details"
+                      onClick={() => handleViewInvitationDetails(item)}
+                    >
+                      View Details
+                    </button>
+                  </div>
+                </article>
+              ))
+            : null}
+          {!loading && !invitations.length ? <p>No invitations found.</p> : null}
+        </section>
+      )}
 
       {cancelTarget ? (
         <div className="request-cancel-modal" role="dialog" aria-modal="true" aria-labelledby="request-cancel-title">
@@ -207,7 +411,7 @@ function MyRequestsPage() {
             type="button"
             className="request-cancel-modal__backdrop"
             aria-label="Close confirmation"
-            onClick={closeCancelModal}
+            onClick={() => setCancelTarget(null)}
           />
           <section className="request-cancel-modal__panel">
             <h2 id="request-cancel-title">Confirm Request Cancellation</h2>
@@ -216,7 +420,11 @@ function MyRequestsPage() {
               <button type="button" className="request-cancel-modal__confirm" onClick={handleConfirmCancel}>
                 Confirm
               </button>
-              <button type="button" className="request-cancel-modal__dismiss" onClick={closeCancelModal}>
+              <button
+                type="button"
+                className="request-cancel-modal__dismiss"
+                onClick={() => setCancelTarget(null)}
+              >
                 Cancel
               </button>
             </div>
@@ -224,58 +432,141 @@ function MyRequestsPage() {
         </div>
       ) : null}
 
-      {detailTarget ? (
+      {detailTarget?.kind === 'request' ? (
         <div className="request-detail-modal" role="dialog" aria-modal="true" aria-labelledby="request-detail-title">
           <button
             type="button"
             className="request-detail-modal__backdrop"
             aria-label="Close request details"
-            onClick={closeDetailModal}
+            onClick={() => setDetailTarget(null)}
           />
           <section className="request-detail-modal__panel">
             <div className="request-detail-modal__header">
               <h2 id="request-detail-title">Request Details</h2>
-              <button type="button" onClick={closeDetailModal}>Close</button>
+              <button type="button" onClick={() => setDetailTarget(null)}>
+                Close
+              </button>
             </div>
 
             <div className="request-detail-modal__grid">
               <div className="request-detail-modal__item">
                 <span>Request ID</span>
-                <strong>{detailTarget.requestId}</strong>
+                <strong>{detailTarget.data.requestId}</strong>
               </div>
               <div className="request-detail-modal__item">
                 <span>Type</span>
-                <strong>{detailTarget.type}</strong>
+                <strong>{detailTarget.data.type}</strong>
               </div>
               <div className="request-detail-modal__item">
                 <span>Status</span>
-                <strong className="request-detail-modal__status">{detailTarget.status}</strong>
+                <strong className="request-detail-modal__status">{detailTarget.data.status}</strong>
               </div>
               <div className="request-detail-modal__item">
                 <span>Club</span>
-                <strong>{detailTarget.club}</strong>
+                <strong>{detailTarget.data.club}</strong>
               </div>
               <div className="request-detail-modal__item">
                 <span>Content</span>
-                <strong>{detailTarget.content}</strong>
+                <strong>{detailTarget.data.content}</strong>
               </div>
               <div className="request-detail-modal__item">
                 <span>Responder</span>
-                <strong>{detailTarget.responder}</strong>
+                <strong>{detailTarget.data.responder}</strong>
               </div>
               <div className="request-detail-modal__item">
                 <span>Sender</span>
-                <strong>{detailTarget.sender}</strong>
+                <strong>{detailTarget.data.sender}</strong>
               </div>
               <div className="request-detail-modal__item">
                 <span>Response Time</span>
-                <strong>{detailTarget.responseTime}</strong>
+                <strong>{detailTarget.data.responseTime}</strong>
               </div>
               <div className="request-detail-modal__item">
                 <span>Sent Date</span>
-                <strong>{detailTarget.sentTime} {detailTarget.sentDate}</strong>
+                <strong>
+                  {detailTarget.data.sentTime} {detailTarget.data.sentDate}
+                </strong>
               </div>
             </div>
+          </section>
+        </div>
+      ) : null}
+
+      {detailTarget?.kind === 'invitation' ? (
+        <div className="request-detail-modal" role="dialog" aria-modal="true" aria-labelledby="invitation-detail-title">
+          <button
+            type="button"
+            className="request-detail-modal__backdrop"
+            aria-label="Close invitation details"
+            onClick={() => setDetailTarget(null)}
+          />
+          <section className="request-detail-modal__panel">
+            <div className="request-detail-modal__header">
+              <h2 id="invitation-detail-title">Invitation Details</h2>
+              <button type="button" onClick={() => setDetailTarget(null)}>
+                Close
+              </button>
+            </div>
+
+            <div className="request-detail-modal__grid">
+              <div className="request-detail-modal__item">
+                <span>Invitation ID</span>
+                <strong>{detailTarget.data.invitationId}</strong>
+              </div>
+              <div className="request-detail-modal__item">
+                <span>Type</span>
+                <strong>{detailTarget.data.type}</strong>
+              </div>
+              <div className="request-detail-modal__item">
+                <span>Status</span>
+                <strong className="request-detail-modal__status">{detailTarget.data.status}</strong>
+              </div>
+              <div className="request-detail-modal__item">
+                <span>Club</span>
+                <strong>{detailTarget.data.club}</strong>
+              </div>
+              <div className="request-detail-modal__item">
+                <span>Message</span>
+                <strong>{detailTarget.data.content}</strong>
+              </div>
+              <div className="request-detail-modal__item">
+                <span>Invited Role</span>
+                <strong>{detailTarget.data.role}</strong>
+              </div>
+              <div className="request-detail-modal__item">
+                <span>Sent by</span>
+                <strong>{detailTarget.data.sender}</strong>
+              </div>
+              <div className="request-detail-modal__item">
+                <span>Response Time</span>
+                <strong>{detailTarget.data.responseTime}</strong>
+              </div>
+              <div className="request-detail-modal__item">
+                <span>Sent Date</span>
+                <strong>{detailTarget.data.sentDate}</strong>
+              </div>
+            </div>
+
+            {detailTarget.data.status === 'pending' ? (
+              <div className="request-cancel-modal__actions" style={{ marginTop: '1rem' }}>
+                <button
+                  type="button"
+                  className="request-cancel-modal__confirm"
+                  disabled={submitting}
+                  onClick={() => handleAcceptInvitation(detailTarget.data)}
+                >
+                  Accept
+                </button>
+                <button
+                  type="button"
+                  className="request-cancel-modal__dismiss"
+                  disabled={submitting}
+                  onClick={() => handleRejectInvitation(detailTarget.data)}
+                >
+                  Decline
+                </button>
+              </div>
+            ) : null}
           </section>
         </div>
       ) : null}

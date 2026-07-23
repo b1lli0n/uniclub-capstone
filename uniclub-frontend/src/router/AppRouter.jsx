@@ -46,6 +46,10 @@ function canManageClubMembers(clubId) {
   return getMembership(clubId)?.role?.toLowerCase() === 'leader'
 }
 
+function canManageClubInvitations(clubId) {
+  return getMembership(clubId)?.role?.toLowerCase() === 'secretary'
+}
+
 function canManageClubEvents(clubId) {
   const role = getMembership(clubId)?.role?.toLowerCase()
   return role === 'leader' || role === 'event management'
@@ -78,6 +82,7 @@ function ProtectedLayout({
   activeItem = null,
   clubId = null,
   canManageMembers = false,
+  canManageInvitations = false,
   canManageEvents = false,
   canManageSchedule = false,
   canViewFees = false,
@@ -163,6 +168,7 @@ function ProtectedLayout({
       onNavigate={handleNavigate}
       onLogout={handleLogout}
       canManageMembers={canManageMembers}
+      canManageInvitations={canManageInvitations}
       canManageEvents={canManageEvents}
       canManageSchedule={canManageSchedule}
       canViewFees={canViewFees}
@@ -243,6 +249,7 @@ function ClubRoute({ pageId, guard = 'member', children }) {
   const canViewFees = isMember
   const canManagePolls = role === 'secretary'
   const canManageFinance = role === 'treasurer'
+  const canManageInvitations = role === 'secretary'
 
   const isAllowed =
     guard === 'member'
@@ -252,7 +259,7 @@ function ClubRoute({ pageId, guard = 'member', children }) {
         : guard === 'event-manager'
           ? canManageEvents
           : guard === 'secretary'
-            ? canManageSchedule || canManagePolls
+            ? canManageSchedule || canManagePolls || canManageInvitations
             : guard === 'treasurer'
               ? canManageFinance
               : true
@@ -267,6 +274,7 @@ function ClubRoute({ pageId, guard = 'member', children }) {
       activeItem="clubs"
       clubId={clubId}
       canManageMembers={canManageMembers}
+      canManageInvitations={canManageInvitations}
       canManageEvents={canManageEvents}
       canManageSchedule={canManageSchedule}
       canViewFees={canViewFees}
@@ -317,7 +325,7 @@ function ClubJoinRequestsRoute() {
 
 function ClubInvitationsRoute() {
   return (
-    <ClubRoute pageId="invitations" guard="leader">
+    <ClubRoute pageId="invitations" guard="secretary">
       {({ clubId }) => <ClubInvitationsPage clubId={clubId} />}
     </ClubRoute>
   )

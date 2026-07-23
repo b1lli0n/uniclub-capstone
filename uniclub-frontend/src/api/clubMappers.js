@@ -114,6 +114,94 @@ export function mapPresidentJoinRequestFromApi(request, formQuestions = []) {
   }
 }
 
+function getInitials(name = '') {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+function formatDateTime(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+/** BE uses rejected; UI label/CSS uses declined */
+export function toInvitationUiStatus(status = '') {
+  return status === 'rejected' ? 'declined' : status
+}
+
+export function toInvitationApiStatus(status = '') {
+  return status === 'declined' ? 'rejected' : status
+}
+
+/** Map invitation for ClubInvitationsPage (secretary UI) */
+export function mapClubInvitationFromApi(invitation) {
+  const recipient = invitation.invited_user_id || {}
+  const sender = invitation.invited_by || {}
+  const name = recipient.full_name || 'Unknown'
+  const rawStatus = invitation.status || 'pending'
+
+  return {
+    id: invitation._id,
+    clubId: invitation.club_id?._id || invitation.club_id,
+    recipientId: recipient._id || '',
+    recipientName: name,
+    recipientEmail: recipient.email || '',
+    recipientMeta: invitation.role ? formatRoleLabel(invitation.role) : '',
+    initials: getInitials(name) || 'NA',
+    status: toInvitationUiStatus(rawStatus),
+    rawStatus,
+    message: invitation.message || '',
+    role: invitation.role || 'member',
+    sentAt: formatDateTime(invitation.created_at),
+    expiresAt: '-',
+    respondedAt: invitation.updated_at && rawStatus !== 'pending'
+      ? formatDateTime(invitation.updated_at)
+      : undefined,
+    sentBy: sender.full_name || '-',
+  }
+}
+
+/** Map received invitation for MyRequestsPage (member UI) */
+export function mapReceivedInvitationFromApi(invitation) {
+  const club = invitation.club_id || {}
+  const sender = invitation.invited_by || {}
+  const rawStatus = invitation.status || 'pending'
+
+  return {
+    id: invitation._id,
+    invitationId: invitation._id,
+    club: club.name || '',
+    clubId: club._id || invitation.club_id || '',
+    category: (club.category || '').toUpperCase(),
+    status: toInvitationUiStatus(rawStatus),
+    rawStatus,
+    sentDate: formatDate(invitation.created_at),
+    type: 'Club Invitation',
+    content: invitation.message || 'You are invited to join this club.',
+    responder: '-',
+    sender: sender.full_name || '-',
+    responseTime:
+      invitation.updated_at && rawStatus !== 'pending'
+        ? formatDate(invitation.updated_at)
+        : '-',
+    sentTime: '',
+    role: formatRoleLabel(invitation.role || 'member'),
+  }
+}
+
 const ADMIN_ROLE_TO_BE = {
   Leader: 'president',
   'Vice leader': 'president',

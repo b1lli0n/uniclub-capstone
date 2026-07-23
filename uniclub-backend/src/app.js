@@ -3,6 +3,9 @@ const cors = require("cors");
 const morgan = require("morgan");
 const path = require("path");
 
+const { getHealth } = require("./controllers/health.controller");
+const memberInvitationManagementRoutes = require("./routes/member/invitationManagement.routes");
+const secretaryInvitationManagementRoutes = require("./routes/secretary/invitationManagement.routes");
 const passport = require("passport");
 const cookieParser = require("cookie-parser");
 
@@ -14,6 +17,8 @@ const profileRoutes = require("./routes/profile.routes");
 const eventRoutes = require("./routes/event.routes");
 const feedbackManagementRoutes = require("./routes/student/feedbackManagement.routes");
 const rewardManagementRoutes = require("./routes/rewardManagement.route");
+const memberInvitationManagementRoutes = require("./routes/member/invitationManagement.routes");
+const secretaryInvitationManagementRoutes = require("./routes/secretary/invitationManagement.routes");
 
 require("./config/passport");
 
@@ -75,7 +80,8 @@ app.use("/api/president/reward-management", rewardManagementRoutes);
 app.use("/api/payment", memberPaymentRoutes);
 app.use("/api/member/payment", memberPaymentRoutes);
 app.use("/api/treasurer/transaction-management", treasurerTransactionManagementRoutes);
-
+app.use("/api/member/invitation-management", memberInvitationManagementRoutes);
+app.use("/api/secretary/invitation-management", secretaryInvitationManagementRoutes);
 
 app.get("/", (req, res) => {
   return res.status(200).json({
