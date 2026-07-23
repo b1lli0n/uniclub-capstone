@@ -17,6 +17,7 @@ function HomeLayout({
   canManageEvents = false,
   canManageSchedule = false,
   canViewFees = false,
+  canManagePolls = false,
   canManageFinance = false,
 }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -60,6 +61,7 @@ function HomeLayout({
   return (
     <div className="home-shell">
       <HomeSidebar activeItem={activeItem} onNavigate={onNavigate} onLogout={onLogout} />
+
       <div ref={mainRef} className={`home-shell__main home-shell__main--${pageId}`}>
         <div className="home-layout-topbar-container">
           <header className="home-topbar">
@@ -68,12 +70,19 @@ function HomeLayout({
               className="home-topbar__brand"
               onClick={() => onNavigate?.('home')}
             >
-              <img src={fptUniversityLogo} alt="FPT University" className="home-topbar__brand-logo" />
+              <img
+                src={fptUniversityLogo}
+                alt="FPT University"
+                className="home-topbar__brand-logo"
+              />
               <span>UniClub</span>
             </button>
 
             <div className="home-topbar__center">
-              {activeItem !== 'clubs' && activeItem !== 'events' && pageId !== 'profile' && pageId !== 'create-club' && (
+              {activeItem !== 'clubs' &&
+              activeItem !== 'events' &&
+              pageId !== 'profile' &&
+              pageId !== 'create-club' ? (
                 <div className="home-search">
                   <span className="home-search__icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -81,9 +90,13 @@ function HomeLayout({
                       <path d="M20 20l-3-3" strokeLinecap="round" />
                     </svg>
                   </span>
-                  <input type="search" placeholder="Tìm kiếm tại đây" aria-label="Tìm kiếm" />
+                  <input
+                    type="search"
+                    placeholder="Tìm kiếm tại đây"
+                    aria-label="Tìm kiếm"
+                  />
                 </div>
-              )}
+              ) : null}
             </div>
 
             <div className="home-topbar__actions">
@@ -93,10 +106,16 @@ function HomeLayout({
                   className="home-user-menu"
                   onClick={() => setUserMenuOpen((prev) => !prev)}
                 >
-                  <span className="home-user-menu__avatar" style={avatarStyle} aria-hidden="true">
+                  <span
+                    className="home-user-menu__avatar"
+                    style={avatarStyle}
+                    aria-hidden="true"
+                  >
                     {currentUser?.avatarUrl ? null : userInitial}
                   </span>
+
                   <span className="home-user-menu__name">{userName}</span>
+
                   <button
                     type="button"
                     className="home-user-menu__caret-btn"
@@ -115,6 +134,7 @@ function HomeLayout({
                     </span>
                   </button>
                 </div>
+
                 <HomeUserMenuDropdown
                   open={userMenuOpen}
                   onClose={() => setUserMenuOpen(false)}
@@ -125,6 +145,7 @@ function HomeLayout({
             </div>
           </header>
         </div>
+
         <div className="home-layout-content">
           {children}
         </div>
@@ -132,6 +153,8 @@ function HomeLayout({
         {pageId === 'club-detail' ||
         pageId === 'club-ranking' ||
         pageId === 'member-approval' ||
+        pageId === 'invitations' ||
+        pageId === 'polls' ||
         pageId === 'join-form' ||
         pageId === 'manage-events' ||
         pageId === 'attendance' ||
@@ -142,6 +165,7 @@ function HomeLayout({
         pageId === 'rewards' ? (
           <>
             <div className="home-bottom-dock-spacer" aria-hidden="true" />
+
             <HomeBottomDock
               pageId={pageId}
               onNavigate={onNavigate}
@@ -149,6 +173,7 @@ function HomeLayout({
               canManageEvents={canManageEvents}
               canManageSchedule={canManageSchedule}
               canViewFees={canViewFees}
+              canManagePolls={canManagePolls}
               canManageFinance={canManageFinance}
             />
           </>
@@ -159,18 +184,26 @@ function HomeLayout({
           onViewAll={onNavigate}
         />
 
-        {showScrollTop && (
+        {showScrollTop ? (
           <button
             type="button"
             className="scroll-to-top-btn"
             onClick={handleScrollTop}
             aria-label="Cuộn lên đầu trang"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
               <polyline points="18 15 12 9 6 15" />
             </svg>
           </button>
-        )}
+        ) : null}
       </div>
     </div>
   )

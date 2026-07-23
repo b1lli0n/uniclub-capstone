@@ -28,6 +28,7 @@ const eventManagerRoutes = require("./routes/eventManager/eventManagement.routes
 const memberActivityScheduleRoutes = require("./routes/member/activitySchedule.routes");
 const secretaryActivityScheduleRoutes = require("./routes/secretary/activitySchedule.routes");
 const memberPaymentRoutes = require("./routes/member/payment.routes");
+const treasurerTransactionManagementRoutes = require("./routes/treasurer/transactionManagement.routes");
 
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
@@ -73,6 +74,7 @@ app.use("/api/secretary/clubs/:clubId/activity-schedule",secretaryActivitySchedu
 app.use("/api/president/reward-management", rewardManagementRoutes);
 app.use("/api/payment", memberPaymentRoutes);
 app.use("/api/member/payment", memberPaymentRoutes);
+app.use("/api/treasurer/transaction-management", treasurerTransactionManagementRoutes);
 
 
 app.get("/", (req, res) => {

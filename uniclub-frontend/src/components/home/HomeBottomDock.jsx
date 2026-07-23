@@ -18,7 +18,7 @@ const dockItems = [
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
         <path d="M8 21h8M12 17v4" strokeLinecap="round" />
         <path d="M7 4h10v4a5 5 0 0 1-10 0V4Z" strokeLinejoin="round" />
-        <path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 0-3 3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -78,6 +78,28 @@ const dockItems = [
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" strokeLinecap="round" />
         <circle cx="9" cy="7" r="4" />
         <path d="m17 11 2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    id: 'invitations',
+    label: 'Invitations',
+    access: 'member-management',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="m4 7 8 6 8-6M16.5 3v4M14.5 5h4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    id: 'polls',
+    label: 'Polls',
+    access: 'poll-management',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+        <path d="M5 20V10M12 20V4M19 20v-7" strokeLinecap="round" />
+        <path d="M3 20h18" strokeLinecap="round" />
       </svg>
     ),
   },
@@ -153,6 +175,7 @@ function HomeBottomDock({
   canViewFees = false,
   canManageFinance = false,
   canManageSchedule = false,
+  canManagePolls = false,
 }) {
   const visibleDockItems = dockItems.filter((item) => {
     if (item.access === 'member-management') return canManageMembers
@@ -160,6 +183,7 @@ function HomeBottomDock({
     if (item.access === 'schedule-management') return canManageSchedule
     if (item.access === 'member') return canViewFees
     if (item.access === 'finance-management') return canManageFinance
+    if (item.access === 'poll-management') return canManagePolls
     return true
   })
 
@@ -178,6 +202,10 @@ function HomeBottomDock({
       onNavigate?.('manage-activity-schedule')
     } else if (itemId === 'member-approval') {
       onNavigate?.('member-approval')
+    } else if (itemId === 'invitations') {
+      onNavigate?.('invitations')
+    } else if (itemId === 'polls') {
+      onNavigate?.('polls')
     } else if (itemId === 'join-form') {
       onNavigate?.('join-form')
     } else if (itemId === 'manage-events') {
@@ -199,6 +227,8 @@ function HomeBottomDock({
     if (itemId === 'activity-schedule') return pageId === 'activity-schedule'
     if (itemId === 'manage-activity-schedule') return pageId === 'manage-activity-schedule'
     if (itemId === 'member-approval') return pageId === 'member-approval'
+    if (itemId === 'invitations') return pageId === 'invitations'
+    if (itemId === 'polls') return pageId === 'polls'
     if (itemId === 'join-form') return pageId === 'join-form'
     if (itemId === 'manage-events') return pageId === 'manage-events'
     if (itemId === 'attendance') return pageId === 'attendance'
