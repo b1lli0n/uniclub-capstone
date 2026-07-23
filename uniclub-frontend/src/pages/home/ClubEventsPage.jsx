@@ -36,6 +36,7 @@ function mapEventFromApi(apiEvent) {
     checkinOpen: apiEvent.check_in_status === 'open',
     categoryLabel: category.toUpperCase(),
     gradient: CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.academic,
+    imageUrl: apiEvent.media_uris?.[0] || '',
   }
 }
 
@@ -196,9 +197,13 @@ function ClubEventsPage() {
       <section className="club-events-list" aria-label={`${club.name} events`}>
         {visibleEvents.map((event) => (
           <article key={event.id} className="club-events-card">
-            <div className="club-events-card__media" style={{ '--event-gradient': event.gradient }}>
-              <CalendarIcon />
-              <span>{event.categoryLabel}</span>
+            <div className="club-events-card__media" style={{ '--event-gradient': event.gradient, position: 'relative', overflow: 'hidden' }}>
+              {event.imageUrl ? (
+                <img src={event.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }} />
+              ) : (
+                <CalendarIcon />
+              )}
+              <span style={{ position: 'relative', zIndex: 1 }}>{event.categoryLabel}</span>
             </div>
 
             <div className="club-events-card__body">

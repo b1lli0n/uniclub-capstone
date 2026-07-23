@@ -146,6 +146,7 @@ function mapEventFromApi(apiEvent) {
     isRegistered: apiEvent.isRegistered || false,
     registrationStatus: apiEvent.registrationStatus || null,
     registrationId: apiEvent.registrationId || null,
+    imageUrl: apiEvent.media_uris?.[0] || '',
   }
 }
 
@@ -851,8 +852,11 @@ function EventDetailPage() {
           </main>
 
           <aside className="event-detail-register-card">
-            <div className="event-detail-visual" style={{ '--event-gradient': event.gradient || 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)' }}>
-              <span>{event.categoryLabel}</span>
+            <div className="event-detail-visual" style={{ '--event-gradient': event.gradient || 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)', position: 'relative', overflow: 'hidden' }}>
+              {event.imageUrl ? (
+                <img src={event.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }} />
+              ) : null}
+              <span style={{ position: 'relative', zIndex: 1 }}>{event.categoryLabel}</span>
             </div>
 
             <div className="event-detail-register-grid">
@@ -956,8 +960,11 @@ function EventDetailPage() {
             </header>
 
             <div className="event-ticket__body">
-              <div className="event-ticket__poster" style={{ '--event-gradient': event.gradient || 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)' }}>
-                <span>{event.categoryLabel}</span>
+              <div className="event-ticket__poster" style={{ '--event-gradient': event.gradient || 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)', position: 'relative', overflow: 'hidden' }}>
+                {event.imageUrl ? (
+                  <img src={event.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }} />
+                ) : null}
+                <span style={{ position: 'relative', zIndex: 1 }}>{event.categoryLabel}</span>
               </div>
 
               <div className="event-ticket__info">

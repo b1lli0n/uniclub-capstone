@@ -31,6 +31,7 @@ function mapEventFromApi(apiEvent) {
     participants: apiEvent.capacity || 0,
     gradient: CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.academic,
     status: apiEvent.status || 'coming soon',
+    imageUrl: apiEvent.media_uris?.[0] || '',
   }
 }
 
@@ -152,7 +153,10 @@ function EventCard({ event, onSelect }) {
       onKeyDown={handleKeyDown}
     >
       <div className="clubs-card__media events-card__media" style={{ '--event-gradient': event.gradient }}>
-        <span className="clubs-card__badge">{event.categoryLabel}</span>
+        {event.imageUrl ? (
+          <img src={event.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }} />
+        ) : null}
+        <span className="clubs-card__badge" style={{ position: 'relative', zIndex: 1 }}>{event.categoryLabel}</span>
         <span className={`event-status-badge status-${event.status}`} style={{
           position: 'absolute',
           top: '0.75rem',

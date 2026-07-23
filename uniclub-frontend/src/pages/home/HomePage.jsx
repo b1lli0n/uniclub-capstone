@@ -48,6 +48,7 @@ function HomePage({ onCreateClub, onSelectClub, onSelectEvent, onViewAll }) {
               id: event._id || event.id,
               title: event.title,
               description: event.description,
+              imageUrl: event.media_uris?.[0] || '',
             }
           })
           setEvents(mapped)
