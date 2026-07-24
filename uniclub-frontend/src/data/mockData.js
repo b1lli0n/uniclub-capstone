@@ -1119,6 +1119,7 @@ export const POINT_RULES = [
 export const ADMIN_NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
   { id: 'registrations', label: 'Registrations', icon: 'registrations' },
+  { id: 'event-requests', label: 'Event Requests', icon: 'notifications' },
   { id: 'clubs', label: 'Club Management', icon: 'clubs' },
 ]
 

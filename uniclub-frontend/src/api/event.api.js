@@ -46,6 +46,29 @@ export function getClubEventsForMember(clubId) {
 }
 
 /**
+ * View Club Events for Event Manager (lấy cả draft và completed)
+ * GET /api/event-manager/event-management/:clubId/events
+ */
+export async function getClubEventsForManager(clubId) {
+  const res = await apiRequest(`/event-manager/event-management/${clubId}/events`)
+  if (res.data && !Array.isArray(res.data)) {
+    res.data = [...(res.data.completed || []), ...(res.data.draft || [])]
+  }
+  return res
+}
+
+/**
+ * Update Managed Event (Publish/Edit Draft)
+ * PATCH /api/event-manager/event-management/:clubId/events/:eventId
+ */
+export function updateManagedEvent(clubId, eventId, payload) {
+  return apiRequest(`/event-manager/event-management/${clubId}/events/${eventId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
+/**
  * View My Registrations (xem các sự kiện đã đăng ký tham gia của cá nhân)
  * GET /api/events/my-registrations
  */

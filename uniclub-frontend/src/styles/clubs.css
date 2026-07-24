@@ -1857,6 +1857,16 @@
   color: #ffffff;
 }
 
+.clubs-pagination__dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  color: #6b5a4a;
+  font-size: 1rem;
+}
+
 @media (max-width: 1100px) {
   .clubs-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));

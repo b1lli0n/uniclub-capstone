@@ -29,8 +29,19 @@ function AuthCallbackPage() {
 
     if (token) {
       localStorage.setItem('token', token)
+      
+      let redirectUrl = '/'
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        if (payload.role === 'student_affairs') {
+          redirectUrl = '/admin'
+        }
+      } catch (error) {
+        console.error('Failed to parse token', error)
+      }
+
       setTimeout(() => {
-        window.location.href = '/'
+        window.location.href = redirectUrl
       }, 1800)
     } else {
       setTimeout(() => {

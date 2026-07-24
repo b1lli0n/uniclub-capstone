@@ -3,7 +3,8 @@ import { ALL_CLUBS, ALL_EVENTS, EVENT_TIMELINES, MY_CLUB_MEMBERSHIPS } from '../
 import '../../styles/club-event-management.css'
 import { getClubById } from '../../api/club.api'
 import { getMyClubs } from '../../api/memberClubMembership.api'
-import { getClubEventsForMember } from '../../api/event.api'
+import { getClubEventsForManager, updateManagedEvent } from '../../api/event.api'
+import { createEventRequest } from '../../api/eventRequest.api'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 
 
@@ -92,6 +93,7 @@ function createEmptyDraft(clubId) {
     startAt: '',
     endAt: '',
     imageUrl: '',
+    approvalDocumentUrl: '',
     gradient: 'linear-gradient(135deg, #fff1de 0%, #ffce96 100%)',
     updatedAt: new Date().toLocaleDateString('en-GB'),
   }
@@ -175,7 +177,7 @@ function mapEventFromApi(apiEvent) {
     location: apiEvent.location || 'Campus',
     participants: apiEvent.max_participants || 30,
     visibility: apiEvent.is_public ? 'public' : 'private',
-    publicationStatus: 'complete',
+    publicationStatus: apiEvent.progress_status === 'draft' ? 'draft' : 'complete',
     lifecycleStatus: apiEvent.status || 'active',
     startAt: formatForInput(apiEvent.start_time),
     endAt: formatForInput(apiEvent.end_time),
@@ -406,7 +408,7 @@ function ClubEventManagementPage({ clubId }) {
         setMembership(userMembership || null)
 
         // Try to load events from backend or fall back to mock events
-        const eventsRes = await getClubEventsForMember(clubId).catch(() => ({ data: [] }))
+        const eventsRes = await getClubEventsForManager(clubId).catch(() => ({ data: [] }))
         if (!active) return
         let fetchedEvents = []
         if (eventsRes.data && eventsRes.data.length > 0) {
@@ -483,41 +485,54 @@ function ClubEventManagementPage({ clubId }) {
     }))
   }
 
-  function submitEvent(eventSubmit) {
+  async function submitEvent(eventSubmit) {
     eventSubmit.preventDefault()
-    const nextEvent = {
-      ...draft,
-      id: draft.id || `club-event-${activeClub.id}-${Date.now()}`,
-      clubId: activeClub.id,
-
-      name: draft.name.trim(),
-      description: draft.description.trim(),
-      details: draft.details.trim(),
-      category: draft.category.trim().toLowerCase() || 'community',
-      categoryLabel: draft.category.trim().toUpperCase() || 'COMMUNITY',
-      location: draft.location.trim(),
-      participants: Number(draft.participants) || 30,
-      updatedAt: new Date().toLocaleDateString('en-GB'),
+    
+    if (editorMode === 'create' && !draft.approvalDocumentUrl) {
+      showToast({ type: 'error', title: 'Error', message: 'Approval document is required for new events' })
+      return
     }
 
-    setEvents((items) => {
-      if (editorMode === 'update') {
-        return items.map((item) => (item.id === nextEvent.id ? nextEvent : item))
-      }
+    const payload = {
+      title: draft.name.trim(),
+      description: draft.description.trim(),
+      content: draft.details.trim(),
+      category: draft.category.trim().toLowerCase() || 'community',
+      location: draft.location.trim(),
+      start_time: draft.startAt,
+      end_time: draft.endAt,
+      capacity: Number(draft.participants) || 30,
+      is_public: draft.visibility === 'public',
+      progress_status: draft.publicationStatus === 'draft' ? 'draft' : 'completed',
+      approval_document_url: draft.approvalDocumentUrl,
+    }
 
-      return [nextEvent, ...items]
-    })
-    setActiveStatus(nextEvent.publicationStatus)
-    setDetailEvent((current) => (current?.id === nextEvent.id ? nextEvent : current))
-    closeEditor()
-    // Hiển thị thông báo cho chức năng tạo hoặc cập nhật sự kiện.
-    showToast({
-      type: 'success',
-      title: editorMode === 'update' ? 'Event updated' : 'Event created',
-      message: editorMode === 'update'
-        ? 'The event information has been updated.'
-        : 'A new event has been created.',
-    })
+    if (draft.imageUrl) {
+      payload.media_uris = [draft.imageUrl]
+    }
+
+    try {
+      if (editorMode === 'create') {
+        await createEventRequest(clubId || activeClub._id || activeClub.id, payload)
+        showToast({
+          type: 'success',
+          title: 'Event Request Submitted',
+          message: 'Your event creation request has been submitted to Admin for approval.',
+        })
+      } else {
+        // Handle update
+        await updateManagedEvent(clubId || activeClub._id || activeClub.id, draft.id, payload)
+        showToast({
+          type: 'success',
+          title: 'Event updated',
+          message: 'The event information has been updated.',
+        })
+        window.location.reload()
+      }
+      closeEditor()
+    } catch (error) {
+      showToast({ type: 'error', title: 'Error', message: error.message || 'Failed to submit event' })
+    }
   }
 
   async function cancelEvent(eventId) {
@@ -943,6 +958,19 @@ function ClubEventManagementPage({ clubId }) {
                   placeholder="Paste image link here..."
                 />
               </label>
+
+              {editorMode === 'create' && (
+                <label className="club-event-management-field club-event-management-field--full">
+                  <span>Approval Document URL (Word/PDF) *</span>
+                  <input
+                    type="url"
+                    value={draft.approvalDocumentUrl || ''}
+                    onChange={(event) => updateDraft('approvalDocumentUrl', event.target.value)}
+                    placeholder="Link to document (e.g. Google Drive)"
+                    required
+                  />
+                </label>
+              )}
             </div>
 
             <div className="club-event-management-editor__actions">

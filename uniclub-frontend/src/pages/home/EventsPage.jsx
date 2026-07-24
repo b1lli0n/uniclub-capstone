@@ -156,7 +156,7 @@ function EventCard({ event, onSelect }) {
         {event.imageUrl ? (
           <img src={event.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }} />
         ) : null}
-        <span className="clubs-card__badge" style={{ position: 'relative', zIndex: 1 }}>{event.categoryLabel}</span>
+        <span className="clubs-card__badge" style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', right: 'auto', zIndex: 1 }}>{event.categoryLabel}</span>
         <span className={`event-status-badge status-${event.status}`} style={{
           position: 'absolute',
           top: '0.75rem',
@@ -260,6 +260,8 @@ function EventsPage() {
 
     if (statusFilter !== 'all') {
       result = result.filter((event) => event.status === statusFilter)
+    } else {
+      result = result.filter((event) => event.status !== 'closed' && event.status !== 'cancelled')
     }
 
     const query = search.trim().toLowerCase()
@@ -301,6 +303,24 @@ function EventsPage() {
     setStatusFilter(val)
     setPage(1)
   }
+
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    if (totalPages <= 6) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        pageNumbers.push(1, 2, 3, 4, '...', totalPages - 2, totalPages - 1, totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pageNumbers.push(1, 2, 3, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pageNumbers.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+      }
+    }
+    return pageNumbers;
+  };
 
   return (
     <div className="clubs-page events-page">
@@ -397,17 +417,26 @@ function EventsPage() {
             >
               <ChevronIcon direction="left" />
             </button>
-            {Array.from({ length: totalPages }, (_, index) => index + 1).map((number) => (
-              <button
-                key={number}
-                type="button"
-                className={`clubs-pagination__btn clubs-pagination__btn--num${number === currentPage ? ' is-active' : ''}`}
-                onClick={() => setPage(number)}
-                aria-current={number === currentPage ? 'page' : undefined}
-              >
-                {number}
-              </button>
-            ))}
+            {getPageNumbers().map((number, idx) => {
+              if (number === '...') {
+                return (
+                  <span key={`dots-${idx}`} className="clubs-pagination__dots">
+                    ...
+                  </span>
+                );
+              }
+              return (
+                <button
+                  key={number}
+                  type="button"
+                  className={`clubs-pagination__btn clubs-pagination__btn--num${number === currentPage ? ' is-active' : ''}`}
+                  onClick={() => setPage(number)}
+                  aria-current={number === currentPage ? 'page' : undefined}
+                >
+                  {number}
+                </button>
+              );
+            })}
             <button
               type="button"
               className="clubs-pagination__btn"

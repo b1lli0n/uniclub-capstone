@@ -5,6 +5,7 @@ import '../../styles/admin-dashboard.css'
 import { ADMIN_ACTIVE_CLUBS, ADMIN_NAV_ITEMS, ADMIN_REGISTRATION_REQUESTS } from '../../data/mockData'
 import fptUniversityLogo from '../../assets/Logo-Dai-hoc-FPT.webp'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
+import AdminEventRequestsTab from './AdminEventRequestsTab'
 
 const ADMIN_SORT_OPTIONS = [
   { value: 'newest', label: 'Newest date' },
@@ -295,20 +296,10 @@ function AdminDashboardPage({ onLogout }) {
   }, [openRoleDropdown])
 
   function handleAdminNavigate(itemId) {
-    if (itemId === 'registrations') {
-      setActiveView('registrations')
-      setDetailRequest(null)
-      setSelectedActiveClub(null)
-      setIsManagingMembers(false)
-      return
-    }
-
-    if (itemId === 'clubs') {
-      setActiveView('clubs')
-      setDetailRequest(null)
-      setSelectedActiveClub(null)
-      setIsManagingMembers(false)
-    }
+    setActiveView(itemId)
+    setDetailRequest(null)
+    setSelectedActiveClub(null)
+    setIsManagingMembers(false)
   }
 
   async function handleDeleteClub(clubId) {
@@ -781,7 +772,9 @@ function AdminDashboardPage({ onLogout }) {
         <AdminTopbar />
 
         <section className="admin-page">
-          {activeView === 'clubs' ? renderClubManagement() : detailRequest ? (
+          {activeView === 'event-requests' ? (
+            <AdminEventRequestsTab />
+          ) : activeView === 'clubs' ? renderClubManagement() : detailRequest ? (
             <div className="admin-detail-card">
               <div className="admin-detail-header">
                 <button
