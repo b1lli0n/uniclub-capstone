@@ -11,6 +11,10 @@ export function getEventRequests(params) {
   return apiRequest(`/event-requests${toQueryString(params)}`)
 }
 
+export function getMyEventRequests(params) {
+  return apiRequest(`/event-requests/my-requests${toQueryString(params)}`)
+}
+
 export function getEventRequestDetail(requestId) {
   return apiRequest(`/event-requests/${requestId}`)
 }

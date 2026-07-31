@@ -1,4 +1,7 @@
 import { apiRequest, toQueryString } from './api'
+import { getMyClubs } from './memberClubMembership.api'
+
+export const getStudentClubMemberships = getMyClubs
 
 /** View Join Request Status (list) */
 export function getMyJoinRequests(params) {

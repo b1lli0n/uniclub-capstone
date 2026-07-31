@@ -31,6 +31,7 @@ import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 import ClubFeesPage from '../pages/home/ClubFeesPage'
 import ClubReceiptDetailPage from '../pages/home/ClubReceiptDetailPage'
 import PaymentReturnPage from '../pages/auth/PaymentReturnPage'
+import ApiTestPage from '../pages/ApiTestPage'
 
 
 import { CURRENT_USER, MY_CLUB_MEMBERSHIPS } from '../data/mockData'
@@ -611,6 +612,8 @@ function AppRouter() {
           />
         }
       />
+
+      <Route path="/test-api" element={<ApiTestPage />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -21,6 +21,13 @@ router.get(
   eventRequestController.getEventRequests
 );
 
+// User: Get my own event creation requests
+router.get(
+  "/my-requests",
+  verifyToken,
+  eventRequestController.getMyEventRequests
+);
+
 // Admin: Get detail of an event request
 router.get(
   "/:requestId",

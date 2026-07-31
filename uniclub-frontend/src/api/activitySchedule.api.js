@@ -6,6 +6,8 @@ export function getClubActivitySchedule(clubId, params) {
   )
 }
 
+export const getClubActivities = getClubActivitySchedule
+
 export function getActivityScheduleDetail(clubId, activityId) {
   return apiRequest(`/member/clubs/${clubId}/activity-schedule/${activityId}`)
 }

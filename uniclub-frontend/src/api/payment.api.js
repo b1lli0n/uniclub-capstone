@@ -10,6 +10,8 @@ export function getFeeList(clubId, params = {}) {
   })
 }
 
+export const getStudentClubFees = getFeeList
+
 export function createPaymentUrl(data) {
   return apiRequest('/payment/create-payment-url', {
     method: 'POST',

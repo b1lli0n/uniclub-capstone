@@ -131,6 +131,22 @@ const getEventRequests = async (req, res, next) => {
   }
 };
 
+const getMyEventRequests = async (req, res, next) => {
+  try {
+    const requests = await EventCreationRequest.find({ requested_by: req.user.id })
+      .populate("club_id", "name logo_url")
+      .sort({ created_at: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      data: requests,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getEventRequestDetail = async (req, res, next) => {
   try {
     const { requestId } = req.params;
@@ -255,6 +271,7 @@ const rejectEventRequest = async (req, res, next) => {
 module.exports = {
   createEventRequest,
   getEventRequests,
+  getMyEventRequests,
   getEventRequestDetail,
   approveEventRequest,
   rejectEventRequest,

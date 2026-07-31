@@ -48,3 +48,23 @@ export function reviewClubCreationRequest(requestId, payload) {
     body: JSON.stringify(payload),
   })
 }
+
+/** View Club Point Rules (President) */
+export function getPointRules(clubId, params) {
+  return apiRequest(`/president/clubs/${clubId}/point-rules${toQueryString(params)}`)
+}
+
+/** View Member Leaderboard */
+export function getLeaderboard(clubId, params) {
+  return apiRequest(`/member/clubs-membership/${clubId}/points/leaderboard${toQueryString(params)}`)
+}
+
+/** View Club Members */
+export function getClubMembers(clubId, params) {
+  return apiRequest(`/club-management/${clubId}/members${toQueryString(params)}`)
+}
+
+/** View Club Join Requests (President) */
+export function getClubJoinRequests(clubId, params) {
+  return apiRequest(`/president/clubs/${clubId}/join-requests${toQueryString(params)}`)
+}
