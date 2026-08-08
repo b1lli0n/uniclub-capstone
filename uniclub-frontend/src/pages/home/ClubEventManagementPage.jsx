@@ -3,7 +3,7 @@ import { ALL_CLUBS, ALL_EVENTS, EVENT_TIMELINES, MY_CLUB_MEMBERSHIPS } from '../
 import '../../styles/club-event-management.css'
 import { getClubById } from '../../api/club.api'
 import { getMyClubs } from '../../api/memberClubMembership.api'
-import { getClubEventsForManager, updateManagedEvent } from '../../api/event.api'
+import { getClubEventsForManager, updateManagedEvent, getEventTimelines, createEventTimeline, updateEventTimeline, deleteEventTimeline } from '../../api/event.api'
 import { createEventRequest } from '../../api/eventRequest.api'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 
@@ -384,7 +384,7 @@ function ClubEventManagementPage({ clubId }) {
   const [detailEvent, setDetailEvent] = useState(null)
   const [editorMode, setEditorMode] = useState(null)
   const [draft, setDraft] = useState(() => createEmptyDraft(clubId))
-  const [timelines, setTimelines] = useState(EVENT_TIMELINES)
+  const [detailEventTimelines, setDetailEventTimelines] = useState([])
   const [timelineModalOpen, setTimelineModalOpen] = useState(false)
   const [editingTimeline, setEditingTimeline] = useState(null)
   const [timelineDraft, setTimelineDraft] = useState(() => createTimelineDraft(''))
@@ -432,17 +432,41 @@ function ClubEventManagementPage({ clubId }) {
     return () => { active = false }
   }, [clubId])
 
+  useEffect(() => {
+    if (!detailEvent) {
+      setDetailEventTimelines([])
+      return
+    }
+    let active = true
+    async function loadTimelines() {
+      try {
+        const res = await getEventTimelines(detailEvent.id || detailEvent._id)
+        if (!active) return
+        const mapped = (res.data || []).map((item) => ({
+          id: item._id || item.id,
+          eventId: item.event_id || item.eventId,
+          time: item.time,
+          title: item.title,
+          description: item.description,
+          location: item.location || '',
+        }))
+        setDetailEventTimelines(mapped)
+      } catch (err) {
+        console.error("Failed to load event timelines:", err)
+      }
+    }
+    loadTimelines()
+    return () => {
+      active = false
+    }
+  }, [detailEvent])
+
   const filteredEvents = useMemo(
     () => events.filter((event) => event.publicationStatus === activeStatus),
     [activeStatus, events]
   )
   const completeCount = events.filter((event) => event.publicationStatus === 'complete').length
   const draftCount = events.filter((event) => event.publicationStatus === 'draft').length
-  const detailEventTimelines = detailEvent
-    ? timelines
-        .filter((timelineItem) => timelineItem.eventId === detailEvent.id)
-        .sort((firstItem, secondItem) => firstItem.time.localeCompare(secondItem.time))
-    : []
 
   if (loading) {
     return (
@@ -587,38 +611,63 @@ function ClubEventManagementPage({ clubId }) {
     }))
   }
 
-  function submitTimeline(submitEvent) {
+  async function submitTimeline(submitEvent) {
     submitEvent.preventDefault()
     if (!detailEvent) return
 
-    const nextTimeline = {
-      ...timelineDraft,
-      id: timelineDraft.id || `timeline-${detailEvent.id}-${Date.now()}`,
-      eventId: detailEvent.id,
+    const payload = {
       time: timelineDraft.time.trim(),
       title: timelineDraft.title.trim(),
       description: timelineDraft.description.trim(),
-      location: timelineDraft.location.trim(),
+      location: timelineDraft.location.trim() || '',
     }
 
-    if (!nextTimeline.time || !nextTimeline.title || !nextTimeline.description) return
+    if (!payload.time || !payload.title || !payload.description) return
 
-    setTimelines((items) => {
+    try {
       if (editingTimeline) {
-        return items.map((item) => (item.id === editingTimeline.id ? nextTimeline : item))
+        const res = await updateEventTimeline(detailEvent.id, editingTimeline.id, payload)
+        const updatedItem = {
+          id: res.data._id || res.data.id,
+          eventId: detailEvent.id,
+          time: res.data.time,
+          title: res.data.title,
+          description: res.data.description,
+          location: res.data.location || '',
+        }
+        setDetailEventTimelines((items) =>
+          items.map((item) => (item.id === editingTimeline.id ? updatedItem : item))
+        )
+      } else {
+        const res = await createEventTimeline(detailEvent.id, payload)
+        const newItem = {
+          id: res.data._id || res.data.id,
+          eventId: detailEvent.id,
+          time: res.data.time,
+          title: res.data.title,
+          description: res.data.description,
+          location: res.data.location || '',
+        }
+        setDetailEventTimelines((items) =>
+          [...items, newItem].sort((a, b) => a.time.localeCompare(b.time))
+        )
       }
-
-      return [...items, nextTimeline]
-    })
-    closeTimelineEditor()
-    // Hiển thị thông báo cho chức năng tạo hoặc cập nhật timeline trong quản lý sự kiện.
-    showToast({
-      type: 'success',
-      title: editingTimeline ? 'Timeline updated' : 'Timeline added',
-      message: editingTimeline
-        ? 'The timeline item has been updated.'
-        : 'A new timeline item has been added.',
-    })
+      closeTimelineEditor()
+      showToast({
+        type: 'success',
+        title: editingTimeline ? 'Timeline updated' : 'Timeline added',
+        message: editingTimeline
+          ? 'The timeline item has been updated.'
+          : 'A new timeline item has been added.',
+      })
+    } catch (err) {
+      console.error("Failed to save timeline item:", err)
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: err.message || 'Failed to save timeline item',
+      })
+    }
   }
 
   async function deleteTimeline(timelineId) {
@@ -631,13 +680,22 @@ function ClubEventManagementPage({ clubId }) {
 
     if (!accepted) return
 
-    setTimelines((items) => items.filter((item) => item.id !== timelineId))
-    // Hiển thị thông báo cho chức năng xóa timeline trong quản lý sự kiện.
-    showToast({
-      type: 'success',
-      title: 'Timeline deleted',
-      message: 'The timeline item has been removed.',
-    })
+    try {
+      await deleteEventTimeline(detailEvent.id, timelineId)
+      setDetailEventTimelines((items) => items.filter((item) => item.id !== timelineId))
+      showToast({
+        type: 'success',
+        title: 'Timeline deleted',
+        message: 'The timeline item has been removed.',
+      })
+    } catch (err) {
+      console.error("Failed to delete timeline item:", err)
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: err.message || 'Failed to delete timeline item',
+      })
+    }
   }
 
   if (!canManageEvents) {

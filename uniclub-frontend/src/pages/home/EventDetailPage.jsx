@@ -4,6 +4,10 @@ import {
   getEventDetail,
   registerForEvent as registerForEventApi,
   cancelEventRegistration as cancelEventRegistrationApi,
+  getEventTimelines,
+  createEventTimeline,
+  updateEventTimeline,
+  deleteEventTimeline,
 } from '../../api/event.api'
 import { getMyProfile } from '../../api/profile.api'
 import {
@@ -72,10 +76,19 @@ function isEventFeedbackOpen(event) {
 }
 
 function getRegistrationLabel(status) {
-  if (status === 'registered' || status === 'approved' || status === 'accepted') return 'Registered'
+  if (status === 'registered' || status === 'approved' || status === 'accepted') return 'Waiting check-in'
   if (status === 'attended') return 'Attended'
   if (status === 'cancelled' || status === 'rejected') return 'Cancelled'
   if (status === 'pending') return 'Pending'
+  return 'Not registered'
+}
+
+function getTicketStatusText(status) {
+  if (!status) return 'Not registered'
+  if (status === 'attended') return 'Attended'
+  if (status === 'cancelled' || status === 'rejected') return 'Cancelled'
+  if (status === 'pending') return 'Pending'
+  if (status === 'registered' || status === 'approved') return 'Waiting check-in'
   return 'Not registered'
 }
 
@@ -221,8 +234,8 @@ function TicketQr({ value }) {
         display: 'grid',
         gridTemplateColumns: 'repeat(15, 1fr)',
         gap: '2px',
-        width: '180px',
-        height: '180px',
+        width: '140px',
+        height: '140px',
         margin: '0 auto',
       }}
     >
@@ -263,16 +276,17 @@ function EventDetailPage() {
   const [timelineModalOpen, setTimelineModalOpen] = useState(false)
   const [editingTimeline, setEditingTimeline] = useState(null)
   const [timelineDraft, setTimelineDraft] = useState(() => createTimelineDraft(eventId || ''))
-  const [timelines, setTimelines] = useState(EVENT_TIMELINES)
+  const [eventTimelines, setEventTimelines] = useState([])
 
   async function loadEventData() {
     setLoading(true)
     try {
-      const [eventRes, profileRes, feedbackRes, myClubsRes] = await Promise.all([
+      const [eventRes, profileRes, feedbackRes, myClubsRes, timelinesRes] = await Promise.all([
         getEventDetail(eventId),
         getMyProfile().catch(() => ({ data: { user: null } })),
         getEventFeedback(eventId).catch(() => ({ data: { feedbacks: [], myFeedback: null } })),
-        getMyClubs().catch(() => ({ data: [] }))
+        getMyClubs().catch(() => ({ data: [] })),
+        getEventTimelines(eventId).catch(() => ({ data: [] }))
       ])
       
       const mapped = mapEventFromApi(eventRes.data)
@@ -281,6 +295,16 @@ function EventDetailPage() {
       setFeedbacks(feedbackRes.data?.feedbacks || [])
       setMyFeedback(feedbackRes.data?.myFeedback || null)
       setMyClubs(myClubsRes.data || [])
+      
+      const mappedTimelines = (timelinesRes.data || []).map((item) => ({
+        id: item._id || item.id,
+        eventId: eventId,
+        time: item.time,
+        title: item.title,
+        description: item.description,
+        location: item.location || '',
+      })).sort((a, b) => a.time.localeCompare(b.time))
+      setEventTimelines(mappedTimelines)
       
       if (mapped.isRegistered) {
         setRegistration({
@@ -372,9 +396,7 @@ function EventDetailPage() {
   const studentPhone = profile?.phone || 'Not updated'
   const studentEmail = profile?.email || 'Not updated'
   const eventEnded = isEventFeedbackOpen(event)
-  const eventTimelines = timelines
-    .filter((timelineItem) => timelineItem.eventId === event?.id)
-    .sort((firstItem, secondItem) => firstItem.time.localeCompare(secondItem.time))
+  // eventTimelines is now loaded dynamically as a state
 
   async function registerForEvent() {
     const accepted = await confirm({
@@ -531,37 +553,62 @@ function EventDetailPage() {
     }))
   }
 
-  function handleTimelineSubmit(submitEvent) {
+  async function handleTimelineSubmit(submitEvent) {
     submitEvent.preventDefault()
 
-    const nextTimeline = {
-      ...timelineDraft,
-      id: timelineDraft.id || `timeline-${event.id}-${Date.now()}`,
-      eventId: event.id,
+    const payload = {
       time: timelineDraft.time.trim(),
       title: timelineDraft.title.trim(),
       description: timelineDraft.description.trim(),
-      location: timelineDraft.location.trim(),
+      location: timelineDraft.location.trim() || '',
     }
 
-    if (!nextTimeline.time || !nextTimeline.title || !nextTimeline.description) return
+    if (!payload.time || !payload.title || !payload.description) return
 
-    setTimelines((items) => {
+    try {
       if (editingTimeline) {
-        return items.map((item) => (item.id === editingTimeline.id ? nextTimeline : item))
+        const res = await updateEventTimeline(event.id, editingTimeline.id, payload)
+        const updatedItem = {
+          id: res.data._id || res.data.id,
+          eventId: event.id,
+          time: res.data.time,
+          title: res.data.title,
+          description: res.data.description,
+          location: res.data.location || '',
+        }
+        setEventTimelines((items) =>
+          items.map((item) => (item.id === editingTimeline.id ? updatedItem : item))
+        )
+      } else {
+        const res = await createEventTimeline(event.id, payload)
+        const newItem = {
+          id: res.data._id || res.data.id,
+          eventId: event.id,
+          time: res.data.time,
+          title: res.data.title,
+          description: res.data.description,
+          location: res.data.location || '',
+        }
+        setEventTimelines((items) =>
+          [...items, newItem].sort((a, b) => a.time.localeCompare(b.time))
+        )
       }
-
-      return [...items, nextTimeline]
-    })
-    closeTimelineModal()
-    // Hiển thị thông báo cho chức năng tạo hoặc cập nhật timeline sự kiện.
-    showToast({
-      type: 'success',
-      title: editingTimeline ? 'Timeline updated' : 'Timeline added',
-      message: editingTimeline
-        ? 'The timeline item has been updated.'
-        : 'A new timeline item has been added.',
-    })
+      closeTimelineModal()
+      showToast({
+        type: 'success',
+        title: editingTimeline ? 'Timeline updated' : 'Timeline added',
+        message: editingTimeline
+          ? 'The timeline item has been updated.'
+          : 'A new timeline item has been added.',
+      })
+    } catch (err) {
+      console.error("Failed to save timeline item:", err)
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: err.message || 'Failed to save timeline item',
+      })
+    }
   }
 
   async function deleteTimeline(timelineId) {
@@ -574,13 +621,22 @@ function EventDetailPage() {
 
     if (!accepted) return
 
-    setTimelines((items) => items.filter((item) => item.id !== timelineId))
-    // Hiển thị thông báo cho chức năng xóa timeline sự kiện.
-    showToast({
-      type: 'success',
-      title: 'Timeline deleted',
-      message: 'The timeline item has been removed.',
-    })
+    try {
+      await deleteEventTimeline(event.id, timelineId)
+      setEventTimelines((items) => items.filter((item) => item.id !== timelineId))
+      showToast({
+        type: 'success',
+        title: 'Timeline deleted',
+        message: 'The timeline item has been removed.',
+      })
+    } catch (err) {
+      console.error("Failed to delete timeline item:", err)
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: err.message || 'Failed to delete timeline item',
+      })
+    }
   }
 
   if (loading) {
@@ -1012,12 +1068,11 @@ function EventDetailPage() {
                     <img
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${event.registrationId}`}
                       alt="Ticket QR Code"
-                      style={{ display: 'block', margin: '0.8rem auto', border: '4px solid #fff', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                      style={{ display: 'block', width: '140px', height: '140px', margin: '0.8rem auto', border: '4px solid #fff', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
                     />
                   ) : (
                     <TicketQr value={ticketCode} />
                   )}
-                  <strong>{event.registrationId || ticketCode}</strong>
                 </div>
                 <p>Show this QR code to event management at the check-in counter.</p>
               </div>

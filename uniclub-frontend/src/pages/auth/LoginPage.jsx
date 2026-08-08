@@ -109,6 +109,7 @@ export default function LoginPage() {
               <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
                 <input
                   type="email"
+                  data-testid="dev-email-input"
                   list="mock-emails"
                   value={selectedEmail}
                   onChange={(e) => setSelectedEmail(e.target.value)}
@@ -133,6 +134,7 @@ export default function LoginPage() {
                 </datalist>
                 <button
                   type="button"
+                  data-testid="dev-login-submit"
                   onClick={handleDevLogin}
                   style={{
                     padding: '0.6rem 1.2rem',

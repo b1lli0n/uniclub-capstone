@@ -133,7 +133,7 @@ const getEventDetail = async (req, res, next) => {
 
       if (reg) {
         // user is registered if registration is approved, attended or pending approval
-        isRegistered = ["pending", "approved", "attended"].includes(reg.status);
+        isRegistered = ["pending", "approved", "attended", "registered"].includes(reg.status);
         registrationStatus = reg.status;
         registrationId = reg._id;
       }
@@ -142,7 +142,7 @@ const getEventDetail = async (req, res, next) => {
     // Đếm số lượng slot đã đăng ký thực tế
     const registeredCount = await EventRegistration.countDocuments({
       event_id: eventId,
-      status: "approved",
+      status: { $in: ["approved", "registered", "attended"] },
     });
 
     return res.status(200).json({
@@ -210,7 +210,7 @@ const registerForEvent = async (req, res, next) => {
     // 4. Kiểm tra giới hạn số lượng (capacity)
     const registeredCount = await EventRegistration.countDocuments({
       event_id: eventId,
-      status: "approved",
+      status: { $in: ["approved", "registered", "attended"] },
     });
 
     if (registeredCount >= event.capacity) {
@@ -227,27 +227,27 @@ const registerForEvent = async (req, res, next) => {
     });
 
     if (reg) {
-      if (["pending", "approved", "attended"].includes(reg.status)) {
+      if (["pending", "approved", "attended", "registered"].includes(reg.status)) {
         return res.status(400).json({
           success: false,
           message: "You have already registered for this event",
         });
       }
-      reg.status = "pending";
+      reg.status = "registered";
       reg.registered_at = new Date();
       await reg.save();
     } else {
       reg = await EventRegistration.create({
         event_id: eventId,
         user_id: req.user.id,
-        status: "pending",
+        status: "registered",
         registered_at: new Date(),
       });
     }
 
     return res.status(201).json({
       success: true,
-      message: "Registered for event successfully (waiting for approval)",
+      message: "Registered for event successfully",
       data: reg,
     });
   } catch (error) {
@@ -284,7 +284,7 @@ const cancelEventRegistration = async (req, res, next) => {
     const reg = await EventRegistration.findOne({
       event_id: eventId,
       user_id: req.user.id,
-      status: { $in: ["pending", "approved"] },
+      status: { $in: ["pending", "approved", "registered"] },
     });
 
     if (!reg) {

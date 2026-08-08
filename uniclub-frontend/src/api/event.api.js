@@ -97,3 +97,44 @@ export function updateEventAttendanceStatus(eventId, data) {
     },
   })
 }
+
+/**
+ * Get event timelines
+ * GET /api/events/:eventId/timelines
+ */
+export function getEventTimelines(eventId) {
+  return apiRequest(`/events/${eventId}/timelines`)
+}
+
+/**
+ * Create event timeline
+ * POST /api/events/:eventId/timelines
+ */
+export function createEventTimeline(eventId, payload) {
+  return apiRequest(`/events/${eventId}/timelines`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+/**
+ * Update event timeline
+ * PATCH /api/events/:eventId/timelines/:timelineId
+ */
+export function updateEventTimeline(eventId, timelineId, payload) {
+  return apiRequest(`/events/${eventId}/timelines/${timelineId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
+/**
+ * Delete event timeline
+ * DELETE /api/events/:eventId/timelines/:timelineId
+ */
+export function deleteEventTimeline(eventId, timelineId) {
+  return apiRequest(`/events/${eventId}/timelines/${timelineId}`, {
+    method: 'DELETE',
+  })
+}
+

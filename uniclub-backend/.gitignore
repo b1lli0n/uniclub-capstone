@@ -15,3 +15,7 @@ uploads/*
 
 # Local dev scripts (seed data, migrations, debug tools)
 scripts/
+
+# Unit Test files
+src/utils/test/
+

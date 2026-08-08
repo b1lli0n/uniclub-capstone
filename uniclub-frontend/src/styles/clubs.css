@@ -1180,7 +1180,7 @@
 
 .event-ticket__checkin {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
+  grid-template-columns: 160px minmax(0, 1fr);
   gap: 0.9rem;
   align-items: center;
 }
@@ -1192,10 +1192,12 @@
 }
 
 .event-ticket__checkin strong {
-  color: #151515;
-  font-size: 1rem;
-  font-weight: 950;
-  letter-spacing: 0.08em;
+  color: #555555;
+  font-size: 0.8rem;
+  font-family: monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  word-break: break-all;
 }
 
 .event-ticket__checkin p {

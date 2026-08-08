@@ -42,7 +42,7 @@ const getMemberRewards = async ({ clubId, userId, search }) => {
 
   const rewards = await Reward.find(filter)
     .sort({ created_at: -1 })
-    .select("_id name description points_required quantity is_active created_at");
+    .select("_id name description points_required point_cost image_url quantity is_active status created_at");
 
   return {
     available_points: membership.reward_point,
@@ -58,7 +58,7 @@ const getMemberRewardDetail = async ({ clubId, rewardId, userId }) => {
     getActiveMembership(clubId, userId),
     Reward.findOne({ _id: rewardId, club_id: clubId, is_active: true })
       .populate("club_id", "_id name logo_url")
-      .select("_id club_id name description points_required quantity is_active created_at updated_at"),
+      .select("_id club_id name description points_required point_cost image_url quantity is_active status created_at updated_at"),
   ]);
 
   if (!reward) {

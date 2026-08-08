@@ -35,9 +35,6 @@ function QRModal({ registrationId, eventTitle, onClose }) {
         <div style={{ background: '#f8f8ff', borderRadius: '12px', padding: '0.75rem', display: 'inline-block', border: '1px solid #e5e5f5' }}>
           <img src={qrUrl} alt="QR check-in" style={{ width: 220, height: 220, display: 'block' }} />
         </div>
-        <p style={{ margin: '0.85rem 0 0', fontSize: '0.7rem', color: '#bbb', wordBreak: 'break-all' }}>
-          {registrationId}
-        </p>
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
           <button
             onClick={onClose}
@@ -70,10 +67,13 @@ function EventRow({ reg, onShowQR, navigate }) {
   const checkInOpen = event.check_in_status === 'open'
 
   const STATUS = {
-    registered: { label: 'Chờ check-in', bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
+    pending:    { label: 'Chờ duyệt',     bg: '#fffbeb', color: '#b45309', border: '#fef3c7' },
+    approved:   { label: 'Chờ check-in',  bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
+    registered: { label: 'Chờ check-in',  bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
     attended:   { label: '✓ Đã check-in', bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
     absent:     { label: 'Vắng mặt',      bg: '#fef2f2', color: '#991b1b', border: '#fecaca' },
     cancelled:  { label: 'Đã huỷ',        bg: '#f9fafb', color: '#6b7280', border: '#e5e7eb' },
+    rejected:   { label: 'Từ chối',       bg: '#fef2f2', color: '#991b1b', border: '#fecaca' },
   }
   const st = STATUS[reg.status] || STATUS.registered
 
@@ -120,7 +120,7 @@ function EventRow({ reg, onShowQR, navigate }) {
         </span>
 
         {/* QR button – show when open & not cancelled/absent */}
-        {(reg.status === 'registered' || reg.status === 'attended') && (
+        {(reg.status === 'registered' || reg.status === 'approved' || reg.status === 'attended') && (
           <button
             onClick={() => onShowQR(reg)}
             title="Xem mã QR check-in"
@@ -183,9 +183,9 @@ function MyEventsPage() {
     return () => { active = false }
   }, [])
 
-  const openRegs     = registrations.filter(r => r.event_id?.check_in_status === 'open' && r.status === 'registered')
-  const upcomingRegs = registrations.filter(r => r.event_id?.check_in_status !== 'open' && r.status === 'registered')
-  const doneRegs     = registrations.filter(r => ['attended','absent','cancelled'].includes(r.status))
+  const openRegs     = registrations.filter(r => r.event_id?.check_in_status === 'open' && (r.status === 'registered' || r.status === 'approved'))
+  const upcomingRegs = registrations.filter(r => r.status === 'pending' || ((r.status === 'registered' || r.status === 'approved') && r.event_id?.check_in_status !== 'open'))
+  const doneRegs     = registrations.filter(r => ['attended','absent','cancelled','rejected'].includes(r.status))
 
   return (
     <main style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto' }}>

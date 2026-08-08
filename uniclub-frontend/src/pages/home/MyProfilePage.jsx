@@ -134,7 +134,7 @@ function MyProfilePage({ currentUser }) {
             ) : null}
           </div>
           <div>
-            <h2 id="profile-form-title">{profile.fullName}</h2>
+            <h2 id="profile-form-title" data-testid="profile-full-name">{profile.fullName}</h2>
             <p>{profile.role}</p>
           </div>
         </header>
@@ -153,6 +153,7 @@ function MyProfilePage({ currentUser }) {
             <span>Phone Number</span>
             <input
               type="tel"
+              data-testid="profile-phone-input"
               value={profile.phone}
               placeholder="Ex: 0912345678"
               disabled={!isEditing}
@@ -219,7 +220,7 @@ function MyProfilePage({ currentUser }) {
           </label>
 
           <div className="my-profile-form__actions">
-            <button type="button" onClick={handleEditAction}>
+            <button type="button" data-testid="profile-edit-btn" onClick={handleEditAction}>
               {isEditing ? 'Update' : 'Edit'}
             </button>
           </div>

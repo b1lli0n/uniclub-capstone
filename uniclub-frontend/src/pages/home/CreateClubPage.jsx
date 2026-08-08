@@ -157,6 +157,7 @@ function CreateClubPage({ onCancel, onSubmit }) {
               </label>
               <input
                 id="club-name"
+                data-testid="create-club-name-input"
                 type="text"
                 placeholder="Example: Web Development Club"
                 value={name}
@@ -171,6 +172,7 @@ function CreateClubPage({ onCancel, onSubmit }) {
               </label>
               <select
                 id="club-category"
+                data-testid="create-club-category-select"
                 value={category}
                 onChange={(event) => setCategory(event.target.value)}
                 required
@@ -187,6 +189,7 @@ function CreateClubPage({ onCancel, onSubmit }) {
               <label htmlFor="club-desc">Description</label>
               <textarea
                 id="club-desc"
+                data-testid="create-club-desc-textarea"
                 rows={5}
                 placeholder="Enter a detailed description for this club..."
                 value={description}
@@ -299,7 +302,7 @@ function CreateClubPage({ onCancel, onSubmit }) {
           <button type="button" className="create-club-btn create-club-btn--cancel" onClick={onCancel}>
             Cancel
           </button>
-          <button type="submit" className="create-club-btn create-club-btn--primary" disabled={submitting}>
+          <button type="submit" data-testid="create-club-submit-btn" className="create-club-btn create-club-btn--primary" disabled={submitting}>
             {submitting ? 'Submitting...' : 'Create Club'}
           </button>
         </div>
