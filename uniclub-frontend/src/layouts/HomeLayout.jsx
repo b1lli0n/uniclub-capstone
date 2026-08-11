@@ -159,6 +159,7 @@ function HomeLayout({
         pageId === 'join-form' ||
         pageId === 'manage-events' ||
         pageId === 'attendance' ||
+        pageId === 'point-rules' ||
         pageId === 'fees' ||
         pageId === 'finance' ||
         pageId === 'activity-schedule' ||

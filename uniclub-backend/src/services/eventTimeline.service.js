@@ -3,7 +3,7 @@ const Event = require("../models/event.model");
 const ClubMember = require("../models/club_member.model");
 const EventTimeline = require("../models/event_timeline.model");
 
-const TIMELINE_MANAGE_ROLES = ["president", "secretary", "event_manager"];
+const TIMELINE_MANAGE_ROLES = ["president", "leader", "secretary", "event_manager"];
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 

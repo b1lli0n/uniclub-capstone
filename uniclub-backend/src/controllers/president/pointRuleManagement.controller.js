@@ -97,10 +97,37 @@ const awardPoints = async (req, res, next) => {
   }
 };
 
+const getActionTypes = async (req, res, next) => {
+  try {
+    const data = await pointRuleManagementService.getActionTypes();
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deletePointRule = async (req, res, next) => {
+  try {
+    const { clubId, ruleId } = req.params;
+    const presidentId = req.user.id;
+    const result = await pointRuleManagementService.deletePointRule(presidentId, clubId, ruleId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Point rule deleted successfully",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getPointRules,
   createPointRule,
   updatePointRule,
   togglePointRuleStatus,
   awardPoints,
+  getActionTypes,
+  deletePointRule,
 };

@@ -57,7 +57,23 @@ const submitJoinRequest = async (userId, clubId, formId, answers) => {
   }).sort({ create_at: -1 });
 
   if (rejectedRequest) {
-    throw getStatusError("Your previous join request was rejected", 409);
+    const cooldownPeriodMs = 24 * 60 * 60 * 1000; // 24 hours cooldown
+    const rejectedTime = new Date(rejectedRequest.reviewed_at || rejectedRequest.create_at).getTime();
+    const now = Date.now();
+    const elapsedMs = now - rejectedTime;
+
+    if (elapsedMs < cooldownPeriodMs) {
+      const remainingMs = cooldownPeriodMs - elapsedMs;
+      const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
+      const remainingMinutes = Math.ceil((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+      const timeStr = remainingHours > 0
+        ? `${remainingHours} giờ ${remainingMinutes} phút`
+        : `${remainingMinutes} phút`;
+      throw getStatusError(
+        `Đơn đăng ký trước đó của bạn đã bị từ chối. Bạn có thể nộp lại đơn mới sau 24 giờ kể từ khi bị từ chối (Còn lại: ${timeStr}).`,
+        409
+      );
+    }
   }
 
   const joinRequest = await JoinRequest.create({

@@ -174,18 +174,28 @@ function ClubsPage({ onSelectClub }) {
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('all')
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [sort, setSort] = useState('default')
   const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+    }, 350)
+    return () => clearTimeout(timer)
+  }, [search])
 
   useEffect(() => {
     let cancelled = false
 
     async function loadClubs() {
-      setLoading(true)
+      if (clubs.length === 0) {
+        setLoading(true)
+      }
       try {
         const response = await getClubs({
           category: activeCategory !== 'all' ? activeCategory : undefined,
-          search: search.trim() || undefined,
+          search: debouncedSearch.trim() || undefined,
           sortBy: sort === 'name-asc' ? 'name' : undefined,
         })
         if (!cancelled) {
@@ -203,10 +213,20 @@ function ClubsPage({ onSelectClub }) {
     return () => {
       cancelled = true
     }
-  }, [activeCategory, search, sort])
+  }, [activeCategory, debouncedSearch, sort])
 
   const filteredClubs = useMemo(() => {
     let result = [...clubs]
+
+    const query = search.trim().toLowerCase()
+    if (query) {
+      result = result.filter(
+        (club) =>
+          club.name.toLowerCase().includes(query) ||
+          club.description.toLowerCase().includes(query) ||
+          (club.categoryLabel && club.categoryLabel.toLowerCase().includes(query))
+      )
+    }
 
     if (sort === 'members-desc') {
       result.sort((a, b) => b.members - a.members)
@@ -215,7 +235,7 @@ function ClubsPage({ onSelectClub }) {
     }
 
     return result
-  }, [clubs, sort])
+  }, [clubs, search, sort])
 
   const totalPages = Math.max(1, Math.ceil(filteredClubs.length / CLUBS_PER_PAGE))
   const currentPage = Math.min(page, totalPages)
@@ -307,17 +327,22 @@ function ClubsPage({ onSelectClub }) {
         </header>
 
         <div className="clubs-grid">
-          {loading ? <p className="clubs-empty">Loading clubs...</p> : null}
-          {!loading
-            ? pageClubs.map((club) => (
-                <ClubCard key={club.id} club={club} onSelect={onSelectClub} />
-              ))
-            : null}
+          {loading ? (
+            <div className="clubs-empty-state">
+              <p>Loading clubs...</p>
+            </div>
+          ) : filteredClubs.length === 0 ? (
+            <div className="clubs-empty-state">
+              <div className="clubs-empty-state__icon" aria-hidden="true">🔍</div>
+              <h3>No matching clubs found</h3>
+              <p>Try adjusting your search query or category filter to find what you are looking for.</p>
+            </div>
+          ) : (
+            pageClubs.map((club) => (
+              <ClubCard key={club.id} club={club} onSelect={onSelectClub} />
+            ))
+          )}
         </div>
-
-        {filteredClubs.length === 0 && !loading ? (
-          <p className="clubs-empty">No matching clubs found.</p>
-        ) : null}
 
         {totalPages > 1 ? (
           <nav className="clubs-pagination" aria-label="Pagination">

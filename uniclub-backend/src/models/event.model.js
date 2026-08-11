@@ -102,6 +102,11 @@ const eventSchema = Schema(
       type: [String],
       default: [],
     },
+
+    approval_document_url: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },

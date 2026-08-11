@@ -69,23 +69,39 @@
   white-space: nowrap;
 }
 
+.club-point-rules-hero__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.club-point-rules-hero__award-btn {
+  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%) !important;
+  box-shadow: 0 12px 24px rgba(46, 125, 50, 0.2) !important;
+}
+
 .club-point-rules-hero button:hover { transform: translateY(-2px); }
 
 .club-point-rules-grid {
   width: min(1180px, calc(100% - 3rem));
   margin: 1rem auto 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 340px));
+  gap: 1.25rem;
 }
 
 .club-point-rule-card {
-  min-height: 335px;
+  width: 100%;
+  max-width: 340px;
+  min-height: 320px;
   box-sizing: border-box;
   border: 1px solid rgba(240, 228, 216, 0.95);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.96);
   padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   box-shadow: 0 14px 36px rgba(92, 64, 51, 0.08);
   transition: transform 0.18s, box-shadow 0.18s;
 }
@@ -249,6 +265,80 @@
 .club-point-rule-card__edit-btn svg {
   width: 18px;
   height: 18px;
+}
+
+.club-point-rule-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.club-point-rule-card__delete-btn {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 10px;
+  background: #fff1ef;
+  color: #d32f2f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.club-point-rule-card__delete-btn:hover {
+  background: #ffe0b2;
+  color: #b71c1c;
+}
+
+.club-point-rule-card__delete-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.club-point-rules-empty {
+  grid-column: 1 / -1;
+  background: #fff;
+  border: 1px dashed #e0d6cd;
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.club-point-rules-empty__icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #fffaf4;
+  color: #d86c00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.club-point-rules-empty__icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.club-point-rules-empty h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #2c2520;
+}
+
+.club-point-rules-empty p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #8c7b70;
+  max-width: 400px;
 }
 
 .club-point-rule-card__admin-status {

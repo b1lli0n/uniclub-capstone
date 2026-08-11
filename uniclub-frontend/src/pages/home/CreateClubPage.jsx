@@ -6,12 +6,10 @@ import '../../styles/create-club.css'
 
 const CREATE_CLUB_CATEGORIES = [
   { value: '', label: 'Select category...' },
-  { value: 'tech', label: 'Technology' },
+  { value: 'academic', label: 'Academic' },
   { value: 'sport', label: 'Sports' },
   { value: 'art', label: 'Arts' },
-  { value: 'volunteer', label: 'Volunteer' },
-  { value: 'academic', label: 'Academic' },
-  { value: 'other', label: 'Other' },
+  { value: 'event', label: 'Events' },
 ]
 
 function SectionIcon({ type }) {
@@ -57,27 +55,31 @@ function CreateClubPage({ onCancel, onSubmit }) {
   const [submitting, setSubmitting] = useState(false)
   const [searchLoading, setSearchLoading] = useState(false)
 
-  useEffect(() => {
-    if (memberSearch.trim().length < 2) {
-      setMemberSuggestions([])
-      return
-    }
-    let active = true
+  const [showDropdown, setShowDropdown] = useState(false)
+
+  async function fetchUserSuggestions(query = memberSearch) {
     setSearchLoading(true)
-    const delay = setTimeout(async () => {
-      try {
-        const res = await apiRequest(`/profile/search${toQueryString({ q: memberSearch })}`)
-        if (active) {
-          setMemberSuggestions((res.data || []).filter(
-            (u) => !members.some((m) => String(m.value) === String(u.value))
-          ))
-        }
-      } catch {
-        if (active) setMemberSuggestions([])
-      } finally {
-        if (active) setSearchLoading(false)
-      }
-    }, 350)
+    try {
+      const res = await apiRequest(`/profile/search${toQueryString({ q: query })}`)
+      const list = (res.data || []).map((u) => ({
+        value: u.value || u._id,
+        label: u.label || `${u.name || u.full_name} (${u.email})`,
+        name: u.name || u.full_name,
+        email: u.email,
+      }))
+      setMemberSuggestions(list.filter((u) => !members.some((m) => String(m.value) === String(u.value))))
+    } catch {
+      setMemberSuggestions([])
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    let active = true
+    const delay = setTimeout(() => {
+      if (active) fetchUserSuggestions(memberSearch)
+    }, 250)
     return () => { active = false; clearTimeout(delay) }
   }, [memberSearch, members])
 
@@ -85,7 +87,7 @@ function CreateClubPage({ onCancel, onSubmit }) {
     if (!option || members.some((m) => String(m.value) === String(option.value))) return
     setMembers((prev) => [...prev, option])
     setMemberSearch('')
-    setMemberSuggestions([])
+    setShowDropdown(false)
   }
 
   function handleRemoveMember(value) {
@@ -213,32 +215,44 @@ function CreateClubPage({ onCancel, onSubmit }) {
                   <input
                     type="text"
                     className="create-club-member-row__select"
-                    placeholder="Search by name or email..."
+                    placeholder="Search student by name or email..."
                     value={memberSearch}
-                    onChange={(e) => setMemberSearch(e.target.value)}
+                    onFocus={() => {
+                      setShowDropdown(true)
+                      fetchUserSuggestions(memberSearch)
+                    }}
+                    onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                    onChange={(e) => {
+                      setMemberSearch(e.target.value)
+                      setShowDropdown(true)
+                    }}
                     aria-label="Search member"
                     autoComplete="off"
                   />
-                  {(memberSuggestions.length > 0 || searchLoading) && (
+                  {showDropdown && (memberSuggestions.length > 0 || searchLoading) && (
                     <ul style={{
-                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
-                      background: 'var(--surface, #fff)', border: '1px solid var(--border, #e5e7eb)',
-                      borderRadius: '0.5rem', margin: 0, padding: '0.25rem 0', listStyle: 'none',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto',
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                      background: '#ffffff', border: '1px solid #cbd5e1',
+                      borderRadius: '0.5rem', margin: '0.25rem 0 0 0', padding: '0.25rem 0', listStyle: 'none',
+                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15)', maxHeight: '220px', overflowY: 'auto',
                     }}>
-                      {searchLoading && <li style={{ padding: '0.5rem 1rem', opacity: 0.6, fontSize: '0.85rem' }}>Searching...</li>}
+                      {searchLoading && <li style={{ padding: '0.6rem 1rem', color: '#64748b', fontSize: '0.85rem' }}>Loading students...</li>}
                       {!searchLoading && memberSuggestions.map((option) => (
                         <li key={String(option.value)} style={{ padding: 0 }}>
                           <button
                             type="button"
                             style={{
-                              width: '100%', textAlign: 'left', padding: '0.5rem 1rem',
-                              background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem',
+                              width: '100%', textAlign: 'left', padding: '0.6rem 1rem',
+                              background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.9rem',
+                              color: '#0f172a', display: 'flex', flexDirection: 'column', gap: '0.15rem',
+                              transition: 'background 0.15s ease',
                             }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9' }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                             onMouseDown={(e) => { e.preventDefault(); handleAddMember(option) }}
                           >
-                            <span style={{ fontWeight: 600 }}>{option.name}</span>
-                            <span style={{ opacity: 0.6, marginLeft: '0.4rem', fontSize: '0.8rem' }}>{option.email}</span>
+                            <span style={{ fontWeight: 600, color: '#0f172a' }}>{option.name}</span>
+                            <span style={{ color: '#475569', fontSize: '0.8rem' }}>{option.email}</span>
                           </button>
                         </li>
                       ))}

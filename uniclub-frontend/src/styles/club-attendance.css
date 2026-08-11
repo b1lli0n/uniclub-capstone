@@ -505,6 +505,12 @@
   color: #1a9f61;
 }
 
+.club-attendance-status.is-notyet {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #ffedd5;
+}
+
 .club-attendance-status.is-absent {
   background: #fff1ee;
   color: #cf4d42;
@@ -513,6 +519,11 @@
 .club-attendance-status.is-checked::before,
 .club-attendance-complete::before {
   content: "✓";
+  margin-right: 0.28rem;
+}
+
+.club-attendance-status.is-notyet::before {
+  content: "⌛";
   margin-right: 0.28rem;
 }
 

@@ -11,39 +11,41 @@ const {
 
 const router = express.Router();
 
+const committeeRoles = ["president", "leader", "secretary"];
+
 router.get(
   "/:clubId/invitations",
   verifyToken,
   protect(["student"]),
-  requireClubRole(["secretary"], "clubId"),
+  requireClubRole(committeeRoles, "clubId"),
   getInvitationList
 );
 router.get(
   "/:clubId/invitations/:invitationId",
   verifyToken,
   protect(["student"]),
-  requireClubRole(["secretary"], "clubId"),
+  requireClubRole(committeeRoles, "clubId"),
   getInvitationDetail
 );
 router.post(
   "/:clubId/invitations",
   verifyToken,
   protect(["student"]),
-  requireClubRole(["secretary"], "clubId"),
+  requireClubRole(committeeRoles, "clubId"),
   sendInvitation
 );
 router.patch(
   "/:clubId/invitations/:invitationId/cancel",
   verifyToken,
   protect(["student"]),
-  requireClubRole(["secretary"], "clubId"),
+  requireClubRole(committeeRoles, "clubId"),
   cancelInvitation
 );
 router.patch(
   "/:clubId/invitations/:invitationId/resend",
   verifyToken,
   protect(["student"]),
-  requireClubRole(["secretary"], "clubId"),
+  requireClubRole(committeeRoles, "clubId"),
   resendInvitation
 );
 

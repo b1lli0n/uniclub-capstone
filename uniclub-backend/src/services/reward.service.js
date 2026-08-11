@@ -308,11 +308,11 @@ const hideReward = async ({ clubId, rewardId }) => {
     throw getStatusError("Reward not found", 404);
   }
 
-  if (reward.status === "hidden") {
-    throw getStatusError("Reward is already hidden", 400);
-  }
+  // Toggle status and is_active bi-directionally between active and hidden
+  const isCurrentlyHidden = reward.status === "hidden" || reward.is_active === false;
+  reward.status = isCurrentlyHidden ? "active" : "hidden";
+  reward.is_active = isCurrentlyHidden;
 
-  reward.status = "hidden";
   await reward.save();
 
   return reward.toObject();
@@ -518,148 +518,106 @@ const approveRewardRedemption = async ({
   validateObjectId(redemptionId, "redemption ID");
   validateObjectId(reviewerId, "reviewer ID");
 
-  const session = await mongoose.startSession();
+  const redemption = await RewardRedemption.findOne({
+    _id: redemptionId,
+    club_id: clubId,
+  });
+
+  if (!redemption) {
+    throw getStatusError("Reward redemption not found", 404);
+  }
+
+  if (redemption.status !== "pending") {
+    throw getStatusError("Only pending redemption can be approved", 400);
+  }
+
+  const reward = await Reward.findOne({
+    _id: redemption.reward_id,
+    club_id: clubId,
+  });
+
+  if (!reward) {
+    throw getStatusError("Reward not found", 404);
+  }
+
+  const updatedReward = await Reward.findOneAndUpdate(
+    {
+      _id: reward._id,
+      club_id: clubId,
+      quantity: { $gte: redemption.quantity },
+    },
+    {
+      $inc: { quantity: -redemption.quantity },
+    },
+    { new: true }
+  );
+
+  if (!updatedReward) {
+    throw getStatusError("Reward quantity is insufficient", 400);
+  }
+
+  const updatedRedemption = await RewardRedemption.findOneAndUpdate(
+    {
+      _id: redemptionId,
+      club_id: clubId,
+      status: "pending",
+    },
+    {
+      $set: {
+        status: "approved",
+        rejection_reason: "",
+        reviewed_by: reviewerId,
+        reviewed_at: new Date(),
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+
+  if (!updatedRedemption) {
+    throw getStatusError("Redemption has already been processed", 409);
+  }
+
+  // Decrement points in ClubMember document cache
+  await ClubMember.findOneAndUpdate(
+    { _id: redemption.membership_id },
+    { $inc: { reward_point: -redemption.total_point } }
+  );
+
+  const resultDoc = await RewardRedemption.findById(updatedRedemption._id)
+    .populate("reward_id", "name image_url point_cost quantity status")
+    .populate({
+      path: "membership_id",
+      select: "club_id user_id role status joined_at",
+      populate: [
+        { path: "user_id", select: "full_name email avatar_url" },
+        { path: "club_id", select: "name" },
+      ],
+    })
+    .populate("reviewed_by", "full_name email avatar_url")
+    .lean();
 
   try {
-    let approvedRedemption;
-
-    await session.withTransaction(async () => {
-      const redemption = await RewardRedemption.findOne({
-        _id: redemptionId,
-        club_id: clubId,
-      }).session(session);
-
-      if (!redemption) {
-        throw getStatusError("Reward redemption not found", 404);
-      }
-
-      if (redemption.status !== "pending") {
-        throw getStatusError(
-          "Only pending redemption can be approved",
-          400
-        );
-      }
-
-      const reward = await Reward.findOne({
-        _id: redemption.reward_id,
-        club_id: clubId,
-      }).session(session);
-
-      if (!reward) {
-        throw getStatusError("Reward not found", 404);
-      }
-
-      const totalEarnedPoint =
-        await getTotalEarnedRewardPoint({
-          membershipId: redemption.membership_id,
-          session,
-        });
-
-      const totalUsedPoint =
-        await getTotalApprovedRedemptionPoint({
-          membershipId: redemption.membership_id,
-          excludeRedemptionId: redemption._id,
-          session,
-        });
-
-      const availablePoint =
-        totalEarnedPoint - totalUsedPoint;
-
-      if (availablePoint < redemption.total_point) {
-        throw getStatusError(
-          "Member does not have enough reward points",
-          400
-        );
-      }
-
-      const updatedReward = await Reward.findOneAndUpdate(
-        {
-          _id: reward._id,
-          club_id: clubId,
-          quantity: {
-            $gte: redemption.quantity,
-          },
-        },
-        {
-          $inc: {
-            quantity: -redemption.quantity,
-          },
-        },
-        {
-          new: true,
-          session,
-        }
-      );
-
-      if (!updatedReward) {
-        throw getStatusError(
-          "Reward quantity is insufficient",
-          400
-        );
-      }
-
-      const updatedRedemption =
-        await RewardRedemption.findOneAndUpdate(
-          {
-            _id: redemptionId,
-            club_id: clubId,
-            status: "pending",
-          },
-          {
-            $set: {
-              status: "approved",
-              rejection_reason: "",
-              reviewed_by: reviewerId,
-              reviewed_at: new Date(),
-            },
-          },
-          {
-            new: true,
-            runValidators: true,
-            session,
-          }
-        );
-
-      if (!updatedRedemption) {
-        throw getStatusError(
-          "Redemption has already been processed",
-          409
-        );
-      }
-
-      // Decrement points in ClubMember document cache
-      await ClubMember.findOneAndUpdate(
-        { _id: redemption.membership_id },
-        { $inc: { reward_point: -redemption.total_point } },
-        { session }
-      );
-
-      approvedRedemption = updatedRedemption;
-    });
-
-    return RewardRedemption.findById(
-      approvedRedemption._id
-    )
-      .populate(
-        "reward_id",
-        "name image_url point_cost quantity status"
-      )
-      .populate({
-        path: "membership_id",
-        select: "club_id user_id role status joined_at",
-        populate: {
-          path: "user_id",
-          select: "full_name email avatar_url",
-        },
-      })
-      .populate(
-        "reviewed_by",
-        "full_name email avatar_url"
-      )
-      .lean();
-  } finally {
-    await session.endSession();
+    const { sendRedemptionApprovedEmailToStudent } = require("./email.service");
+    const studentEmail = resultDoc?.membership_id?.user_id?.email;
+    if (studentEmail) {
+      const pickupCode = `REDEEM-${resultDoc._id.toString().substring(18).toUpperCase()}`;
+      sendRedemptionApprovedEmailToStudent({
+        toEmail: studentEmail,
+        userName: resultDoc?.membership_id?.user_id?.full_name || "Sinh viên",
+        clubName: resultDoc?.membership_id?.club_id?.name || "Guitar Club",
+        rewardTitle: resultDoc?.reward_id?.name || "Phần thưởng",
+        pointCost: resultDoc?.total_point || resultDoc?.point_cost,
+        pickupCode,
+      });
+    }
+  } catch (emailErr) {
+    console.error("[Approve Redeem Email Error]", emailErr);
   }
+
+  return resultDoc;
 };
 
 /**
@@ -689,57 +647,38 @@ const rejectRewardRedemption = async ({
     );
   }
 
-  const redemption =
-    await RewardRedemption.findOneAndUpdate(
-      {
-        _id: redemptionId,
-        club_id: clubId,
-        status: "pending",
+  const redemption = await RewardRedemption.findOneAndUpdate(
+    {
+      _id: redemptionId,
+      club_id: clubId,
+      status: "pending",
+    },
+    {
+      $set: {
+        status: "rejected",
+        rejection_reason: rejectionReason.trim(),
+        reviewed_by: reviewerId,
+        reviewed_at: new Date(),
       },
-      {
-        $set: {
-          status: "rejected",
-          rejection_reason: rejectionReason.trim(),
-          reviewed_by: reviewerId,
-          reviewed_at: new Date(),
-        },
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
-    )
-      .populate(
-        "reward_id",
-        "name image_url point_cost quantity status"
-      )
-      .populate({
-        path: "membership_id",
-        select: "club_id user_id role status joined_at",
-        populate: {
-          path: "user_id",
-          select: "full_name email avatar_url",
-        },
-      })
-      .populate(
-        "reviewed_by",
-        "full_name email avatar_url"
-      )
-      .lean();
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  )
+    .populate("reward_id", "name image_url point_cost quantity status")
+    .populate({
+      path: "membership_id",
+      select: "club_id user_id role status joined_at",
+      populate: [
+        { path: "user_id", select: "full_name email avatar_url" },
+        { path: "club_id", select: "name" },
+      ],
+    })
+    .populate("reviewed_by", "full_name email avatar_url")
+    .lean();
 
   if (!redemption) {
-    const existingRedemption =
-      await RewardRedemption.findOne({
-        _id: redemptionId,
-        club_id: clubId,
-      }).lean();
-
-    if (!existingRedemption) {
-      throw getStatusError(
-        "Reward redemption not found",
-        404
-      );
-    }
 
     throw getStatusError(
       "Only pending redemption can be rejected",

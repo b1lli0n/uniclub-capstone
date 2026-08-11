@@ -4,6 +4,7 @@ import heroGroupImage from '../../assets/hero-group.png'
 import { getClubs } from '../../api/club.api'
 import { getPublicEvents } from '../../api/event.api'
 import { mapClubFromApi } from '../../api/clubMappers'
+import { resolveEventUploadImage } from '../../utils/imageUtils'
 import '../../styles/home.css'
 
 function HomePage({ onCreateClub, onSelectClub, onSelectEvent, onViewAll }) {
@@ -48,7 +49,7 @@ function HomePage({ onCreateClub, onSelectClub, onSelectEvent, onViewAll }) {
               id: event._id || event.id,
               title: event.title,
               description: event.description,
-              imageUrl: event.media_uris?.[0] || '',
+              imageUrl: resolveEventUploadImage(event.media_uris || event.image_url, event.category),
             }
           })
           setEvents(mapped)

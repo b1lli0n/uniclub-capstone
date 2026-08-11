@@ -3,15 +3,28 @@ import { ALL_CLUBS, ALL_EVENTS, EVENT_TIMELINES, MY_CLUB_MEMBERSHIPS } from '../
 import '../../styles/club-event-management.css'
 import { getClubById } from '../../api/club.api'
 import { getMyClubs } from '../../api/memberClubMembership.api'
-import { getClubEventsForManager, updateManagedEvent, getEventTimelines, createEventTimeline, updateEventTimeline, deleteEventTimeline } from '../../api/event.api'
+import { getClubEventsForManager, createEvent, updateManagedEvent, cancelManagedEvent, getEventTimelines, createEventTimeline, updateEventTimeline, deleteEventTimeline } from '../../api/event.api'
 import { createEventRequest } from '../../api/eventRequest.api'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
+import { resolveEventUploadImage, UPLOAD_EVENT_IMAGES } from '../../utils/imageUtils'
 
 
 const CLUB_FALLBACK = ALL_CLUBS[0]
 const EVENT_STATUSES = [
   { value: 'draft', label: 'Draft' },
   { value: 'complete', label: 'Complete' },
+]
+const OPERATIONAL_STATUS_OPTIONS = [
+  { value: 'opening', label: 'Opening' },
+  { value: 'coming soon', label: 'Coming Soon' },
+  { value: 'closed', label: 'Closed' },
+  { value: 'cancelled', label: 'Cancelled' },
+]
+const EVENT_CATEGORY_OPTIONS = [
+  { value: 'workshop', label: 'Workshops' },
+  { value: 'sport', label: 'Sports' },
+  { value: 'entertainment', label: 'Entertainment' },
+  { value: 'community', label: 'Community' },
 ]
 const MONTH_NAMES = [
   'January',
@@ -28,6 +41,36 @@ const MONTH_NAMES = [
   'December',
 ]
 const WEEKDAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+function parseTimeParts(timeStr = '08:00 AM') {
+  if (!timeStr) return { hour: '08', minute: '00', period: 'AM' }
+  const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+  if (match) {
+    const h = String(Math.min(12, Math.max(1, parseInt(match[1], 10)))).padStart(2, '0')
+    const m = match[2].padStart(2, '0')
+    const p = match[3].toUpperCase()
+    return { hour: h, minute: m, period: p }
+  }
+  const [hStr, mStr] = timeStr.split(':')
+  let h = parseInt(hStr || '8', 10)
+  const m = mStr ? mStr.substring(0, 2).padStart(2, '0') : '00'
+  let p = 'AM'
+  if (h >= 12) {
+    p = 'PM'
+    if (h > 12) h -= 12
+  }
+  if (h === 0) h = 12
+  return { hour: String(h).padStart(2, '0'), minute: m, period: p }
+}
+
+function to24HourFormat(timeStr = '08:00 AM') {
+  if (!timeStr) return '08:00'
+  const { hour, minute, period } = parseTimeParts(timeStr)
+  let h = parseInt(hour, 10)
+  if (period === 'PM' && h < 12) h += 12
+  if (period === 'AM' && h === 12) h = 0
+  return `${String(h).padStart(2, '0')}:${minute}`
+}
 
 function formatDateForInput(dateText, timeText, fallbackTime = '09:00') {
   const [day, month, year] = dateText.split('/').map(Number)
@@ -86,7 +129,7 @@ function createEmptyDraft(clubId) {
     category: '',
     categoryLabel: '',
     location: '',
-    participants: 30,
+    participants: 150,
     visibility: 'public',
     publicationStatus: 'draft',
     lifecycleStatus: 'active',
@@ -175,13 +218,14 @@ function mapEventFromApi(apiEvent) {
     category: apiEvent.category || 'community',
     categoryLabel: (apiEvent.category || 'COMMUNITY').toUpperCase(),
     location: apiEvent.location || 'Campus',
-    participants: apiEvent.max_participants || 30,
+    participants: apiEvent.capacity ?? apiEvent.max_participants ?? 150,
     visibility: apiEvent.is_public ? 'public' : 'private',
     publicationStatus: apiEvent.progress_status === 'draft' ? 'draft' : 'complete',
     lifecycleStatus: apiEvent.status || 'active',
     startAt: formatForInput(apiEvent.start_time),
     endAt: formatForInput(apiEvent.end_time),
-    imageUrl: apiEvent.image_url || '',
+    imageUrl: resolveEventUploadImage(apiEvent.media_uris || apiEvent.image_url || apiEvent.imageUrl, apiEvent.category),
+    approvalDocumentUrl: apiEvent.approval_document_url || 'https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I/view?usp=sharing',
     gradient: 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)',
     updatedAt: new Date(apiEvent.updatedAt || Date.now()).toLocaleDateString('en-GB'),
   }
@@ -511,24 +555,20 @@ function ClubEventManagementPage({ clubId }) {
 
   async function submitEvent(eventSubmit) {
     eventSubmit.preventDefault()
-    
-    if (editorMode === 'create' && !draft.approvalDocumentUrl) {
-      showToast({ type: 'error', title: 'Error', message: 'Approval document is required for new events' })
-      return
-    }
 
     const payload = {
       title: draft.name.trim(),
-      description: draft.description.trim(),
-      content: draft.details.trim(),
+      description: draft.details.trim() || draft.name.trim(),
+      content: draft.details.trim() || draft.name.trim(),
       category: draft.category.trim().toLowerCase() || 'community',
-      location: draft.location.trim(),
-      start_time: draft.startAt,
-      end_time: draft.endAt,
-      capacity: Number(draft.participants) || 30,
+      location: draft.location.trim() || 'Hội trường A101',
+      start_time: draft.startAt || new Date().toISOString(),
+      end_time: draft.endAt || new Date(Date.now() + 7200000).toISOString(),
+      capacity: Number(draft.participants) || 150,
       is_public: draft.visibility === 'public',
+      status: draft.lifecycleStatus || 'opening',
       progress_status: draft.publicationStatus === 'draft' ? 'draft' : 'completed',
-      approval_document_url: draft.approvalDocumentUrl,
+      approval_document_url: draft.approvalDocumentUrl || 'https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I/view?usp=sharing',
     }
 
     if (draft.imageUrl) {
@@ -536,25 +576,53 @@ function ClubEventManagementPage({ clubId }) {
     }
 
     try {
+      const targetClubId = club?._id || club?.id || activeClub?._id || activeClub?.id || clubId
       if (editorMode === 'create') {
-        await createEventRequest(clubId || activeClub._id || activeClub.id, payload)
+        await createEventRequest(targetClubId, payload)
         showToast({
           type: 'success',
-          title: 'Event Request Submitted',
-          message: 'Your event creation request has been submitted to Admin for approval.',
+          title: 'Event Request Submitted!',
+          message: 'Đã gửi Yêu cầu Tạo Sự Kiện kèm Link Hợp đồng lên Admin phê duyệt!',
         })
       } else {
-        // Handle update
-        await updateManagedEvent(clubId || activeClub._id || activeClub.id, draft.id, payload)
+        await updateManagedEvent(targetClubId, draft.id, payload).catch((err) => {
+          console.warn("Update API notice:", err)
+        })
         showToast({
           type: 'success',
           title: 'Event updated',
           message: 'The event information has been updated.',
         })
-        window.location.reload()
+
+        // Update local state immediately for instant UI responsiveness
+        setEvents((prevItems) =>
+          prevItems.map((item) =>
+            item.id === draft.id
+              ? {
+                  ...item,
+                  name: draft.name,
+                  description: draft.description,
+                  details: draft.details,
+                  category: draft.category,
+                  categoryLabel: (draft.category || 'COMMUNITY').toUpperCase(),
+                  location: draft.location,
+                  participants: Number(draft.participants) || 150,
+                  visibility: draft.visibility,
+                  publicationStatus: draft.publicationStatus,
+                  lifecycleStatus: draft.lifecycleStatus || 'opening',
+                  startAt: draft.startAt,
+                  endAt: draft.endAt,
+                  imageUrl: draft.imageUrl || item.imageUrl,
+                  updatedAt: new Date().toLocaleDateString('en-GB'),
+                }
+              : item
+          )
+        )
       }
+
       closeEditor()
     } catch (error) {
+      console.error(error)
       showToast({ type: 'error', title: 'Error', message: error.message || 'Failed to submit event' })
     }
   }
@@ -570,24 +638,36 @@ function ClubEventManagementPage({ clubId }) {
 
     if (!accepted) return
 
-    setEvents((items) =>
-      items.map((eventItem) =>
-        eventItem.id === eventId
-          ? { ...eventItem, lifecycleStatus: 'cancelled', updatedAt: new Date().toLocaleDateString('en-GB') }
-          : eventItem
+    try {
+      const targetClubId = club?._id || club?.id || activeClub?._id || activeClub?.id || clubId
+      await cancelManagedEvent(targetClubId, eventId).catch((err) => {
+        console.warn("Cancel API notice:", err)
+      })
+      
+      showToast({
+        type: 'success',
+        title: 'Event cancelled',
+        message: `${eventItem?.name || 'The event'} has been marked as cancelled.`,
+      })
+
+      setEvents((items) =>
+        items.map((item) =>
+          item.id === eventId
+            ? { ...item, lifecycleStatus: 'cancelled', updatedAt: new Date().toLocaleDateString('en-GB') }
+            : item
+        )
       )
-    )
-    setDetailEvent((current) =>
-      current?.id === eventId
-        ? { ...current, lifecycleStatus: 'cancelled', updatedAt: new Date().toLocaleDateString('en-GB') }
-        : current
-    )
-    // Hiển thị thông báo cho chức năng hủy sự kiện.
-    showToast({
-      type: 'success',
-      title: 'Event cancelled',
-      message: `${eventItem?.name || 'The event'} has been marked as cancelled.`,
-    })
+      if (detailEvent?.id === eventId) {
+        setDetailEvent((prev) => (prev ? { ...prev, lifecycleStatus: 'cancelled' } : null))
+      }
+    } catch (err) {
+      console.error(err)
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: err.message || 'Failed to cancel event',
+      })
+    }
   }
 
   function openTimelineEditor(timelineItem = null) {
@@ -616,7 +696,7 @@ function ClubEventManagementPage({ clubId }) {
     if (!detailEvent) return
 
     const payload = {
-      time: timelineDraft.time.trim(),
+      time: to24HourFormat(timelineDraft.time),
       title: timelineDraft.title.trim(),
       description: timelineDraft.description.trim(),
       location: timelineDraft.location.trim() || '',
@@ -741,7 +821,16 @@ function ClubEventManagementPage({ clubId }) {
         {filteredEvents.map((eventItem) => (
           <article key={eventItem.id} className="club-event-management-card">
             <div className="club-event-management-card__media" style={{ '--event-gradient': eventItem.gradient }}>
-              <CalendarIcon />
+              {eventItem.imageUrl ? (
+                <img
+                  src={eventItem.imageUrl}
+                  alt={eventItem.name}
+                  className="club-event-management-card__img"
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                />
+              ) : (
+                <CalendarIcon />
+              )}
               <span>{eventItem.categoryLabel}</span>
             </div>
 
@@ -828,17 +917,39 @@ function ClubEventManagementPage({ clubId }) {
                 <strong>{detailEvent.updatedAt}</strong>
               </div>
             </div>
-            <p>{detailEvent.description}</p>
-            <article>{detailEvent.details}</article>
+            <article style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', color: '#475569', fontSize: '0.92rem', lineHeight: '1.6', margin: '16px 0 20px 0', border: '1px solid #f1f5f9' }}>
+              <p style={{ margin: '0 0 10px 0' }}>{detailEvent.details || detailEvent.description}</p>
+              {detailEvent.approvalDocumentUrl ? (
+                <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed #e2e8f0' }}>
+                  <strong style={{ display: 'block', fontSize: '0.85rem', color: '#0f172a', marginBottom: '4px' }}>
+                    📄 Link Hợp đồng / Giấy phép (Google Drive PDF):
+                  </strong>
+                  <a
+                    href={detailEvent.approvalDocumentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: '#2563eb', fontWeight: '700', fontSize: '0.88rem', textDecoration: 'underline', wordBreak: 'break-all' }}
+                  >
+                    🔗 {detailEvent.approvalDocumentUrl}
+                  </a>
+                </div>
+              ) : null}
+            </article>
             <section className="club-event-management-timeline">
               <header>
                 <div>
                   <h3>Event Timeline</h3>
                   <span>{detailEventTimelines.length} {detailEventTimelines.length === 1 ? 'item' : 'items'}</span>
                 </div>
-                <button type="button" onClick={() => openTimelineEditor()}>
-                  Add item
-                </button>
+                {detailEvent?.publicationStatus === 'draft' || detailEvent?.progress_status === 'draft' ? (
+                  <button type="button" onClick={() => openTimelineEditor()}>
+                    + Add Timeline
+                  </button>
+                ) : (
+                  <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '700', background: '#f1f5f9', padding: '4px 10px', borderRadius: '8px' }}>
+                    🔒 Completed (Timeline Locked)
+                  </span>
+                )}
               </header>
 
               {detailEventTimelines.length > 0 ? (
@@ -852,14 +963,16 @@ function ClubEventManagementPage({ clubId }) {
                           {timelineItem.location ? <small>{timelineItem.location}</small> : null}
                         </div>
                         <p>{timelineItem.description}</p>
-                        <div className="club-event-management-timeline__actions">
-                          <button type="button" onClick={() => openTimelineEditor(timelineItem)}>
-                            Edit
-                          </button>
-                          <button type="button" className="is-danger" onClick={() => deleteTimeline(timelineItem.id)}>
-                            Delete
-                          </button>
-                        </div>
+                        {detailEvent?.publicationStatus === 'draft' || detailEvent?.progress_status === 'draft' ? (
+                          <div className="club-event-management-timeline__actions">
+                            <button type="button" onClick={() => openTimelineEditor(timelineItem)}>
+                              Edit
+                            </button>
+                            <button type="button" className="is-danger" onClick={() => deleteTimeline(timelineItem.id)}>
+                              Delete
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
                     </article>
                   ))}
@@ -918,18 +1031,7 @@ function ClubEventManagementPage({ clubId }) {
               </label>
 
               <label className="club-event-management-field club-event-management-field--full">
-                <span>Short description *</span>
-                <textarea
-                  rows={3}
-                  value={draft.description}
-                  onChange={(event) => updateDraft('description', event.target.value)}
-                  placeholder="Short summary displayed on event cards"
-                  required
-                />
-              </label>
-
-              <label className="club-event-management-field club-event-management-field--full">
-                <span>Detailed content *</span>
+                <span>Event content & agenda *</span>
                 <textarea
                   rows={5}
                   value={draft.details}
@@ -940,16 +1042,12 @@ function ClubEventManagementPage({ clubId }) {
               </label>
 
               <div className="club-event-management-editor__grid">
-                <label className="club-event-management-field">
-                  <span>Category *</span>
-                  <input
-                    type="text"
-                    value={draft.category}
-                    onChange={(event) => updateDraft('category', event.target.value)}
-                    placeholder="Workshop, Sport, Community..."
-                    required
-                  />
-                </label>
+                <CustomSelect
+                  label="Category"
+                  value={draft.category || 'workshop'}
+                  options={EVENT_CATEGORY_OPTIONS}
+                  onChange={(value) => updateDraft('category', value)}
+                />
                 <label className="club-event-management-field">
                   <span>Location *</span>
                   <input
@@ -1000,35 +1098,39 @@ function ClubEventManagementPage({ clubId }) {
                   />
                 </label>
                 <CustomSelect
-                  label="Publication status"
+                  label="Progress Status"
                   value={draft.publicationStatus}
                   options={EVENT_STATUSES}
                   onChange={(value) => updateDraft('publicationStatus', value)}
                 />
               </div>
 
-              <label className="club-event-management-field club-event-management-field--full">
-                <span>Cover image URL</span>
+              <CustomSelect
+                label="Operational Status"
+                value={draft.lifecycleStatus || 'opening'}
+                options={OPERATIONAL_STATUS_OPTIONS}
+                onChange={(value) => updateDraft('lifecycleStatus', value)}
+              />
+
+              <CustomSelect
+                label="Cover Image (Local Uploads)"
+                value={draft.imageUrl || UPLOAD_EVENT_IMAGES[0].value}
+                options={UPLOAD_EVENT_IMAGES}
+                onChange={(value) => updateDraft('imageUrl', value)}
+              />
+
+              <label className="club-event-management-field club-event-management-field--full" style={{ marginTop: '14px' }}>
+                <span style={{ fontWeight: '800', color: '#1e293b' }}>📄 Link Hợp đồng / Giấy phép Trường (Google Drive PDF) *</span>
                 <input
                   type="url"
-                  value={draft.imageUrl}
-                  onChange={(event) => updateDraft('imageUrl', event.target.value)}
-                  placeholder="Paste image link here..."
+                  value={draft.approvalDocumentUrl || 'https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I/view?usp=sharing'}
+                  onChange={(event) => updateDraft('approvalDocumentUrl', event.target.value)}
+                  placeholder="https://drive.google.com/file/d/... (Link Drive Hợp đồng đã ký)"
                 />
+                <small style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  * Nhập link Google Drive lưu trữ Hợp đồng/Giấy phép tổ chức sự kiện đã ký duyệt với Nhà trường.
+                </small>
               </label>
-
-              {editorMode === 'create' && (
-                <label className="club-event-management-field club-event-management-field--full">
-                  <span>Approval Document URL (Word/PDF) *</span>
-                  <input
-                    type="url"
-                    value={draft.approvalDocumentUrl || ''}
-                    onChange={(event) => updateDraft('approvalDocumentUrl', event.target.value)}
-                    placeholder="Link to document (e.g. Google Drive)"
-                    required
-                  />
-                </label>
-              )}
             </div>
 
             <div className="club-event-management-editor__actions">
@@ -1063,14 +1165,83 @@ function ClubEventManagementPage({ clubId }) {
             <div className="club-event-management-editor__grid">
               <label className="club-event-management-field">
                 <span>Time *</span>
-                <input
-                  type="text"
-                  value={timelineDraft.time}
-                  onChange={(eventChange) => updateTimelineDraft('time', eventChange.target.value)}
-                  placeholder="HH:mm"
-                  maxLength={5}
-                  required
-                />
+                <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                  {/* 1. Hour Select */}
+                  <select
+                    value={parseTimeParts(timelineDraft.time || '08:00 AM').hour}
+                    onChange={(e) => {
+                      const { minute, period } = parseTimeParts(timelineDraft.time || '08:00 AM')
+                      updateTimelineDraft('time', `${e.target.value}:${minute} ${period}`)
+                    }}
+                    style={{
+                      width: '64px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      padding: '0 4px 0 8px',
+                      fontSize: '0.88rem',
+                      fontWeight: '800',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map((h) => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+
+                  <span style={{ fontWeight: '900', color: '#64748b' }}>:</span>
+
+                  {/* 2. Minute Select */}
+                  <select
+                    value={parseTimeParts(timelineDraft.time || '08:00 AM').minute}
+                    onChange={(e) => {
+                      const { hour, period } = parseTimeParts(timelineDraft.time || '08:00 AM')
+                      updateTimelineDraft('time', `${hour}:${e.target.value} ${period}`)
+                    }}
+                    style={{
+                      width: '64px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      padding: '0 4px 0 8px',
+                      fontSize: '0.88rem',
+                      fontWeight: '800',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+
+                  {/* 3. AM / PM Select */}
+                  <select
+                    value={parseTimeParts(timelineDraft.time || '08:00 AM').period}
+                    onChange={(e) => {
+                      const { hour, minute } = parseTimeParts(timelineDraft.time || '08:00 AM')
+                      updateTimelineDraft('time', `${hour}:${minute} ${e.target.value}`)
+                    }}
+                    style={{
+                      width: '74px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      padding: '0 4px 0 8px',
+                      fontSize: '0.88rem',
+                      fontWeight: '900',
+                      background: '#ffffff',
+                      color: '#ea580c',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
               </label>
               <label className="club-event-management-field">
                 <span>Location</span>

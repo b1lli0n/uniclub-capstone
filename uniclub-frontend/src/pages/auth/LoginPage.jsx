@@ -7,11 +7,13 @@ import '../../styles/login.css'
 
 const MOCK_ACCOUNTS = [
   { email: 'tynce181041@fpt.edu.vn', label: '👑 Nguyen Ty – Event Manager (Music Club)' },
+  { email: 'demo32@fpt.edu.vn',      label: '👑 Bui Van Em (Demo 32) – President (Guitar Club)' },
+  { email: 'demo35@fpt.edu.vn',      label: '🎪 Nguyen Quoc Khanh (Demo 35) – Event Manager (Guitar Club)' },
+  { email: 'demo33@fpt.edu.vn',      label: '📝 Do Thi Giang (Demo 33) – Secretary (Guitar Club)' },
+  { email: 'demo34@fpt.edu.vn',      label: '💰 Ho Minh Hung (Demo 34) – Treasurer (Guitar Club)' },
+  { email: 'demo36@fpt.edu.vn',      label: '🎸 Tran Thanh Linh (Demo 36) – Member (Guitar Club)' },
   { email: 'demo1@fpt.edu.vn',       label: '🎵 Tran Thi Bich – Member (Music Club)' },
   { email: 'demo2@fpt.edu.vn',       label: '🎵 Le Van Cuong – Member (Music Club)' },
-  { email: 'demo3@fpt.edu.vn',       label: '🎵 Pham Thi Dung – Member (Music Club)' },
-  { email: 'demo4@fpt.edu.vn',       label: '🎵 Hoang Minh Duc – Member (Music Club)' },
-  { email: 'demo5@fpt.edu.vn',       label: '🎵 Vo Thanh Long – Member (Music Club)' },
   { email: 'admin@fpt.edu.vn',       label: '🛡 Nguyen Van Admin – Student Affairs' },
 ]
 

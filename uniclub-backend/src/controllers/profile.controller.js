@@ -91,19 +91,21 @@ const searchUsers = async (req, res) => {
     const { q } = req.query;
     const currentUserId = req.user.id;
 
-    if (!q || q.trim().length < 2) {
-      return res.status(200).json({ success: true, data: [] });
-    }
-
-    const keyword = q.trim();
-    const users = await User.find({
+    const queryFilter = {
       _id: { $ne: new mongoose.Types.ObjectId(currentUserId) },
       status: "active",
-      $or: [
+      role: "student",
+    };
+
+    if (q && q.trim().length >= 1) {
+      const keyword = q.trim();
+      queryFilter.$or = [
         { full_name: { $regex: keyword, $options: "i" } },
         { email: { $regex: keyword, $options: "i" } },
-      ],
-    })
+      ];
+    }
+
+    const users = await User.find(queryFilter)
       .select("_id full_name email avatar_url")
       .limit(10);
 

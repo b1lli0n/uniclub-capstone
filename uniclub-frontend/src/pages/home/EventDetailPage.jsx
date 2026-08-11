@@ -10,6 +10,7 @@ import {
   deleteEventTimeline,
 } from '../../api/event.api'
 import { getMyProfile } from '../../api/profile.api'
+import { resolveEventUploadImage, resolveClubLogo } from '../../utils/imageUtils'
 import {
   getEventFeedback,
   submitEventFeedback as submitEventFeedbackApi,
@@ -20,6 +21,36 @@ import { getMyClubs } from '../../api/memberClubMembership.api'
 import { EVENT_TIMELINES } from '../../data/mockData'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 import '../../styles/clubs.css'
+
+function parseTimeParts(timeStr = '08:00 AM') {
+  if (!timeStr) return { hour: '08', minute: '00', period: 'AM' }
+  const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+  if (match) {
+    const h = String(Math.min(12, Math.max(1, parseInt(match[1], 10)))).padStart(2, '0')
+    const m = match[2].padStart(2, '0')
+    const p = match[3].toUpperCase()
+    return { hour: h, minute: m, period: p }
+  }
+  const [hStr, mStr] = timeStr.split(':')
+  let h = parseInt(hStr || '8', 10)
+  const m = mStr ? mStr.substring(0, 2).padStart(2, '0') : '00'
+  let p = 'AM'
+  if (h >= 12) {
+    p = 'PM'
+    if (h > 12) h -= 12
+  }
+  if (h === 0) h = 12
+  return { hour: String(h).padStart(2, '0'), minute: m, period: p }
+}
+
+function to24HourFormat(timeStr = '08:00 AM') {
+  if (!timeStr) return '08:00'
+  const { hour, minute, period } = parseTimeParts(timeStr)
+  let h = parseInt(hour, 10)
+  if (period === 'PM' && h < 12) h += 12
+  if (period === 'AM' && h === 12) h = 0
+  return `${String(h).padStart(2, '0')}:${minute}`
+}
 
 function parseEventDate(dateText) {
   if (!dateText) return new Date()
@@ -57,7 +88,11 @@ function parseEventEndDate(event) {
 
 function isEventRegistrationOpen(event) {
   if (!event) return false
-  if (event.start_time) return event.status === 'opening' && new Date() < new Date(event.start_time)
+  if (event.status === 'closed' || event.status === 'cancelled') return false
+  if (event.start_time) {
+    const notEnded = event.end_time ? new Date() <= new Date(event.end_time) : true
+    return (event.status === 'opening' || event.status === 'coming soon' || !event.status) && notEnded
+  }
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   return parseEventDate(event.date).getTime() >= today.getTime()
@@ -153,13 +188,14 @@ function mapEventFromApi(apiEvent) {
     categoryLabel: (apiEvent.category || 'ACADEMIC').toUpperCase(),
     clubId: apiEvent.club_id?._id || apiEvent.club_id,
     organizerName: apiEvent.club_id?.name || 'UniClub',
-    organizerLogo: apiEvent.club_id?.logo_url || '',
+    organizerLogo: resolveClubLogo(apiEvent.club_id?.logo_url, apiEvent.club_id?.name),
     capacity: apiEvent.capacity,
     registeredCount: apiEvent.registeredCount || 0,
     isRegistered: apiEvent.isRegistered || false,
     registrationStatus: apiEvent.registrationStatus || null,
     registrationId: apiEvent.registrationId || null,
-    imageUrl: apiEvent.media_uris?.[0] || '',
+    imageUrl: resolveEventUploadImage(apiEvent.media_uris || apiEvent.image_url, apiEvent.category),
+    approvalDocumentUrl: apiEvent.approval_document_url || 'https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I/view?usp=sharing',
   }
 }
 
@@ -388,7 +424,8 @@ function EventDetailPage() {
     return String(id) === String(organizerClubId)
   })
   const isOrganizerMember = Boolean(organizerMembership)
-  const canManageTimeline = organizerMembership ? canManageEventOperations(organizerMembership.role) : false
+  const isDraftEvent = event?.publicationStatus === 'draft' || event?.progress_status === 'draft'
+  const canManageTimeline = isDraftEvent && organizerMembership ? canManageEventOperations(organizerMembership.role) : false
 
   const organizerName = event?.organizerName || 'UniClub'
   const organizerInitial = organizerName.slice(0, 1).toUpperCase()
@@ -409,13 +446,13 @@ function EventDetailPage() {
 
     try {
       const res = await registerForEventApi(eventId)
-      // Hiển thị thông báo cho chức năng đăng ký sự kiện.
       showToast({
         type: 'success',
-        title: 'Registered',
-        message: res.message || 'You have registered for this event successfully.',
+        title: 'Registration successful!',
+        message: 'Đăng ký thành công! Vé điện tử QR đã được khởi tạo và bạn nhận ngay điểm thưởng thành tích.',
       })
-      loadEventData()
+      await loadEventData()
+      setTicketOpen(true)
     } catch (err) {
       console.error(err)
       showToast({
@@ -557,7 +594,7 @@ function EventDetailPage() {
     submitEvent.preventDefault()
 
     const payload = {
-      time: timelineDraft.time.trim(),
+      time: to24HourFormat(timelineDraft.time),
       title: timelineDraft.title.trim(),
       description: timelineDraft.description.trim(),
       location: timelineDraft.location.trim() || '',
@@ -1193,14 +1230,83 @@ function EventDetailPage() {
             <div className="event-timeline-modal__grid">
               <label className="event-feedback-modal__field">
                 <span>Time *</span>
-                <input
-                  type="text"
-                  value={timelineDraft.time}
-                  onChange={(eventChange) => updateTimelineDraft('time', eventChange.target.value)}
-                  placeholder="HH:mm"
-                  maxLength={5}
-                  required
-                />
+                <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                  {/* 1. Hour Select */}
+                  <select
+                    value={parseTimeParts(timelineDraft.time || '08:00 AM').hour}
+                    onChange={(e) => {
+                      const { minute, period } = parseTimeParts(timelineDraft.time || '08:00 AM')
+                      updateTimelineDraft('time', `${e.target.value}:${minute} ${period}`)
+                    }}
+                    style={{
+                      width: '64px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      padding: '0 4px 0 8px',
+                      fontSize: '0.88rem',
+                      fontWeight: '800',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map((h) => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+
+                  <span style={{ fontWeight: '900', color: '#64748b' }}>:</span>
+
+                  {/* 2. Minute Select */}
+                  <select
+                    value={parseTimeParts(timelineDraft.time || '08:00 AM').minute}
+                    onChange={(e) => {
+                      const { hour, period } = parseTimeParts(timelineDraft.time || '08:00 AM')
+                      updateTimelineDraft('time', `${hour}:${e.target.value} ${period}`)
+                    }}
+                    style={{
+                      width: '64px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      padding: '0 4px 0 8px',
+                      fontSize: '0.88rem',
+                      fontWeight: '800',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+
+                  {/* 3. AM / PM Select */}
+                  <select
+                    value={parseTimeParts(timelineDraft.time || '08:00 AM').period}
+                    onChange={(e) => {
+                      const { hour, minute } = parseTimeParts(timelineDraft.time || '08:00 AM')
+                      updateTimelineDraft('time', `${hour}:${minute} ${e.target.value}`)
+                    }}
+                    style={{
+                      width: '74px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      padding: '0 4px 0 8px',
+                      fontSize: '0.88rem',
+                      fontWeight: '900',
+                      background: '#ffffff',
+                      color: '#ea580c',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
               </label>
               <label className="event-feedback-modal__field">
                 <span>Location</span>

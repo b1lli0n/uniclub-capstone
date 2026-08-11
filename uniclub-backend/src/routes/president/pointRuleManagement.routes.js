@@ -7,9 +7,14 @@ const {
   updatePointRule,
   togglePointRuleStatus,
   awardPoints,
+  getActionTypes,
+  deletePointRule,
 } = require("../../controllers/president/pointRuleManagement.controller");
 
 const router = express.Router();
+
+// GET /api/president/clubs/action-types
+router.get("/action-types", verifyToken, getActionTypes);
 
 // Middleware guard: User must be authenticated, be a student, and have the president role in the club
 const presidentGuard = [
@@ -33,6 +38,10 @@ router.patch("/:clubId/point-rules/:ruleId", ...presidentGuard, updatePointRule)
 // PATCH  /api/president/clubs/:clubId/point-rules/:ruleId/status
 // -> Activate/deactivate a point rule
 router.patch("/:clubId/point-rules/:ruleId/status", ...presidentGuard, togglePointRuleStatus);
+
+// DELETE /api/president/clubs/:clubId/point-rules/:ruleId
+// -> Delete a point rule
+router.delete("/:clubId/point-rules/:ruleId", ...presidentGuard, deletePointRule);
 
 // POST   /api/president/clubs/:clubId/members/:memberId/points
 // -> Manually award/deduct points to a club member

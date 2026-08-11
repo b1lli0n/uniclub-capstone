@@ -5,6 +5,8 @@ import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getClubEventsForMember, getPublicEvents } from '../../api/event.api'
 import '../../styles/club-detail.css'
 
+import { resolveEventUploadImage } from '../../utils/imageUtils'
+
 const VISIBILITY_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'public', label: 'Public' },
@@ -36,7 +38,7 @@ function mapEventFromApi(apiEvent) {
     checkinOpen: apiEvent.check_in_status === 'open',
     categoryLabel: category.toUpperCase(),
     gradient: CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.academic,
-    imageUrl: apiEvent.media_uris?.[0] || '',
+    imageUrl: resolveEventUploadImage(apiEvent.media_uris || apiEvent.image_url, category),
   }
 }
 

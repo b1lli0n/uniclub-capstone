@@ -30,14 +30,14 @@ const getMemberRewards = async ({ clubId, userId, search }) => {
   validateId(clubId, "clubId");
   const membership = await getActiveMembership(clubId, userId);
 
-  const filter = { club_id: clubId, is_active: true };
+  const filter = {
+    club_id: clubId,
+    $or: [{ is_active: true }, { status: "active" }],
+  };
 
   if (search?.trim()) {
     const keyword = search.trim();
-    filter.$or = [
-      { name: { $regex: keyword, $options: "i" } },
-      { description: { $regex: keyword, $options: "i" } },
-    ];
+    filter.name = { $regex: keyword, $options: "i" };
   }
 
   const rewards = await Reward.find(filter)
@@ -117,82 +117,81 @@ const redeemReward = async ({ clubId, rewardId, userId }) => {
   validateId(clubId, "clubId");
   validateId(rewardId, "rewardId");
 
-  const session = await mongoose.startSession();
-
-  try {
-    let redemption;
-
-    await session.withTransaction(async () => {
-      const club = await Club.findOne({ _id: clubId, status: "active" }).session(session);
-      if (!club) {
-        throw getStatusError("Club not found or inactive", 404);
-      }
-
-      const reward = await Reward.findOne({
-        _id: rewardId,
-        club_id: clubId,
-        is_active: true,
-      }).session(session);
-
-      if (!reward) {
-        throw getStatusError("Reward not found or unavailable", 404);
-      }
-
-      if (reward.quantity < 1) {
-        throw getStatusError("Reward is out of stock", 409);
-      }
-
-      const membership = await ClubMember.findOne({
-        club_id: clubId,
-        user_id: userId,
-        status: "active",
-      }).session(session);
-
-      if (!membership) {
-        throw getStatusError("You are not an active member of this club", 403);
-      }
-
-      // Calculate dynamic available points: earned - approved - pending
-      const totalEarned = await getTotalEarnedRewardPoint({ membershipId: membership._id, session });
-      const approvedPoints = await getTotalApprovedRedemptionPoint({ membershipId: membership._id, session });
-      
-      const pendingRedemptions = await RewardRedemption.find({
-        membership_id: membership._id,
-        status: "pending",
-      }).session(session);
-      
-      const pendingPoints = pendingRedemptions.reduce((sum, r) => sum + (r.total_point || 0), 0);
-      const availablePoints = totalEarned - approvedPoints - pendingPoints;
-
-      if (availablePoints < reward.points_required) {
-        throw getStatusError("Insufficient reward points", 400);
-      }
-
-      // Create pending RewardRedemption request
-      const created = await RewardRedemption.create(
-        [
-          {
-            club_id: clubId,
-            reward_id: reward._id,
-            membership_id: membership._id,
-            quantity: 1,
-            point_cost: reward.points_required,
-            total_point: reward.points_required,
-            status: "pending",
-          },
-        ],
-        { session }
-      );
-
-      redemption = created[0];
-    });
-
-    await redemption.populate("reward_id", "_id name description points_required quantity image_url");
-
-    return redemption;
-  } finally {
-    await session.endSession();
+  const club = await Club.findOne({ _id: clubId, status: "active" });
+  if (!club) {
+    throw getStatusError("Club not found or inactive", 404);
   }
+
+  const reward = await Reward.findOne({
+    _id: rewardId,
+    club_id: clubId,
+    $or: [{ is_active: true }, { status: "active" }],
+  });
+
+  if (!reward) {
+    throw getStatusError("Reward not found or unavailable", 404);
+  }
+
+  if (reward.quantity < 1) {
+    throw getStatusError("Reward is out of stock", 409);
+  }
+
+  const membership = await ClubMember.findOne({
+    club_id: clubId,
+    user_id: userId,
+    status: "active",
+  });
+
+  if (!membership) {
+    throw getStatusError("You are not an active member of this club", 403);
+  }
+
+  // Calculate dynamic available points based on membership.reward_point and pending redemptions
+  const pendingRedemptions = await RewardRedemption.find({
+    membership_id: membership._id,
+    status: "pending",
+  });
+  
+  const pendingPoints = pendingRedemptions.reduce((sum, r) => sum + (r.total_point || 0), 0);
+  const memberPoints = membership.reward_point || 0;
+  const availablePoints = Math.max(memberPoints - pendingPoints, 0);
+
+  const cost = reward.point_cost ?? reward.points_required ?? 100;
+  if (availablePoints < cost) {
+    throw getStatusError("Insufficient reward points", 400);
+  }
+
+  // Create pending RewardRedemption request
+  const redemption = await RewardRedemption.create({
+    club_id: clubId,
+    reward_id: reward._id,
+    membership_id: membership._id,
+    quantity: 1,
+    point_cost: cost,
+    total_point: cost,
+    status: "pending",
+  });
+
+  await redemption.populate("reward_id", "_id name description points_required point_cost quantity image_url");
+
+  // Trigger Email notification to Leader
+  try {
+    const { sendRedemptionRequestEmailToLeader } = require("../email.service");
+    const User = require("../../models/user.model");
+    const userDoc = await User.findById(userId);
+
+    sendRedemptionRequestEmailToLeader({
+      leaderEmail: process.env.EMAIL_USER || "uniclub2402@gmail.com",
+      userName: userDoc?.full_name || "Sinh viên UniClub",
+      clubName: club?.name || "Guitar Club",
+      rewardTitle: reward?.name || "Phần thưởng",
+      pointCost: cost,
+    });
+  } catch (emailErr) {
+    console.error("[Redeem Hook] Email trigger error:", emailErr);
+  }
+
+  return redemption;
 };
 
 const getMyRedemptionHistory = async ({ clubId, userId, status }) => {

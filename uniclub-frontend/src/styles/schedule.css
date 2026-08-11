@@ -543,19 +543,25 @@
 .meta-box__info p { color: #3d2e24; }
 
 /* Keep native form controls in the activity editor in light mode. */
-.schedule-page .glass-body input,
-.schedule-page .glass-body select,
-.schedule-page .glass-body textarea {
-  box-sizing: border-box;
-  background: #fffdf9 !important;
-  color: #3d2e24 !important;
-  color-scheme: light;
+.schedule-page input,
+.schedule-page select,
+.schedule-page textarea,
+.points-modal input,
+.points-modal select,
+.points-modal textarea {
+  box-sizing: border-box !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  color-scheme: light !important;
 }
 
-.schedule-page .glass-body input::placeholder,
-.schedule-page .glass-body textarea::placeholder {
-  color: #9a8a7d !important;
-  opacity: 1;
+.schedule-page input::placeholder,
+.schedule-page textarea::placeholder,
+.points-modal input::placeholder,
+.points-modal textarea::placeholder {
+  color: #64748b !important;
+  opacity: 1 !important;
 }
 
 .schedule-page .glass-body input:focus,

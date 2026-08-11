@@ -3,6 +3,7 @@ const ActionType = require("../../models/action_type.model");
 const Club = require("../../models/club.model");
 const ClubMember = require("../../models/club_member.model");
 const ContributionLog = require("../../models/contribution_log.model");
+const { sendPointsAwardedEmail } = require("../email.service");
 const { getStatusError } = require("../../utils/error");
 const mongoose = require("mongoose");
 
@@ -151,8 +152,7 @@ const awardPointsManually = async (presidentId, clubId, memberId, { rule_id, rew
       finalPoints = rule.reward_point;
     }
   } else {
-    // If no rule_id is provided, try to find or fallback to a custom/other action type
-    const fallbackAction = await ActionType.findOne({ code: "meeting" }); // fallback to meeting or default
+    const fallbackAction = (await ActionType.findOne({ code: "performance" })) || (await ActionType.findOne({}));
     if (fallbackAction) {
       actionTypeId = fallbackAction._id;
     }
@@ -190,6 +190,20 @@ const awardPointsManually = async (presidentId, clubId, memberId, { rule_id, rew
     month_key: monthKey,
   });
 
+  // Async send email notification
+  ClubMember.findById(member._id).populate("user_id").populate("club_id").then((populated) => {
+    if (populated && populated.user_id && populated.user_id.email) {
+      sendPointsAwardedEmail({
+        toEmail: populated.user_id.email,
+        userName: populated.user_id.full_name || "Thành viên",
+        clubName: populated.club_id?.name || "Câu lạc bộ",
+        points: finalPoints,
+        reason: reason.trim(),
+        newTotal: member.reward_point,
+      }).catch((err) => console.error("[Points Email Error]", err));
+    }
+  }).catch((err) => console.error("[Points Email Populate Error]", err));
+
   return {
     success: true,
     member: {
@@ -201,10 +215,29 @@ const awardPointsManually = async (presidentId, clubId, memberId, { rule_id, rew
   };
 };
 
+const deletePointRule = async (presidentId, clubId, ruleId) => {
+  if (!mongoose.Types.ObjectId.isValid(clubId) || !mongoose.Types.ObjectId.isValid(ruleId)) {
+    throw getStatusError("Invalid club ID or rule ID", 400);
+  }
+
+  const pointRule = await PointRule.findOneAndDelete({ _id: ruleId, club_id: clubId });
+  if (!pointRule) {
+    throw getStatusError("Point rule not found in this club", 404);
+  }
+
+  return { success: true, message: "Point rule deleted successfully" };
+};
+
+const getActionTypes = async () => {
+  return ActionType.find({ is_Active: true }).sort({ created_at: 1 });
+};
+
 module.exports = {
   getPointRules,
   createPointRule,
   updatePointRule,
   togglePointRuleStatus,
   awardPointsManually,
+  getActionTypes,
+  deletePointRule,
 };

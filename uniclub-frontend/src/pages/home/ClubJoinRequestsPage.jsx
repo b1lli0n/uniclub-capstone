@@ -42,12 +42,9 @@ function ClubJoinRequestsPage({ clubId }) {
     async function loadPageData() {
       setLoading(true)
       try {
-        const [clubResponse, myClubsResponse, requestsResponse] = await Promise.all([
+        const [clubResponse, myClubsResponse] = await Promise.all([
           getClubById(clubId),
           getMyClubs(),
-          getClubJoinRequests(clubId, {
-            status: statusFilter !== 'all' ? statusFilter : undefined,
-          }),
         ])
 
         if (cancelled) return
@@ -58,11 +55,25 @@ function ClubJoinRequestsPage({ clubId }) {
           const id = item.club_id?._id || item.club_id
           return String(id) === String(clubId)
         })
-        setCanApproveMembers(membership?.role === 'president')
+        const role = membership?.role?.toLowerCase()
+        const isPresident = role === 'president' || role === 'leader'
+        setCanApproveMembers(isPresident)
 
-        setRequests(
-          (requestsResponse.data || []).map((request) => mapPresidentJoinRequestFromApi(request)),
-        )
+        if (isPresident) {
+          try {
+            const requestsResponse = await getClubJoinRequests(clubId, {
+              status: statusFilter !== 'all' ? statusFilter : undefined,
+            })
+            if (!cancelled) {
+              setRequests(
+                (requestsResponse.data || []).map((request) => mapPresidentJoinRequestFromApi(request)),
+              )
+            }
+          } catch (reqError) {
+            console.error('Failed to load join requests:', reqError)
+            if (!cancelled) setRequests([])
+          }
+        }
       } catch (error) {
         console.error(error)
         if (!cancelled) {

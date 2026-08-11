@@ -552,8 +552,8 @@ function ClubAttendancePage({ clubId }) {
                     </div>
                   </td>
                   <td>
-                    <span className={`club-attendance-status${item.checkedIn ? ' is-checked' : ' is-absent'}`}>
-                      {item.checkedIn ? 'Checked in' : 'Absent'}
+                    <span className={`club-attendance-status ${item.checkedIn ? 'is-checked' : checkinOpen ? 'is-notyet' : 'is-absent'}`}>
+                      {item.checkedIn ? 'Checked in' : checkinOpen ? 'Not yet' : 'Absent'}
                     </span>
                   </td>
                   <td>{item.checkedInAt || '-'}</td>

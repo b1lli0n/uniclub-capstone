@@ -231,10 +231,62 @@ const deleteActivity = async (req, res, next) => {
   }
 };
 
+const getActivityAttendance = async (req, res, next) => {
+  try {
+    const { clubId, activityId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(clubId) || !mongoose.Types.ObjectId.isValid(activityId)) {
+      return next(getStatusError("Invalid parameters", 400));
+    }
+
+    const data = await activityScheduleService.getActivityAttendance(clubId, activityId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Activity attendance retrieved successfully",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const saveActivityAttendance = async (req, res, next) => {
+  try {
+    const { clubId, activityId } = req.params;
+    const { members } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(clubId) || !mongoose.Types.ObjectId.isValid(activityId)) {
+      return next(getStatusError("Invalid parameters", 400));
+    }
+
+    if (!Array.isArray(members)) {
+      return next(getStatusError("members must be an array", 400));
+    }
+
+    const data = await activityScheduleService.saveActivityAttendance(
+      clubId,
+      activityId,
+      members,
+      req.user.id
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Activity attendance saved and points awarded successfully",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getClubActivitySchedule,
   getActivityScheduleDetail,
   createActivity,
   updateActivity,
   deleteActivity,
+  getActivityAttendance,
+  saveActivityAttendance,
 };

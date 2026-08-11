@@ -17,44 +17,59 @@ const PAYMENT_METHOD = {
 }
 
 function generateTxnRef() {
-  const ts = Date.now()
-  const rand = Math.floor(Math.random() * 1000000).toString().padStart(6, '0')
-  return `VNPAY_${ts}_${rand}`
+  const ts = Date.now().toString().slice(-8)
+  const rand = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+  return `VNP${ts}${rand}`
 }
 
 function formatDateVnp(date = new Date()) {
-  const local = new Date(date.getTime() + ((7 * 60) + date.getTimezoneOffset()) * 60 * 1000)
-  const yyyy = local.getUTCFullYear()
-  const mm = String(local.getUTCMonth() + 1).padStart(2, '0')
-  const dd = String(local.getUTCDate()).padStart(2, '0')
-  const hh = String(local.getUTCHours()).padStart(2, '0')
-  const mi = String(local.getUTCMinutes()).padStart(2, '0')
-  const ss = String(local.getUTCSeconds()).padStart(2, '0')
+  const d = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }))
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  const ss = String(d.getSeconds()).padStart(2, '0')
   return `${yyyy}${mm}${dd}${hh}${mi}${ss}`
 }
 
-// Sort object keys alphabetically and encode
+function removeVietnameseTones(str = '') {
+  return String(str)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .replace(/[^a-zA-Z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+const qs = require('qs')
+
+// Sort object keys alphabetically and encode for VNPay V2.1.0 specification
 function sortObject(obj = {}) {
   const sorted = {}
-
   const keys = Object.keys(obj)
     .filter((key) => obj[key] !== undefined && obj[key] !== null && obj[key] !== '')
-    .map((key) => encodeURIComponent(key))
     .sort()
 
-  keys.forEach((encodedKey) => {
-    const rawKey = decodeURIComponent(encodedKey)
-    sorted[encodedKey] = encodeURIComponent(String(obj[rawKey])).replace(/%20/g, '+')
-  })
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i]
+    sorted[key] = encodeURIComponent(String(obj[key])).replace(/%20/g, '+')
+  }
 
   return sorted
 }
 
-// Build HMAC-SHA512 signed query
+// Build HMAC-SHA512 signed query matching official VNPay standard
 function buildSignedQuery(params, secretKey) {
   const sortedParams = sortObject(params)
-  const signData = querystring.stringify(sortedParams, '&', '=', { encodeURIComponent: (str) => str })
-  const secureHash = crypto.createHmac('sha512', String(secretKey || '').trim()).update(Buffer.from(signData, 'utf-8')).digest('hex')
+  const signData = qs.stringify(sortedParams, { encode: false })
+  const secureHash = crypto
+    .createHmac('sha512', String(secretKey || '').trim())
+    .update(Buffer.from(signData, 'utf-8'))
+    .digest('hex')
+
   return {
     sortedParams,
     secureHash,
@@ -90,14 +105,13 @@ function buildHashFromRawQuery(rawQuery = '', secretKey) {
   }
 }
 
-// Retrieve VNPay configuration dynamically from process.env
 function getVnpayConfig() {
-  const tmnCode = (process.env.vnp_TmnCode || '').trim()
-  const hashSecret = (process.env.vnp_HashSecret || '').trim()
-  const vnpUrl = (process.env.vnp_Url || '').trim()
-  const returnUrl = (process.env.vnp_ReturnUrl || '').trim()
+  const tmnCode = (process.env.vnp_TmnCode || process.env.VNP_TMNCODE || '').trim()
+  const hashSecret = (process.env.vnp_HashSecret || process.env.VNP_HASHSECRET || '').trim()
+  const vnpUrl = (process.env.vnp_Url || process.env.VNP_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html').trim()
+  const returnUrl = (process.env.vnp_ReturnUrl || process.env.VNP_RETURNURL || '').trim()
 
-  if (!tmnCode || !hashSecret || !vnpUrl || !returnUrl) {
+  if (!tmnCode || !hashSecret || !returnUrl) {
     throw new Error('VNPay config is missing')
   }
 
@@ -322,7 +336,8 @@ async function createVnpayPaymentUrl({ clubId, requesterId, payload = {}, ipAddr
   receipt.status = PAYMENT_STATUS.PENDING
   receipt.txn_ref = generateTxnRef()
   receipt.vnp_response_code = undefined
-  receipt.order_info = String(payload.orderInfo || 'Membership fee payment').trim()
+  const rawOrderInfo = String(payload.orderInfo || receipt.period || 'Membership fee payment').trim()
+  receipt.order_info = removeVietnameseTones(rawOrderInfo) || 'Thanh toan hoi phi'
   receipt.paid_at = undefined
   await receipt.save()
 

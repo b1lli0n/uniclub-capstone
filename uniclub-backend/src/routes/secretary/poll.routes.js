@@ -14,7 +14,7 @@ const router = express.Router({ mergeParams: true });
 const secretaryAuth = [
   verifyToken,
   protect(["student"]),
-  requireClubRole(["secretary"], "clubId"),
+  requireClubRole(["president", "leader", "secretary"], "clubId"),
 ];
 
 router.get("/", ...secretaryAuth, getPollList);

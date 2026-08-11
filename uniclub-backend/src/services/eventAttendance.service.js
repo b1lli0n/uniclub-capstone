@@ -3,7 +3,7 @@ const Event = require("../models/event.model");
 const EventRegistration = require("../models/event_registration.model");
 const ClubMember = require("../models/club_member.model");
 
-const ATTENDANCE_MANAGE_ROLES = ["president", "secretary", "event_manager"];
+const ATTENDANCE_MANAGE_ROLES = ["president", "leader", "secretary", "event_manager"];
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -225,13 +225,23 @@ const updateAttendanceStatus = async ({
     if (status === "attended") {
       try {
         const { awardRewardPoints } = require("./pointsAward.helper");
-        await awardRewardPoints({
+        let awarded = await awardRewardPoints({
           clubId: event.club_id,
           userId: registration.user_id,
-          actionTypeCode: "attendance",
+          actionTypeCode: "checkin",
           eventId: event._id,
           presidentId: userId,
         });
+
+        if (!awarded) {
+          await awardRewardPoints({
+            clubId: event.club_id,
+            userId: registration.user_id,
+            actionTypeCode: "attendance",
+            eventId: event._id,
+            presidentId: userId,
+          });
+        }
       } catch (err) {
         console.error("[Points Hook] Failed to award attendance points:", err);
       }

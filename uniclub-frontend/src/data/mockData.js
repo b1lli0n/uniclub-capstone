@@ -881,12 +881,10 @@ export const EVENTS_PER_PAGE = 12
 // Create club form options
 export const CREATE_CLUB_CATEGORIES = [
   { value: '', label: 'Select category...' },
-  { value: 'tech', label: 'Technology' },
+  { value: 'academic', label: 'Academic' },
   { value: 'sport', label: 'Sports' },
   { value: 'art', label: 'Arts' },
-  { value: 'volunteer', label: 'Volunteer' },
-  { value: 'academic', label: 'Academic' },
-  { value: 'other', label: 'Other' },
+  { value: 'event', label: 'Events' },
 ]
 
 export const AVAILABLE_MEMBERS = [

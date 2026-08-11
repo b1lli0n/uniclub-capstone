@@ -161,7 +161,7 @@ const reviewClubCreationRequest = async (
         {
           requestId: req.params.id,
           status: req.body.status,
-          reviewNote: req.body.review_note,
+          reviewNote: req.body.review_note || req.body.reviewNote || "",
           reviewerId: req.user._id,
         }
       );

@@ -1,11 +1,15 @@
+const ClubMember = require("../../models/club_member.model");
 const Invitation = require("../../models/invitation.model");
 const { getStatusError } = require("../../utils/error");
 
 const getReceivedInvitations = async (userId, clubId, { status } = {}) => {
   const query = {
     invited_user_id: userId,
-    club_id: clubId,
   };
+
+  if (clubId) {
+    query.club_id = clubId;
+  }
 
   if (status) {
     query.status = status;
@@ -53,11 +57,39 @@ const getPendingInvitation = async (userId, clubId, invitationId) => {
   return invitation;
 };
 
-const acceptInvitation = async (userId, clubId, invitationId, clubMembership) => {
-  const invitation = await getPendingInvitation(userId, clubId, invitationId);
+const acceptInvitation = async (userId, clubId, invitationId) => {
+  const query = {
+    _id: invitationId,
+    invited_user_id: userId,
+    status: "pending",
+  };
+  if (clubId) query.club_id = clubId;
 
-  clubMembership.role = invitation.role || "member";
-  await clubMembership.save();
+  const invitation = await Invitation.findOne(query);
+
+  if (!invitation) {
+    throw getStatusError("Invitation not found or already handled", 404);
+  }
+
+  // Find existing or create new active ClubMember record
+  let membership = await ClubMember.findOne({
+    club_id: invitation.club_id,
+    user_id: userId,
+  });
+
+  if (membership) {
+    membership.status = "active";
+    membership.role = invitation.role || "member";
+    await membership.save();
+  } else {
+    await ClubMember.create({
+      club_id: invitation.club_id,
+      user_id: userId,
+      status: "active",
+      role: invitation.role || "member",
+      joined_at: new Date(),
+    });
+  }
 
   invitation.status = "accepted";
   await invitation.save();
@@ -69,7 +101,18 @@ const acceptInvitation = async (userId, clubId, invitationId, clubMembership) =>
 };
 
 const rejectInvitation = async (userId, clubId, invitationId) => {
-  const invitation = await getPendingInvitation(userId, clubId, invitationId);
+  const query = {
+    _id: invitationId,
+    invited_user_id: userId,
+    status: "pending",
+  };
+  if (clubId) query.club_id = clubId;
+
+  const invitation = await Invitation.findOne(query);
+
+  if (!invitation) {
+    throw getStatusError("Invitation not found or already handled", 404);
+  }
 
   invitation.status = "rejected";
   await invitation.save();

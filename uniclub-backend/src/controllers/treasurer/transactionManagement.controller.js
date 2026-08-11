@@ -53,6 +53,7 @@ const parseCreatePayload = (body) => ({
 
 const parseUpdatePayload = (body) => {
   const updates = {};
+  if (body.status !== undefined) updates.status = parseStatus(body.status);
   if (body.type !== undefined) updates.type = parseType(body.type);
   if (body.category !== undefined) updates.category = parseRequiredText(body.category, "category", 100);
   if (body.period !== undefined) updates.period = parseRequiredText(body.period, "period", 30);

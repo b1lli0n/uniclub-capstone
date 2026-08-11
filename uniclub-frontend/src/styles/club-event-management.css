@@ -142,6 +142,15 @@
   color: #3d2e24;
 }
 
+.club-event-management-card__img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .club-event-management-card__media svg {
   width: 34px;
   height: 34px;

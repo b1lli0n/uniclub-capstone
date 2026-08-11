@@ -48,7 +48,7 @@ function canManageClubMembers(clubId) {
 }
 
 function canManageClubInvitations(clubId) {
-  return getMembership(clubId)?.role?.toLowerCase() === 'secretary'
+  return isClubMember(clubId)
 }
 
 function canManageClubEvents(clubId) {
@@ -70,8 +70,7 @@ function canManageActivitySchedule(clubId) {
 }
 
 function canManageClubPolls(clubId) {
-  const role = getMembership(clubId)?.role?.toLowerCase()
-  return role === 'secretary'
+  return isClubMember(clubId)
 }
 
 function canManageClubFinance(clubId) {
@@ -246,11 +245,11 @@ function ClubRoute({ pageId, guard = 'member', children }) {
   // Front-end mock roles: leader, vice leader, event management, secretary, member
   const canManageMembers = role === 'president' || role === 'leader'
   const canManageEvents = role === 'president' || role === 'leader' || role === 'event_manager' || role === 'event management'
-  const canManageSchedule = role === 'secretary'
+  const canManageSchedule = role === 'president' || role === 'secretary' || role === 'leader'
   const canViewFees = isMember
-  const canManagePolls = role === 'secretary'
-  const canManageFinance = role === 'treasurer'
-  const canManageInvitations = role === 'secretary'
+  const canManagePolls = isMember
+  const canManageFinance = role === 'president' || role === 'leader' || role === 'treasurer'
+  const canManageInvitations = isMember
 
   const isAllowed =
     guard === 'member'
@@ -326,7 +325,7 @@ function ClubJoinRequestsRoute() {
 
 function ClubInvitationsRoute() {
   return (
-    <ClubRoute pageId="invitations" guard="secretary">
+    <ClubRoute pageId="invitations" guard="member">
       {({ clubId }) => <ClubInvitationsPage clubId={clubId} />}
     </ClubRoute>
   )
@@ -334,7 +333,7 @@ function ClubInvitationsRoute() {
 
 function ClubPollsRoute() {
   return (
-    <ClubRoute pageId="polls" guard="secretary">
+    <ClubRoute pageId="polls" guard="member">
       {({ clubId }) => <ClubPollsPage clubId={clubId} />}
     </ClubRoute>
   )
@@ -343,7 +342,7 @@ function ClubPollsRoute() {
 function ClubFinanceRoute() {
   return (
     <ClubRoute pageId="finance" guard="treasurer">
-      {({ clubId }) => <ClubFinancePage clubId={clubId} />}
+      {({ clubId, membership }) => <ClubFinancePage clubId={clubId} userRole={membership?.role?.toLowerCase()} />}
     </ClubRoute>
   )
 }
@@ -457,6 +456,7 @@ function AppRouter() {
             <HomePage
               onCreateClub={() => navigate('/create-club')}
               onSelectClub={(clubId) => navigate(`/clubs/${clubId}`)}
+              onSelectEvent={(eventId) => navigate(`/events/${eventId}`)}
               onViewAll={(target) =>
                 navigate(target === 'events' ? '/events' : '/clubs')
               }
@@ -591,25 +591,18 @@ function AppRouter() {
 
 
       <Route
-        path="/club-ranking"
-        element={
-          <ProtectedLayout pageId="club-ranking" activeItem="clubs">
-            <ClubRankingPage />
-          </ProtectedLayout>
-        }
-      />
-
-      <Route
         path="/admin"
         element={
-          <AdminDashboardPage
-            onLogout={() => {
-              if (window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống Admin không?')) {
-                localStorage.removeItem('token')
-                navigate('/login', { replace: true })
-              }
-            }}
-          />
+          <AdminRoute>
+            <AdminDashboardPage
+              onLogout={() => {
+                if (window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống Admin không?')) {
+                  localStorage.removeItem('token')
+                  navigate('/login', { replace: true })
+                }
+              }}
+            />
+          </AdminRoute>
         }
       />
 
@@ -618,6 +611,57 @@ function AppRouter() {
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
+}
+
+function AdminRoute({ children }) {
+  const token = localStorage.getItem('token')
+  const [loading, setLoading] = useState(true)
+  const [isAllowed, setIsAllowed] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    async function checkAdminAccess() {
+      if (!token) {
+        if (active) setLoading(false)
+        return
+      }
+      try {
+        const res = await getMyProfile()
+        if (!active) return
+        const user = res?.data?.user
+        const email = user?.email?.toLowerCase()?.trim()
+        const role = user?.role?.toLowerCase()
+
+        const allowed = email === 'uniclub2402@gmail.com' || role === 'student_affairs' || role === 'admin'
+        setIsAllowed(allowed)
+      } catch (err) {
+        console.error("Admin access check error:", err)
+        if (active) setIsAllowed(false)
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    checkAdminAccess()
+    return () => { active = false }
+  }, [token])
+
+  if (!token) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', fontWeight: 'bold' }}>
+        Checking Admin Access...
+      </div>
+    )
+  }
+
+  if (!isAllowed) {
+    return <Navigate to="/" replace />
+  }
+
+  return children
 }
 
 export default AppRouter

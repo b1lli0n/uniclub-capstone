@@ -1,16 +1,18 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import '../../styles/home.css'
 import '../../styles/admin-dashboard.css'
-// Mock data import: replace with API data when BE is ready.
-import { ADMIN_ACTIVE_CLUBS, ADMIN_NAV_ITEMS, ADMIN_REGISTRATION_REQUESTS } from '../../data/mockData'
+import { ADMIN_NAV_ITEMS } from '../../data/mockData'
 import fptUniversityLogo from '../../assets/Logo-Dai-hoc-FPT.webp'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 import AdminEventRequestsTab from './AdminEventRequestsTab'
+import { getAdminClubList, getClubCreationRequestList, reviewClubCreationRequest } from '../../api/clubManagement.api'
+import { mapAdminClubFromApi, mapCreationRequestFromApi } from '../../api/clubMappers'
 
 const ADMIN_SORT_OPTIONS = [
+  { value: 'pending', label: 'Status: Pending' },
+  { value: 'all', label: 'All Requests' },
   { value: 'newest', label: 'Newest date' },
   { value: 'oldest', label: 'Oldest date' },
-  { value: 'pending', label: 'Status: Pending' },
   { value: 'approved', label: 'Status: Approved' },
   { value: 'rejected', label: 'Status: Rejected' },
 ]
@@ -31,39 +33,39 @@ function formatStatusLabel(status = '') {
 
 const adminIcons = {
   dashboard: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-        <path d="M4 13h7V4H4v9ZM13 20h7V4h-7v16ZM4 20h7v-5H4v5Z" strokeLinejoin="round" />
-      </svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+      <path d="M4 13h7V4H4v9ZM13 20h7V4h-7v16ZM4 20h7v-5H4v5Z" strokeLinejoin="round" />
+    </svg>
   ),
   registrations: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-        <path d="M8 6h13M8 12h13M8 18h13" strokeLinecap="round" />
-        <path d="M3 6h.01M3 12h.01M3 18h.01" strokeLinecap="round" />
-      </svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+      <path d="M8 6h13M8 12h13M8 18h13" strokeLinecap="round" />
+      <path d="M3 6h.01M3 12h.01M3 18h.01" strokeLinecap="round" />
+    </svg>
   ),
   clubs: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-        <path d="M12 3 3 7.5v2h18v-2L12 3Z" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M5 10.5V18M9.5 10.5V18M14.5 10.5V18M19 10.5V18" strokeLinecap="round" />
-        <path d="M4 18h16M3 21h18" strokeLinecap="round" />
-      </svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+      <path d="M12 3 3 7.5v2h18v-2L12 3Z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 10.5V18M9.5 10.5V18M14.5 10.5V18M19 10.5V18" strokeLinecap="round" />
+      <path d="M4 18h16M3 21h18" strokeLinecap="round" />
+    </svg>
   ),
   rewards: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-        <path d="M20 12v8H4v-8M3 8h18v4H3V8Z" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M12 8v12M12 8H8.5A2.5 2.5 0 1 1 11 5.5V8ZM12 8h3.5A2.5 2.5 0 1 0 13 5.5V8Z" strokeLinejoin="round" />
-      </svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+      <path d="M20 12v8H4v-8M3 8h18v4H3V8Z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 8v12M12 8H8.5A2.5 2.5 0 1 1 11 5.5V8ZM12 8h3.5A2.5 2.5 0 1 0 13 5.5V8Z" strokeLinejoin="round" />
+    </svg>
   ),
   badges: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-        <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 16.9l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" strokeLinejoin="round" />
-      </svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+      <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 16.9l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" strokeLinejoin="round" />
+    </svg>
   ),
   notifications: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M10 21h4" strokeLinecap="round" />
-      </svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 21h4" strokeLinecap="round" />
+    </svg>
   ),
 }
 
@@ -150,7 +152,7 @@ function AdminDashboardPage({ onLogout }) {
   const showToast = useToast()
   const [activeView, setActiveView] = useState('registrations')
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
-  const [sortMode, setSortMode] = useState('')
+  const [sortMode, setSortMode] = useState('pending')
   const [searchQuery, setSearchQuery] = useState('')
   const [clubSortMenuOpen, setClubSortMenuOpen] = useState(false)
   const [clubSortMode, setClubSortMode] = useState('')
@@ -160,8 +162,12 @@ function AdminDashboardPage({ onLogout }) {
   const [isManagingMembers, setIsManagingMembers] = useState(false)
   const [memberRoleFilter, setMemberRoleFilter] = useState('all')
   const [openRoleDropdown, setOpenRoleDropdown] = useState(null)
-  const [registrationRequests, setRegistrationRequests] = useState(ADMIN_REGISTRATION_REQUESTS)
-  const [activeClubs, setActiveClubs] = useState(ADMIN_ACTIVE_CLUBS)
+  const [registrationRequests, setRegistrationRequests] = useState([])
+  const [registrationsLoading, setRegistrationsLoading] = useState(false)
+  const [registrationsError, setRegistrationsError] = useState(null)
+  const [activeClubs, setActiveClubs] = useState([])
+  const [clubsLoading, setClubsLoading] = useState(false)
+  const [clubsError, setClubsError] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [clubCurrentPage, setClubCurrentPage] = useState(1)
   const sortRef = useRef(null)
@@ -170,17 +176,24 @@ function AdminDashboardPage({ onLogout }) {
   const selectedClubSort = ADMIN_CLUB_SORT_OPTIONS.find((option) => option.value === clubSortMode)
   const visibleRequests = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
-    const requests = registrationRequests.filter((item) => {
+    let requests = registrationRequests.filter((item) => {
       if (!query) return true
 
       return item.clubName.toLowerCase().includes(query)
     })
     const parseSentDate = (dateText) => {
-      const [day, month, year] = dateText.split('/').map(Number)
+      if (!dateText) return 0
+      const parts = dateText.split('/')
+      if (parts.length < 3) return 0
+      const [day, month, year] = parts.map(Number)
       return new Date(year, month - 1, day).getTime()
     }
 
-    if (!sortMode) {
+    if (!sortMode || sortMode === 'pending') {
+      return requests.filter((item) => item.status === 'pending')
+    }
+
+    if (sortMode === 'all') {
       return requests
     }
 
@@ -233,6 +246,48 @@ function AdminDashboardPage({ onLogout }) {
   useEffect(() => {
     setClubCurrentPage(1)
   }, [clubSearchQuery, clubSortMode])
+
+  useEffect(() => {
+    if (activeView !== 'clubs') return
+    let cancelled = false
+    setClubsLoading(true)
+    setClubsError(null)
+    getAdminClubList()
+      .then((res) => {
+        if (cancelled) return
+        const clubs = (res.data?.clubs || res.clubs || []).map(mapAdminClubFromApi)
+        setActiveClubs(clubs)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setClubsError(err.message || 'Failed to load clubs')
+      })
+      .finally(() => {
+        if (!cancelled) setClubsLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [activeView])
+
+  useEffect(() => {
+    if (activeView !== 'registrations') return
+    let cancelled = false
+    setRegistrationsLoading(true)
+    setRegistrationsError(null)
+    getClubCreationRequestList()
+      .then((res) => {
+        if (cancelled) return
+        const requests = (res.data || res.requests || []).map(mapCreationRequestFromApi)
+        setRegistrationRequests(requests)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setRegistrationsError(err.message || 'Failed to load registration requests')
+      })
+      .finally(() => {
+        if (!cancelled) setRegistrationsLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [activeView])
 
   useEffect(() => {
     if (currentPage > pageCount) {
@@ -417,27 +472,39 @@ function AdminDashboardPage({ onLogout }) {
     const isApprove = nextStatus === 'approved'
     const accepted = await confirm({
       title: isApprove ? 'Approve registration?' : 'Reject registration?',
-      message: `${isApprove ? 'Approve' : 'Reject'} the registration request for ${request.clubName}?`,
+      message: `${isApprove ? 'Approve' : 'Reject'} the registration request for ${request.clubName || 'this club'}?`,
       confirmText: isApprove ? 'Approve' : 'Reject',
       tone: isApprove ? 'warning' : 'danger',
     })
 
     if (!accepted) return
 
-    setRegistrationRequests((items) =>
-      items.map((item) =>
-        item.id === request.id ? { ...item, status: nextStatus } : item
+    try {
+      await reviewClubCreationRequest(request.id, {
+        status: nextStatus,
+        review_note: isApprove ? 'Approved by admin' : 'Rejected by admin'
+      })
+      
+      setRegistrationRequests((items) =>
+        items.map((item) =>
+          item.id === request.id ? { ...item, status: nextStatus } : item
+        )
       )
-    )
-    setDetailRequest((current) =>
-      current?.id === request.id ? { ...current, status: nextStatus } : current
-    )
-    // Hiển thị thông báo cho chức năng duyệt hoặc từ chối yêu cầu tạo câu lạc bộ.
-    showToast({
-      type: 'success',
-      title: isApprove ? 'Request approved' : 'Request rejected',
-      message: `${request.clubName} has been ${isApprove ? 'approved' : 'rejected'}.`,
-    })
+      setDetailRequest((current) =>
+        current?.id === request.id ? { ...current, status: nextStatus } : current
+      )
+      showToast({
+        type: 'success',
+        title: isApprove ? 'Request approved' : 'Request rejected',
+        message: `${request.clubName || 'The club'} has been ${isApprove ? 'approved' : 'rejected'}.`,
+      })
+    } catch (err) {
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: err.message || 'Failed to update request status',
+      })
+    }
   }
 
   function renderMemberManagement() {
@@ -696,44 +763,54 @@ function AdminDashboardPage({ onLogout }) {
             <span aria-label="Actions" />
           </div>
 
-          {paginatedClubs.map((item) => (
-            <div className="admin-table__row admin-table__row--body admin-table__row--club" role="row" key={item.id}>
-              <strong className="admin-club-name-text">{item.clubName}</strong>
-              <span>{item.leader}</span>
-              <span>{item.members}</span>
-              <span>
-                <strong className="admin-active-status">Active</strong>
-              </span>
-              <span className="admin-row-actions">
-                <button
-                  type="button"
-                  className="admin-delete-btn"
-                  aria-label={`Delete ${item.clubName}`}
-                  onClick={() => handleDeleteClub(item.id)}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  className="admin-view-btn"
-                  aria-label={`View ${item.clubName}`}
-                  onClick={() => {
-                    setSelectedActiveClub(item)
-                    setIsManagingMembers(false)
-                  }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
-                    <circle cx="12" cy="12" r="2.6" />
-                  </svg>
-                </button>
-              </span>
-            </div>
-          ))}
+          {clubsLoading ? (
+            <p className="admin-table__empty">Loading clubs...</p>
+          ) : clubsError ? (
+            <p className="admin-table__empty" style={{ color: 'var(--color-danger, #e53e3e)' }}>
+              {clubsError}
+            </p>
+          ) : (
+            paginatedClubs.map((item) => (
+              <div className="admin-table__row admin-table__row--body admin-table__row--club" role="row" key={item.id}>
+                <strong className="admin-club-name-text">{item.clubName}</strong>
+                <span>{item.leader}</span>
+                <span>{item.members}</span>
+                <span>
+                  <strong className={`admin-active-status${item.status === 'inactive' ? ' admin-inactive-status' : ''}`}>
+                    {item.status === 'inactive' ? 'Inactive' : 'Active'}
+                  </strong>
+                </span>
+                <span className="admin-row-actions">
+                  <button
+                    type="button"
+                    className="admin-delete-btn"
+                    aria-label={`Delete ${item.clubName}`}
+                    onClick={() => handleDeleteClub(item.id)}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-view-btn"
+                    aria-label={`View ${item.clubName}`}
+                    onClick={() => {
+                      setSelectedActiveClub(item)
+                      setIsManagingMembers(false)
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+                      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                      <circle cx="12" cy="12" r="2.6" />
+                    </svg>
+                  </button>
+                </span>
+              </div>
+            ))
+          )}
 
-          {visibleClubs.length === 0 ? (
+          {!clubsLoading && !clubsError && visibleClubs.length === 0 ? (
             <p className="admin-table__empty">No active clubs match your search.</p>
           ) : null}
         </div>
@@ -854,147 +931,154 @@ function AdminDashboardPage({ onLogout }) {
             </div>
           ) : (
             <div className="admin-card">
-            <div className="admin-card__header">
-              <div>
-                <h2>Registration List</h2>
-                <p>Manage submitted club registration requests.</p>
-              </div>
-              <div className="admin-sort" ref={sortRef}>
-                <button
-                  type="button"
-                  className="admin-sort-btn"
-                  aria-haspopup="listbox"
-                  aria-expanded={sortMenuOpen}
-                  onClick={() => setSortMenuOpen((value) => !value)}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <path d="M3 6h18M7 12h10M10 18h4" strokeLinecap="round" />
-                  </svg>
-                  {selectedSort?.label || 'Sort'}
-                </button>
-
-                {sortMenuOpen ? (
-                  <ul className="admin-sort__menu" role="listbox">
-                    {ADMIN_SORT_OPTIONS.map((option) => (
-                      <li key={option.value} role="none">
-                        <button
-                          type="button"
-                          className="admin-sort__option"
-                          role="option"
-                          aria-selected={option.value === sortMode}
-                          onClick={() => {
-                            setSortMode(option.value)
-                            setSortMenuOpen(false)
-                          }}
-                        >
-                          {option.label}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="admin-card__tools">
-              <label className="admin-card__search">
-                <span aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="M20 20l-3-3" strokeLinecap="round" />
-                  </svg>
-                </span>
-                <input
-                  type="search"
-                  placeholder="Search"
-                  aria-label="Search registrations"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                />
-              </label>
-            </div>
-
-            <div className="admin-table" role="table" aria-label="Registration requests">
-              <div className="admin-table__row admin-table__row--head" role="row">
-                <span>Club name</span>
-                <span>Leader</span>
-                <span>Sent date</span>
-                <span>Status</span>
-                <span aria-label="Actions" />
-              </div>
-
-              {paginatedRequests.map((item) => (
-                <div className="admin-table__row admin-table__row--body" role="row" key={item.id}>
-                  <div className="admin-club-cell">
-                    <strong>{item.clubName}</strong>
-                  </div>
-                  <span>{item.leader || item.sender || 'Unknown'}</span>
-                  <span>{item.sentDate}</span>
-                  <span className="admin-status-actions">
-                    <button
-                      type="button"
-                      className="admin-status-actions__approve"
-                      aria-label="Approve request"
-                      onClick={() => updateRegistrationRequestStatus(item, 'approved')}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
-                        <path d="m5 12 4 4L19 6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      className="admin-status-actions__reject"
-                      aria-label="Reject request"
-                      onClick={() => updateRegistrationRequestStatus(item, 'rejected')}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
-                        <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
-                      </svg>
-                    </button>
-                  </span>
+              <div className="admin-card__header">
+                <div>
+                  <h2>Registration List</h2>
+                  <p>Manage submitted club registration requests.</p>
+                </div>
+                <div className="admin-sort" ref={sortRef}>
                   <button
                     type="button"
-                    className="admin-view-btn"
-                    aria-label={`View ${item.clubName} request`}
-                    onClick={() => setDetailRequest(item)}
+                    className="admin-sort-btn"
+                    aria-haspopup="listbox"
+                    aria-expanded={sortMenuOpen}
+                    onClick={() => setSortMenuOpen((value) => !value)}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-                      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
-                      <circle cx="12" cy="12" r="2.6" />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <path d="M3 6h18M7 12h10M10 18h4" strokeLinecap="round" />
                     </svg>
+                    {selectedSort?.label || 'Sort'}
                   </button>
+
+                  {sortMenuOpen ? (
+                    <ul className="admin-sort__menu" role="listbox">
+                      {ADMIN_SORT_OPTIONS.map((option) => (
+                        <li key={option.value} role="none">
+                          <button
+                            type="button"
+                            className="admin-sort__option"
+                            role="option"
+                            aria-selected={option.value === sortMode}
+                            onClick={() => {
+                              setSortMode(option.value)
+                              setSortMenuOpen(false)
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
-              ))}
+              </div>
 
-              {visibleRequests.length === 0 ? (
-                <p className="admin-table__empty">No registrations match your search or filter.</p>
-              ) : null}
-            </div>
+              <div className="admin-card__tools">
+                <label className="admin-card__search">
+                  <span aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="M20 20l-3-3" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                  <input
+                    type="search"
+                    placeholder="Search"
+                    aria-label="Search registrations"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                  />
+                </label>
+              </div>
 
-            <div className="admin-pagination" aria-label="Pagination">
-              <button
-                type="button"
-                aria-label="Previous page"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-                  <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-              <span>{currentPage}</span>
-              <button
-                type="button"
-                aria-label="Next page"
-                disabled={currentPage === pageCount}
-                onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-                  <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+              <div className="admin-table" role="table" aria-label="Registration requests">
+                <div className="admin-table__row admin-table__row--head" role="row">
+                  <span>Club name</span>
+                  <span>Leader</span>
+                  <span>Sent date</span>
+                  <span>Status</span>
+                  <span aria-label="Actions" />
+                </div>
+                {registrationsLoading ? (
+                  <p className="admin-table__empty">Loading registration requests...</p>
+                ) : registrationsError ? (
+                  <p className="admin-table__empty" style={{ color: 'var(--color-danger, #e53e3e)' }}>
+                    {registrationsError}
+                  </p>
+                ) : (
+                  paginatedRequests.map((item) => (
+                    <div className="admin-table__row admin-table__row--body" role="row" key={item.id}>
+                      <div className="admin-club-cell">
+                        <strong>{item.clubName}</strong>
+                      </div>
+                      <span>{item.leader || item.sender || 'Unknown'}</span>
+                      <span>{item.sentDate}</span>
+                      <span className="admin-status-actions">
+                        <button
+                          type="button"
+                          className="admin-status-actions__approve"
+                          aria-label="Approve request"
+                          onClick={() => updateRegistrationRequestStatus(item, 'approved')}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+                            <path d="m5 12 4 4L19 6" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-status-actions__reject"
+                          aria-label="Reject request"
+                          onClick={() => updateRegistrationRequestStatus(item, 'rejected')}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+                            <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+                          </svg>
+                        </button>
+                      </span>
+                      <button
+                        type="button"
+                        className="admin-view-btn"
+                        aria-label={`View ${item.clubName} request`}
+                        onClick={() => setDetailRequest(item)}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+                          <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                          <circle cx="12" cy="12" r="2.6" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))
+                )}
+
+                {!registrationsLoading && !registrationsError && visibleRequests.length === 0 ? (
+                  <p className="admin-table__empty">No registrations match your search or filter.</p>
+                ) : null}
+              </div>
+
+              <div className="admin-pagination" aria-label="Pagination">
+                <button
+                  type="button"
+                  aria-label="Previous page"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                    <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                <span>{currentPage}</span>
+                <button
+                  type="button"
+                  aria-label="Next page"
+                  disabled={currentPage === pageCount}
+                  onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                    <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
           )}
         </section>
       </main>

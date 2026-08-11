@@ -11,34 +11,36 @@ const {
 
 const router = express.Router();
 
+const ALLOWED_EVENT_ROLES = ["president", "leader", "event_manager"];
+
 router.get(
   "/:clubId/events/:eventId",
   verifyToken,
-  requireClubRole(["event_manager"], "clubId"),
+  requireClubRole(ALLOWED_EVENT_ROLES, "clubId"),
   getEventDetail
 );
 router.get(
   "/:clubId/events",
   verifyToken,
-  requireClubRole(["event_manager"], "clubId"),
+  requireClubRole(ALLOWED_EVENT_ROLES, "clubId"),
   getEvents
 );
 router.post(
   "/:clubId/events",
   verifyToken,
-  requireClubRole(["event_manager"], "clubId"),
+  requireClubRole(ALLOWED_EVENT_ROLES, "clubId"),
   createEvent
 );
 router.patch(
   "/:clubId/events/:eventId",
   verifyToken,
-  requireClubRole(["event_manager"], "clubId"),
+  requireClubRole(ALLOWED_EVENT_ROLES, "clubId"),
   updateEvent
 );
 router.patch(
   "/:clubId/events/:eventId/cancel",
   verifyToken,
-  requireClubRole(["event_manager"], "clubId"),
+  requireClubRole(ALLOWED_EVENT_ROLES, "clubId"),
   cancelEvent
 );
 

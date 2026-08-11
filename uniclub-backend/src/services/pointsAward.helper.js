@@ -2,6 +2,7 @@ const ActionType = require("../models/action_type.model");
 const PointRule = require("../models/point_rule.model");
 const ClubMember = require("../models/club_member.model");
 const ContributionLog = require("../models/contribution_log.model");
+const { sendPointsAwardedEmail } = require("./email.service");
 const mongoose = require("mongoose");
 
 /**
@@ -47,52 +48,40 @@ const awardRewardPoints = async ({ clubId, userId, actionTypeCode, eventId, pres
       return null;
     }
 
-    let pointsToAward = rule.reward_point;
+    // --- ENFORCE COUNT-BASED LIMITS ---
+    const pointsToAward = rule.reward_point;
 
-    // --- ENFORCE HƯỚNG 1: CHECK LIMITS ---
+    // A. Check limit_per_event (Max number of TIMES per event)
+    if (rule.limit_per_event && rule.limit_per_event > 0) {
+      const eventLogsCount = await ContributionLog.countDocuments({
+        membership_id: member._id,
+        event_id: eventId,
+        action_type_id: actionType._id,
+      });
 
-    // A. Check limit_per_event
-    const eventLogs = await ContributionLog.find({
-      membership_id: member._id,
-      event_id: eventId,
-      action_type_id: actionType._id,
-    }).lean();
-
-    const pointsAlreadyEarnedInEvent = eventLogs.reduce((sum, log) => sum + (log.reward_point || 0), 0);
-    if (pointsAlreadyEarnedInEvent >= rule.limit_per_event) {
-      console.log(`[Points Hook] Member ${member._id} reached limit_per_event (${rule.limit_per_event}) for event ${eventId}.`);
-      return null;
+      if (eventLogsCount >= rule.limit_per_event) {
+        console.log(`[Points Hook] Member ${member._id} reached limit_per_event count (${rule.limit_per_event}) for event ${eventId}.`);
+        return null;
+      }
     }
 
-    if (pointsAlreadyEarnedInEvent + pointsToAward > rule.limit_per_event) {
-      pointsToAward = rule.limit_per_event - pointsAlreadyEarnedInEvent;
-    }
+    // B. Check limit_per_day (Max number of TIMES per day)
+    if (rule.limit_per_day && rule.limit_per_day > 0) {
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
 
-    // B. Check limit_per_day
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const endOfToday = new Date();
-    endOfToday.setHours(23, 59, 59, 999);
+      const dayLogsCount = await ContributionLog.countDocuments({
+        membership_id: member._id,
+        action_type_id: actionType._id,
+        created_at: { $gte: startOfToday, $lte: endOfToday },
+      });
 
-    const dayLogs = await ContributionLog.find({
-      membership_id: member._id,
-      action_type_id: actionType._id,
-      created_at: { $gte: startOfToday, $lte: endOfToday },
-    }).lean();
-
-    const pointsAlreadyEarnedToday = dayLogs.reduce((sum, log) => sum + (log.reward_point || 0), 0);
-    if (pointsAlreadyEarnedToday >= rule.limit_per_day) {
-      console.log(`[Points Hook] Member ${member._id} reached limit_per_day (${rule.limit_per_day}) for action "${actionTypeCode}" today.`);
-      return null;
-    }
-
-    if (pointsAlreadyEarnedToday + pointsToAward > rule.limit_per_day) {
-      pointsToAward = rule.limit_per_day - pointsAlreadyEarnedToday;
-    }
-
-    if (pointsToAward <= 0) {
-      console.log(`[Points Hook] Points to award resolved to ${pointsToAward}. Skipping.`);
-      return null;
+      if (dayLogsCount >= rule.limit_per_day) {
+        console.log(`[Points Hook] Member ${member._id} reached limit_per_day count (${rule.limit_per_day}) for action "${actionTypeCode}" today.`);
+        return null;
+      }
     }
 
     // --- PERFORM AWARD ---
@@ -114,6 +103,20 @@ const awardRewardPoints = async ({ clubId, userId, actionTypeCode, eventId, pres
       reward_point: pointsToAward,
       month_key: monthKey,
     });
+
+    // Async send email notification
+    ClubMember.findById(member._id).populate("user_id").populate("club_id").then((populated) => {
+      if (populated && populated.user_id && populated.user_id.email) {
+        sendPointsAwardedEmail({
+          toEmail: populated.user_id.email,
+          userName: populated.user_id.full_name || "Thành viên",
+          clubName: populated.club_id?.name || "Câu lạc bộ",
+          points: pointsToAward,
+          reason: actionType.name || "Tích lũy điểm rèn luyện sự kiện",
+          newTotal: member.reward_point,
+        }).catch((err) => console.error("[Points Hook Email Error]", err));
+      }
+    }).catch((err) => console.error("[Points Hook Email Populate Error]", err));
 
     console.log(`[Points Hook] Successfully awarded ${pointsToAward} points to member ${member._id} (Rule: ${rule._id}).`);
     return log;

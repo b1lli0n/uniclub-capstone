@@ -8,6 +8,8 @@ import {
 import { getPublicEvents } from '../../api/event.api'
 import '../../styles/clubs.css'
 
+import { resolveEventUploadImage } from '../../utils/imageUtils'
+
 const CATEGORY_GRADIENTS = {
   sport: 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)',
   academic: 'linear-gradient(135deg, #a8d8ff 0%, #7eb8f0 100%)',
@@ -31,7 +33,7 @@ function mapEventFromApi(apiEvent) {
     participants: apiEvent.capacity || 0,
     gradient: CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.academic,
     status: apiEvent.status || 'coming soon',
-    imageUrl: apiEvent.media_uris?.[0] || '',
+    imageUrl: resolveEventUploadImage(apiEvent.media_uris || apiEvent.image_url, category),
   }
 }
 

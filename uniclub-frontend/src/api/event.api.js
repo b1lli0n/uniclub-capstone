@@ -58,6 +58,17 @@ export async function getClubEventsForManager(clubId) {
 }
 
 /**
+ * Create Event (event manager/president tạo sự kiện trực tiếp)
+ * POST /api/event-manager/event-management/:clubId/events
+ */
+export function createEvent(clubId, payload) {
+  return apiRequest(`/event-manager/event-management/${clubId}/events`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+/**
  * Update Managed Event (Publish/Edit Draft)
  * PATCH /api/event-manager/event-management/:clubId/events/:eventId
  */
@@ -65,6 +76,16 @@ export function updateManagedEvent(clubId, eventId, payload) {
   return apiRequest(`/event-manager/event-management/${clubId}/events/${eventId}`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
+  })
+}
+
+/**
+ * Cancel Managed Event
+ * PATCH /api/event-manager/event-management/:clubId/events/:eventId/cancel
+ */
+export function cancelManagedEvent(clubId, eventId) {
+  return apiRequest(`/event-manager/event-management/${clubId}/events/${eventId}/cancel`, {
+    method: 'PATCH',
   })
 }
 

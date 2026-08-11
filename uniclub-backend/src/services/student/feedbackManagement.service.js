@@ -64,18 +64,35 @@ const createFeedbackEvent = async (userId, eventId, { rating, comment }) => {
   });
 
   try {
-    const event = await Event.findById(eventId).select("club_id");
+    const event = await Event.findById(eventId).populate("club_id", "name");
+    const User = require("../../models/user.model");
+    const userDoc = await User.findById(userId);
+    let awardedLog = null;
+    
     if (event) {
       const { awardRewardPoints } = require("../pointsAward.helper");
-      await awardRewardPoints({
+      awardedLog = await awardRewardPoints({
         clubId: event.club_id,
         userId: userId,
         actionTypeCode: "feedback",
         eventId: eventId,
       });
     }
+
+    if (userDoc?.email) {
+      const { sendEventFeedbackSubmittedEmail } = require("../email.service");
+      sendEventFeedbackSubmittedEmail({
+        toEmail: userDoc.email,
+        userName: userDoc.full_name || "Sinh viên",
+        clubName: event?.club_id?.name || "Guitar Club",
+        eventTitle: event?.title || "Sự kiện",
+        rating,
+        comment,
+        pointsAwarded: awardedLog?.reward_point || 10,
+      });
+    }
   } catch (err) {
-    console.error("[Points Hook] Failed to award feedback points:", err);
+    console.error("[Feedback Hook] Failed to trigger feedback email & points:", err);
   }
 
   return feedback.populate([

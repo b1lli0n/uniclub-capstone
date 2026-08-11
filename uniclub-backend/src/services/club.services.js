@@ -140,6 +140,21 @@ const requestCreateClub = async ({
     reviewed_at: null,
   });
 
+  // Trigger Email Notification to Student Affairs (uniclub2402@gmail.com)
+  try {
+    const { sendNewClubCreationRequestEmailToSA } = require("./email.service");
+    const user = await User.findById(requested_by);
+    sendNewClubCreationRequestEmailToSA({
+      clubName: club_name.trim(),
+      requesterName: user?.full_name || "Sinh viên",
+      requesterEmail: user?.email || "",
+      description: reason.trim() || description || "",
+      memberCount: uniqueMemberIds.length,
+    }).catch((err) => console.error("Club creation SA email error:", err.message));
+  } catch (err) {
+    console.error("Failed to trigger SA email for club creation:", err.message);
+  }
+
   return request;
 };
 

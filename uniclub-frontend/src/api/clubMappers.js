@@ -255,17 +255,21 @@ export function mapCreationRequestFromApi(request) {
 
 export function mapAdminClubFromApi(club) {
   const createdBy = club.created_by || {}
+  const memberCount = club.member_count ?? (Array.isArray(club.members) ? club.members.length : 0)
 
   return {
     id: club._id,
     clubName: club.name || '',
     leader: createdBy.full_name || 'Unknown',
-    members: club.member_count || 0,
+    members: memberCount,
     status: club.status || 'active',
     category: club.category || '',
     createdAt: new Date(club.created_at || Date.now()).getTime(),
+    createdDate: formatDate(club.created_at),
     description: club.description || '',
     logoUrl: club.logo_url || '',
-    memberList: (club.members || []).map((member, index) => mapMemberFromApi(member, index)),
+    memberList: Array.isArray(club.members)
+      ? club.members.map((member, index) => mapMemberFromApi(member, index))
+      : [],
   }
 }

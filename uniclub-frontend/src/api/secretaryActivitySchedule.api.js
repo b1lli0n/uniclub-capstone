@@ -29,3 +29,14 @@ export function deleteSecretaryActivity(clubId, activityId) {
     method: 'DELETE',
   })
 }
+
+export function getSecretaryActivityAttendance(clubId, activityId) {
+  return apiRequest(`${base(clubId)}/${activityId}/attendance`)
+}
+
+export function saveSecretaryActivityAttendance(clubId, activityId, members) {
+  return apiRequest(`${base(clubId)}/${activityId}/attendance`, {
+    method: 'POST',
+    body: JSON.stringify({ members }),
+  })
+}

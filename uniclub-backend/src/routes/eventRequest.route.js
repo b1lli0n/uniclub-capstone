@@ -9,7 +9,7 @@ const router = express.Router();
 router.post(
   "/:clubId",
   verifyToken,
-  requireClubRole(["event_manager", "club_president", "club_vice_president"], "clubId"),
+  requireClubRole(["event_manager", "president", "leader", "club_president", "club_vice_president"], "clubId"),
   eventRequestController.createEventRequest
 );
 

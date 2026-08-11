@@ -16,7 +16,7 @@ const getPublicEvents = async (req, res, next) => {
     const { clubId } = req.query;
     const filter = {
       is_public: true,
-      progress_status: "completed",
+      status: { $ne: "cancelled" },
     };
 
     if (clubId) {
@@ -63,12 +63,12 @@ const getClubEventsForMember = async (req, res, next) => {
       });
     }
 
-    // Lấy tất cả event đã xuất bản (progress_status: completed) của club
+    // Lấy tất cả event không bị hủy của club
     const events = await Event.find({
       club_id: clubId,
-      progress_status: "completed",
+      status: { $ne: "cancelled" },
     })
-      .sort({ start_time: 1 })
+      .sort({ start_time: -1 })
       .lean();
 
     return res.status(200).json({ success: true, data: events });
@@ -186,25 +186,27 @@ const registerForEvent = async (req, res, next) => {
     }
 
     // 2. Kiểm tra thời gian sự kiện diễn ra
-    if (new Date() > new Date(event.start_time)) {
+    if (event.end_time && new Date() > new Date(event.end_time)) {
       return res.status(400).json({
         success: false,
-        message: "Cannot register because the event has already started",
+        message: "Cannot register because the event has ended",
       });
     }
 
-    // 3. Kiểm tra membership (phải là member của club host)
-    const membership = await ClubMember.findOne({
-      user_id: req.user.id,
-      club_id: event.club_id,
-      status: "active",
-    });
-
-    if (!membership) {
-      return res.status(403).json({
-        success: false,
-        message: "Only active members of this club can register for this event",
+    // 3. Kiểm tra membership (nếu event không phải public)
+    if (!event.is_public) {
+      const membership = await ClubMember.findOne({
+        user_id: req.user.id,
+        club_id: event.club_id,
+        status: "active",
       });
+
+      if (!membership) {
+        return res.status(403).json({
+          success: false,
+          message: "Only active members of this club can register for this event",
+        });
+      }
     }
 
     // 4. Kiểm tra giới hạn số lượng (capacity)
@@ -243,6 +245,56 @@ const registerForEvent = async (req, res, next) => {
         status: "registered",
         registered_at: new Date(),
       });
+    }
+
+    // Call point award hook for registration/attendance
+    try {
+      const { awardRewardPoints } = require("../services/pointsAward.helper");
+      let awarded = await awardRewardPoints({
+        clubId: event.club_id,
+        userId: req.user.id,
+        actionTypeCode: "register_event",
+        eventId: event._id,
+      });
+
+      if (!awarded) {
+        await awardRewardPoints({
+          clubId: event.club_id,
+          userId: req.user.id,
+          actionTypeCode: "attendance",
+          eventId: event._id,
+        });
+      }
+    } catch (ptsErr) {
+      console.error("Points award error on registration:", ptsErr);
+    }
+
+    // Trigger Real-time Ticket QR Email Notification to Student
+    try {
+      const { sendEventTicketEmail } = require("../services/email.service");
+      const Club = require("../models/club.model");
+      const User = require("../models/user.model");
+      
+      const clubDoc = await Club.findById(event.club_id);
+      const userDoc = await User.findById(req.user.id);
+      
+      if (userDoc?.email) {
+        const ticketCode = `UC-EVT-${reg._id.toString().substring(18).toUpperCase()}`;
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${reg._id}`;
+        
+        sendEventTicketEmail({
+          toEmail: userDoc.email,
+          userName: userDoc.full_name || req.user.email || "Sinh viên UniClub",
+          clubName: clubDoc?.name || "Guitar Club",
+          eventTitle: event.title,
+          eventDate: event.start_time,
+          eventLocation: event.location || "Hội trường A101",
+          ticketCode,
+          qrCodeUrl,
+        });
+      }
+    } catch (ticketEmailErr) {
+      console.error("Failed to send ticket email:", ticketEmailErr);
     }
 
     return res.status(201).json({

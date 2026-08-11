@@ -82,6 +82,10 @@ const parseUpdateEventPayload = (body) => {
     updates.is_public = body.is_public;
   }
 
+  if (body.status !== undefined) {
+    updates.status = parseRequiredString(body.status, "status");
+  }
+
   if (body.progress_status !== undefined) {
     if (!ALLOWED_CREATE_PROGRESS_STATUS.includes(body.progress_status)) {
       throw getStatusError("Invalid progress_status. Allowed values: draft, completed", 400);

@@ -400,19 +400,9 @@ function MyRequestsPage() {
 
             <div className="request-detail-modal__grid">
               <div className="request-detail-modal__item">
-                <span>Request ID</span>
-                <strong>{detailTarget.requestId}</strong>
-              </div>
-              <div className="request-detail-modal__item">
                 <span>Type</span>
                 <strong>{detailTarget.type}</strong>
               </div>
-              {detailTarget.role ? (
-                <div className="request-detail-modal__item">
-                  <span>Role</span>
-                  <strong>{detailTarget.role}</strong>
-                </div>
-              ) : null}
               <div className="request-detail-modal__item">
                 <span>Status</span>
                 <strong className="request-detail-modal__status">{detailTarget.status}</strong>
@@ -421,22 +411,30 @@ function MyRequestsPage() {
                 <span>Club</span>
                 <strong>{detailTarget.club}</strong>
               </div>
+              {detailTarget.role ? (
+                <div className="request-detail-modal__item">
+                  <span>Role</span>
+                  <strong>{detailTarget.role}</strong>
+                </div>
+              ) : null}
               <div className="request-detail-modal__item">
                 <span>Content</span>
                 <strong>{detailTarget.content}</strong>
               </div>
               <div className="request-detail-modal__item">
-                <span>Responder</span>
-                <strong>{detailTarget.responder}</strong>
+                <span>Reviewer</span>
+                <strong>
+                  {detailTarget.responder && detailTarget.responder !== '-'
+                    ? detailTarget.responder
+                    : `Ban chủ nhiệm ${detailTarget.club || ''}`}
+                </strong>
               </div>
-              <div className="request-detail-modal__item">
-                <span>Sender</span>
-                <strong>{detailTarget.sender}</strong>
-              </div>
-              <div className="request-detail-modal__item">
-                <span>Response Time</span>
-                <strong>{detailTarget.responseTime}</strong>
-              </div>
+              {detailTarget.responseTime && detailTarget.responseTime !== '-' ? (
+                <div className="request-detail-modal__item">
+                  <span>Response Time</span>
+                  <strong>{detailTarget.responseTime}</strong>
+                </div>
+              ) : null}
               <div className="request-detail-modal__item">
                 <span>Sent Date</span>
                 <strong>{detailTarget.sentTime} {detailTarget.sentDate}</strong>

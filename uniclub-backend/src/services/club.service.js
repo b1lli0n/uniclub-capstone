@@ -519,20 +519,83 @@ const reviewClubCreationRequest = async ({
     throw error;
   }
 
-  if (request.status !== "pending") {
-    const error = new Error(
-      "Request has already been reviewed"
-    );
-    error.statusCode = 400;
-    throw error;
-  }
-
   request.status = status;
-  request.review_note = reviewNote;
-  request.reviewed_by = reviewerId;
+  if (reviewNote) request.review_note = reviewNote;
+  if (reviewerId) request.reviewed_by = reviewerId;
   request.reviewed_at = new Date();
 
   await request.save();
+
+  // If approved, create active Club document & ClubMember records for President and members!
+  if (status === "approved") {
+    try {
+      const clubNameRegex = { $regex: `^${request.club_name.trim()}$`, $options: "i" };
+      let newClub = await Club.findOne({ name: clubNameRegex });
+
+      if (!newClub) {
+        newClub = await Club.create({
+          name: request.club_name.trim(),
+          description: request.description || request.reason || "",
+          category: request.category || "Arts",
+          logo_url: request.logo_url || "https://placehold.co/200x200/png",
+          created_by: request.requested_by,
+          status: "active",
+        });
+      }
+
+      // Add requester as President/Leader in ClubMember
+      await ClubMember.findOneAndUpdate(
+        { club_id: newClub._id, user_id: request.requested_by },
+        { role: "president", status: "active", joined_at: new Date() },
+        { upsert: true, new: true }
+      );
+
+      // Add initial members in ClubMember
+      if (Array.isArray(request.member_ids)) {
+        for (const memberId of request.member_ids) {
+          if (String(memberId) !== String(request.requested_by)) {
+            await ClubMember.findOneAndUpdate(
+              { club_id: newClub._id, user_id: memberId },
+              { role: "member", status: "active", joined_at: new Date() },
+              { upsert: true, new: true }
+            );
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error creating active club upon approval:", err.message);
+    }
+  }
+
+  // Send Email Notification to Requester Student
+  try {
+    const User = require("../models/user.model");
+    const {
+      sendClubCreationApprovedEmailToStudent,
+      sendClubCreationRejectedEmailToStudent,
+    } = require("./email.service");
+
+    const requester = await User.findById(request.requested_by);
+    if (requester?.email) {
+      if (status === "approved") {
+        sendClubCreationApprovedEmailToStudent({
+          toEmail: requester.email,
+          requesterName: requester.full_name || "Sinh viên",
+          clubName: request.club_name,
+          reviewNote: reviewNote || "",
+        }).catch((err) => console.error("Club creation approved email error:", err.message));
+      } else if (status === "rejected") {
+        sendClubCreationRejectedEmailToStudent({
+          toEmail: requester.email,
+          requesterName: requester.full_name || "Sinh viên",
+          clubName: request.club_name,
+          reviewNote: reviewNote || "",
+        }).catch((err) => console.error("Club creation rejected email error:", err.message));
+      }
+    }
+  } catch (err) {
+    console.error("Failed to trigger review email for club creation:", err.message);
+  }
 
   return request;
 };

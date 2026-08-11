@@ -232,10 +232,121 @@ const deleteActivity = async (clubId, activityId) => {
   return activity;
 };
 
+const ActivityAttendance = require("../../models/activity_attendance.model");
+const ClubMember = require("../../models/club_member.model");
+const { awardRewardPoints } = require("../pointsAward.helper");
+
+const getActivityAttendance = async (clubId, activityId) => {
+  const activity = await Activity.findOne({ _id: activityId, club_id: clubId });
+  if (!activity) {
+    throw getStatusError("Activity not found", 404);
+  }
+
+  const attendances = await ActivityAttendance.find({
+    activity_id: activityId,
+    club_id: clubId,
+  })
+    .populate("user_id", "_id full_name email avatar_url")
+    .lean();
+
+  const members = await ClubMember.find({ club_id: clubId, status: "active" })
+    .populate("user_id", "_id full_name email avatar_url")
+    .lean();
+
+  const attendanceMap = new Map();
+  attendances.forEach((att) => {
+    const uid = String(att.user_id?._id || att.user_id);
+    attendanceMap.set(uid, att);
+  });
+
+  const memberList = members.map((m) => {
+    const userId = String(m.user_id?._id || m.user_id);
+    const existing = attendanceMap.get(userId);
+    return {
+      id: userId,
+      membershipId: m._id,
+      name: m.user_id?.full_name || "Thành viên",
+      email: m.user_id?.email || "",
+      avatarUrl: m.user_id?.avatar_url || "",
+      checked: existing ? existing.status === "attended" : false,
+      status: existing ? existing.status : "pending",
+      pointsAwarded: existing ? existing.points_awarded : 0,
+    };
+  });
+
+  return {
+    activityId,
+    clubId,
+    members: memberList,
+  };
+};
+
+const saveActivityAttendance = async (clubId, activityId, memberAttendanceList, adminUserId) => {
+  const activity = await Activity.findOne({ _id: activityId, club_id: clubId });
+  if (!activity) {
+    throw getStatusError("Activity not found", 404);
+  }
+
+  let awardedCount = 0;
+
+  for (const item of memberAttendanceList) {
+    const { userId, checked } = item;
+    if (!userId) continue;
+
+    const member = await ClubMember.findOne({ user_id: userId, club_id: clubId, status: "active" });
+    if (!member) continue;
+
+    const status = checked ? "attended" : "absent";
+
+    await ActivityAttendance.findOneAndUpdate(
+      { activity_id: activityId, membership_id: member._id },
+      {
+        club_id: clubId,
+        user_id: userId,
+        status,
+        check_in_time: checked ? new Date() : null,
+        checked_by: adminUserId,
+      },
+      { upsert: true, new: true }
+    );
+
+    if (checked) {
+      const awardRes = await awardRewardPoints({
+        clubId,
+        userId,
+        actionTypeCode: "meeting",
+        eventId: activityId,
+        presidentId: adminUserId,
+      });
+
+      if (!awardRes) {
+        await awardRewardPoints({
+          clubId,
+          userId,
+          actionTypeCode: "attendance",
+          eventId: activityId,
+          presidentId: adminUserId,
+        });
+      }
+
+      awardedCount += 1;
+    }
+  }
+
+  return {
+    success: true,
+    activityId,
+    awardedCount,
+    totalProcessed: memberAttendanceList.length,
+  };
+};
+
 module.exports = {
   getClubActivitySchedule,
   getActivityScheduleDetail,
   createActivity,
   updateActivity,
   deleteActivity,
+  getActivityAttendance,
+  saveActivityAttendance,
 };

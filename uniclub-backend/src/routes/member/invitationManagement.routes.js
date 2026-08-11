@@ -11,31 +11,58 @@ const {
 const router = express.Router();
 
 router.get(
+  "/invitations",
+  verifyToken,
+  protect(["student"]),
+  getReceivedInvitations
+);
+
+router.get(
   "/:clubId/invitations",
   verifyToken,
   protect(["student"]),
-  requireClubMember("clubId"),
   getReceivedInvitations
 );
+
+router.get(
+  "/invitations/:invitationId",
+  verifyToken,
+  protect(["student"]),
+  getInvitationDetail
+);
+
 router.get(
   "/:clubId/invitations/:invitationId",
   verifyToken,
   protect(["student"]),
-  requireClubMember("clubId"),
   getInvitationDetail
 );
+
+router.patch(
+  "/invitations/:invitationId/accept",
+  verifyToken,
+  protect(["student"]),
+  acceptInvitation
+);
+
 router.patch(
   "/:clubId/invitations/:invitationId/accept",
   verifyToken,
   protect(["student"]),
-  requireClubMember("clubId"),
   acceptInvitation
 );
+
+router.patch(
+  "/invitations/:invitationId/reject",
+  verifyToken,
+  protect(["student"]),
+  rejectInvitation
+);
+
 router.patch(
   "/:clubId/invitations/:invitationId/reject",
   verifyToken,
   protect(["student"]),
-  requireClubMember("clubId"),
   rejectInvitation
 );
 

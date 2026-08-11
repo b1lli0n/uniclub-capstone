@@ -452,7 +452,7 @@
 
 .club-ranking-table__head {
   display: grid;
-  grid-template-columns: 80px minmax(180px, 1fr) 110px 110px;
+  grid-template-columns: 80px minmax(180px, 1fr) 140px;
   gap: 0.75rem;
   padding: 0.9rem 1rem;
   border-bottom: 1px solid #eef0f6;
@@ -491,7 +491,7 @@
 
 .club-ranking-row {
   display: grid;
-  grid-template-columns: 80px minmax(180px, 1fr) 110px 110px;
+  grid-template-columns: 80px minmax(180px, 1fr) 140px;
   align-items: center;
   gap: 0.75rem;
   min-width: 560px;

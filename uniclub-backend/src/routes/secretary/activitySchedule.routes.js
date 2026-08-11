@@ -7,6 +7,8 @@ const {
   createActivity,
   updateActivity,
   deleteActivity,
+  getActivityAttendance,
+  saveActivityAttendance,
 } = require("../../controllers/secretary/activitySchedule.controller");
 
 const router = express.Router({ mergeParams: true });
@@ -14,11 +16,13 @@ const router = express.Router({ mergeParams: true });
 const secretaryAuth = [
   verifyToken,
   protect(["student"]),
-  requireClubRole(["secretary"], "clubId"),
+  requireClubRole(["president", "secretary"], "clubId"),
 ];
 
 router.get("/", ...secretaryAuth, getClubActivitySchedule);
 router.get("/:activityId", ...secretaryAuth, getActivityScheduleDetail);
+router.get("/:activityId/attendance", ...secretaryAuth, getActivityAttendance);
+router.post("/:activityId/attendance", ...secretaryAuth, saveActivityAttendance);
 router.post("/", ...secretaryAuth, createActivity);
 router.put("/:activityId", ...secretaryAuth, updateActivity);
 router.delete("/:activityId", ...secretaryAuth, deleteActivity);

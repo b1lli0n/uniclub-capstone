@@ -63,7 +63,8 @@ function ClubInvitationsPage({ clubId }) {
           const id = item.club_id?._id || item.club_id
           return String(id) === String(clubId)
         })
-        setCanManageInvitations(membership?.role === 'secretary')
+        const role = membership?.role?.toLowerCase()
+        setCanManageInvitations(role === 'secretary' || role === 'president' || role === 'leader')
 
         setInvitations(
           (invitationsResponse.data || []).map((item) => mapClubInvitationFromApi(item)),

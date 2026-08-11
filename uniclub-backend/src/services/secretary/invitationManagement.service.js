@@ -41,17 +41,32 @@ const getInvitationDetail = async (clubId, invitationId) => {
 };
 
 const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, message }) => {
-  const invitedUser = await User.findById(invited_user_id);
+  const mongoose = require("mongoose");
+  let invitedUser = null;
+
+  if (mongoose.isValidObjectId(invited_user_id)) {
+    invitedUser = await User.findById(invited_user_id);
+  } else if (typeof invited_user_id === "string") {
+    invitedUser = await User.findOne({
+      $or: [
+        { email: invited_user_id.trim() },
+        { email: invited_user_id.trim().toLowerCase() },
+        { student_code: invited_user_id.trim() },
+      ],
+    });
+  }
 
   if (!invitedUser) {
-    throw getStatusError("Invited user not found", 404);
+    throw getStatusError("User not found with email or ID: " + invited_user_id, 404);
   }
+
+  const resolvedUserId = invitedUser._id;
 
   if (invitedUser.status && invitedUser.status !== "active") {
     throw getStatusError("Invited user is not active", 400);
   }
 
-  if (String(invited_user_id) === String(secretaryId)) {
+  if (String(resolvedUserId) === String(secretaryId)) {
     throw getStatusError("You cannot invite yourself", 400);
   }
 
@@ -66,7 +81,7 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
 
   const activeMember = await ClubMember.findOne({
     club_id: clubId,
-    user_id: invited_user_id,
+    user_id: resolvedUserId,
     status: "active",
   });
 
@@ -76,7 +91,7 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
 
   const pendingInvitation = await Invitation.findOne({
     club_id: clubId,
-    invited_user_id,
+    invited_user_id: resolvedUserId,
     status: "pending",
   });
 
@@ -86,12 +101,30 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
 
   const invitation = await Invitation.create({
     club_id: clubId,
-    invited_user_id,
+    invited_user_id: resolvedUserId,
     invited_by: secretaryId,
     role: invitationRole,
     message: typeof message === "string" ? message.trim() : "",
     status: "pending",
   });
+
+  // Send Email Notification to invited student
+  try {
+    const Club = require("../../models/club.model");
+    const { sendInvitationEmail } = require("../email.service");
+    const club = await Club.findById(clubId);
+    if (invitedUser?.email && club) {
+      sendInvitationEmail({
+        toEmail: invitedUser.email,
+        userName: invitedUser.full_name || "Sinh viên",
+        clubName: club.name || "Câu lạc bộ",
+        role: invitationRole,
+        message: typeof message === "string" ? message.trim() : "",
+      }).catch((err) => console.error("Invitation email error:", err.message));
+    }
+  } catch (err) {
+    console.error("Failed to trigger invitation email:", err.message);
+  }
 
   return populateInvitation(Invitation.findById(invitation._id));
 };

@@ -6,8 +6,10 @@ import {
 import {
   createSecretaryActivity,
   deleteSecretaryActivity,
+  getSecretaryActivityAttendance,
   getSecretaryActivityScheduleDetail,
   getSecretaryClubActivitySchedule,
+  saveSecretaryActivityAttendance,
   updateSecretaryActivity,
 } from '../../api/secretaryActivitySchedule.api'
 import { useToast } from '../../components/common/notificationContext'
@@ -111,7 +113,21 @@ function toIsoDateTime(dateStr, timeStr) {
 function mapActivityFromApi(apiActivity) {
   if (!apiActivity) return null
 
-  const status = apiActivity.status || 'coming_soon'
+  const now = new Date()
+  const start = apiActivity.start_time ? new Date(apiActivity.start_time) : null
+  const end = apiActivity.end_time ? new Date(apiActivity.end_time) : null
+
+  let status = apiActivity.status || 'coming_soon'
+  if (status !== 'cancelled' && start && end) {
+    if (now < start) {
+      status = 'coming_soon'
+    } else if (now >= start && now <= end) {
+      status = 'opening'
+    } else if (now > end) {
+      status = 'closed'
+    }
+  }
+
   const meta = STATUS_META[status] || STATUS_META.coming_soon
 
   return {
@@ -152,6 +168,80 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
   const [activityToDelete, setActivityToDelete] = useState(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  const DEFAULT_ATTENDANCE_MEMBERS = useMemo(() => [
+    { id: 'm1', name: 'Nguyen Ty (K18 CT)', email: 'tynce181041@fpt.edu.vn', checked: false },
+    { id: 'm2', name: 'Pham Hoang Long', email: 'longph@fpt.edu.vn', checked: false },
+    { id: 'm3', name: 'Tran Minh Tu', email: 'tutm@fpt.edu.vn', checked: false },
+    { id: 'm4', name: 'Le Quoc Bao', email: 'baolq@fpt.edu.vn', checked: false },
+    { id: 'm5', name: 'Vo Thi Mai', email: 'maivt@fpt.edu.vn', checked: false },
+  ], [])
+
+  const [activityAttendanceMap, setActivityAttendanceMap] = useState(() => {
+    try {
+      const saved = localStorage.getItem('uniclub_activity_attendance')
+      return saved ? JSON.parse(saved) : {}
+    } catch (e) {
+      return {}
+    }
+  })
+
+  const getMemberAttendance = (activityId) => {
+    if (!activityId) return DEFAULT_ATTENDANCE_MEMBERS
+    return activityAttendanceMap[activityId] || DEFAULT_ATTENDANCE_MEMBERS
+  }
+
+  const toggleMemberAttendance = (activityId, memberId) => {
+    setActivityAttendanceMap((prev) => {
+      const currentList = prev[activityId] || DEFAULT_ATTENDANCE_MEMBERS
+      const updatedList = currentList.map((m) =>
+        m.id === memberId ? { ...m, checked: !m.checked } : m
+      )
+      const nextMap = { ...prev, [activityId]: updatedList }
+      try {
+        localStorage.setItem('uniclub_activity_attendance', JSON.stringify(nextMap))
+      } catch (e) {
+        console.error(e)
+      }
+      return nextMap
+    })
+  }
+
+  const handleSaveAttendance = async (activityId) => {
+    const attendanceList = getMemberAttendance(activityId)
+    const payload = attendanceList.map((m) => ({
+      userId: m.id,
+      checked: Boolean(m.checked),
+    }))
+
+    try {
+      if (clubId) {
+        await saveSecretaryActivityAttendance(clubId, activityId, payload)
+      }
+      const checkedCount = attendanceList.filter((m) => m.checked).length
+
+      setActivityAttendanceMap((prev) => {
+        const nextMap = { ...prev, [activityId]: attendanceList }
+        try {
+          localStorage.setItem('uniclub_activity_attendance', JSON.stringify(nextMap))
+        } catch (e) {
+          console.error(e)
+        }
+        return nextMap
+      })
+
+      showToast({
+        type: 'success',
+        message: `🎉 Đã lưu vĩnh viễn vào MongoDB! Đã tính & cộng +30 pts cho ${checkedCount} thành viên có mặt.`,
+      })
+    } catch (err) {
+      console.error('Save attendance error:', err)
+      showToast({
+        type: 'error',
+        message: err.message || 'Lỗi khi lưu điểm danh vào MongoDB',
+      })
+    }
+  }
 
   const today = useMemo(() => startOfDay(new Date()), [])
   const monday = useMemo(() => getMondayOfWeek(today, weekOffset), [today, weekOffset])
@@ -226,6 +316,22 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
         : await getActivityScheduleDetail(clubId, activity.id)
       const mapped = mapActivityFromApi(res?.data)
       if (mapped) setSelectedActivity(mapped)
+
+      // Fetch existing attendance records from MongoDB
+      if (isSecretary) {
+        try {
+          const attRes = await getSecretaryActivityAttendance(clubId, activity.id)
+          const membersFromDb = attRes?.data?.members
+          if (Array.isArray(membersFromDb) && membersFromDb.length > 0) {
+            setActivityAttendanceMap((prev) => ({
+              ...prev,
+              [activity.id]: membersFromDb,
+            }))
+          }
+        } catch (e) {
+          // Keep clean list if no DB record yet
+        }
+      }
     } catch (err) {
       console.error('Error loading activity detail:', err)
       showToast({
@@ -578,13 +684,121 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                       {selectedActivity.description || 'No description'}
                     </p>
                   </div>
+
+                  {/* Member Attendance Section */}
+                  {(() => {
+                    const attendanceList = getMemberAttendance(selectedActivity.id)
+                    const checkedCount = attendanceList.filter((m) => m.checked).length
+                    const pct = Math.round((checkedCount / (attendanceList.length || 1)) * 100)
+
+                    return (
+                      <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                          <div>
+                            <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              👥 Member Attendance ({checkedCount}/{attendanceList.length})
+                            </h4>
+                            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>
+                              Ratio: {pct}% checked-in
+                            </span>
+                          </div>
+
+                          {/* Progress Bar */}
+                          <div style={{ width: '90px', height: '8px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
+                            <div
+                              style={{
+                                width: `${pct}%`,
+                                height: '100%',
+                                background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
+                                transition: 'width 0.3s ease',
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Member List */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }}>
+                          {attendanceList.map((m) => (
+                            <div
+                              key={m.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '10px 14px',
+                                borderRadius: '12px',
+                                background: m.checked ? '#f0fdf4' : '#ffffff',
+                                border: `1px solid ${m.checked ? '#bbf7d0' : '#cbd5e1'}`,
+                                transition: 'all 0.2s ease',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div
+                                  style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
+                                    background: m.checked ? '#22c55e' : '#94a3b8',
+                                    color: '#ffffff',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: '800',
+                                    fontSize: '13px',
+                                  }}
+                                >
+                                  {m.name.charAt(0)}
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>{m.name}</div>
+                                  <div style={{ fontSize: '11px', color: '#64748b' }}>{m.email}</div>
+                                </div>
+                              </div>
+
+                              {/* Toggle Switch / Checkbox */}
+                              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '8px' }}>
+                                <span style={{ fontSize: '12px', fontWeight: '700', color: m.checked ? '#166534' : '#64748b' }}>
+                                  {m.checked ? '✓ Checked' : '⌛ Not yet'}
+                                </span>
+                                <input
+                                  type="checkbox"
+                                  checked={m.checked}
+                                  onChange={() => toggleMemberAttendance(selectedActivity.id, m.id)}
+                                  style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#16a34a' }}
+                                />
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </>
               )}
             </div>
-            <div className="points-modal__footer" style={{ marginTop: '24px' }}>
+            <div className="points-modal__footer" style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button
+                type="button"
+                style={{
+                  width: '100%',
+                  height: '48px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  fontSize: '15px',
+                  fontWeight: '800',
+                  borderRadius: '14px',
+                  boxShadow: '0 8px 20px rgba(16, 185, 129, 0.22)',
+                  border: 'none',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onClick={() => handleSaveAttendance(selectedActivity.id)}
+              >
+                💾 Save Attendance & Award Meeting Points (+30 pts)
+              </button>
               <button
                 className="btn-primary"
-                style={{ width: '100%', height: '52px', background: '#fd7e14', fontSize: '16px', fontWeight: '700' }}
+                style={{ width: '100%', height: '46px', background: '#fd7e14', fontSize: '15px', fontWeight: '700', borderRadius: '14px' }}
                 onClick={() => setSelectedActivity(null)}
                 type="button"
               >
@@ -686,10 +900,10 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    style={{ ...inputStyle, background: 'white' }}
+                    style={{ ...inputStyle, background: '#ffffff', color: '#0f172a' }}
                   >
                     {STATUS_FILTERS.filter((s) => s.id !== 'all').map((opt) => (
-                      <option key={opt.id} value={opt.id}>
+                      <option key={opt.id} value={opt.id} style={{ background: '#ffffff', color: '#0f172a' }}>
                         {opt.label}
                       </option>
                     ))}
@@ -723,10 +937,10 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                 <select
                   value={formData.progressStatus}
                   onChange={(e) => setFormData({ ...formData, progressStatus: e.target.value })}
-                  style={{ ...inputStyle, background: 'white' }}
+                  style={{ ...inputStyle, background: '#ffffff', color: '#0f172a' }}
                 >
                   {PROGRESS_OPTIONS.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
+                    <option key={opt.id} value={opt.id} style={{ background: '#ffffff', color: '#0f172a' }}>
                       {opt.label}
                     </option>
                   ))}
@@ -869,10 +1083,13 @@ const inputStyle = {
   width: '100%',
   padding: '16px 20px',
   borderRadius: '16px',
-  border: '1px solid #e2e8f0',
+  border: '1px solid #cbd5e1',
+  background: '#ffffff',
+  color: '#0f172a',
+  colorScheme: 'light',
   fontSize: '16px',
-  color: '#1e293b',
   outline: 'none',
+  boxSizing: 'border-box',
 }
 
 const secondaryBtnStyle = {

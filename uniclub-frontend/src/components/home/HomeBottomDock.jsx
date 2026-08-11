@@ -179,6 +179,8 @@ function HomeBottomDock({
   canManagePolls = false,
 }) {
   const visibleDockItems = dockItems.filter((item) => {
+    if (item.id === 'activity-schedule') return !canManageSchedule
+    if (item.id === 'manage-activity-schedule') return canManageSchedule
     if (item.access === 'member-management') return canManageMembers
     if (item.access === 'invitation-management') return canManageInvitations
     if (item.access === 'event-management') return canManageEvents

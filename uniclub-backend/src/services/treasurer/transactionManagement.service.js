@@ -32,8 +32,38 @@ const getTransactionDetail = async (clubId, transactionId) => {
     .populate(TRANSACTION_POPULATE)
     .select(TRANSACTION_SELECT);
   if (!transaction) throw getStatusError("Transaction not found", 404);
-  return transaction;
+
+  const doc = transaction.toObject();
+
+  // If income transaction, attach member payment list with status
+  if (Number(doc.type) === 0) {
+    const payments = await Payment.find({ transaction_id: transactionId })
+      .populate({
+        path: "membership_id",
+        populate: { path: "user_id", select: "full_name email avatar_url student_code" },
+      })
+      .sort({ status: -1, paid_at: -1 });
+
+    doc.member_payments = payments.map((p) => ({
+      payment_id: p._id,
+      membership_id: p.membership_id?._id,
+      user_id: p.membership_id?.user_id?._id,
+      full_name: p.membership_id?.user_id?.full_name || "Thành viên",
+      email: p.membership_id?.user_id?.email || "",
+      student_code: p.membership_id?.user_id?.student_code || "",
+      avatar_url: p.membership_id?.user_id?.avatar_url || "",
+      amount: p.amount,
+      status: p.status, // 0 = pending, 1 = success, 2 = failed
+      paid_at: p.paid_at,
+    }));
+  }
+
+  return doc;
 };
+
+const Payment = require("../../models/payment.model");
+const ClubMember = require("../../models/club_member.model");
+const { sendFeeNotificationEmail } = require("../email.service");
 
 const createTransactionRequest = async (clubId, userId, payload) => {
   await assertActiveClub(clubId);
@@ -42,10 +72,59 @@ const createTransactionRequest = async (clubId, userId, payload) => {
     club_id: clubId,
     created_by: userId,
     ...payload,
-    status: 0,
+    status: payload.status !== undefined ? payload.status : 0,
     fee_id: null,
     approved_by: null,
   });
+
+  // IF TYPE IS INCOME (0 = Income / Thu):
+  // Generate pending Payment records for ALL active members of the club & send Email Notification!
+  const isIncome = Number(payload.type) === 0 || payload.type === "income";
+  if (isIncome) {
+    try {
+      const activeMembers = await ClubMember.find({ club_id: clubId, status: "active" });
+      const period = payload.period || payload.description || payload.category || "Hội phí CLB";
+      const amount = payload.amount || 0;
+
+      const paymentDocs = activeMembers.map((m) => ({
+        membership_id: m._id,
+        transaction_id: transaction._id,
+        period,
+        amount,
+        status: 0, // 0 = pending
+        payment_method: 0, // 0 = default
+        order_info: `Thanh toán ${period}`,
+      }));
+
+      if (paymentDocs.length > 0) {
+        await Payment.insertMany(paymentDocs, { ordered: false }).catch((err) =>
+          console.log("[Payment Hook Note] Duplicate payments ignored:", err.message)
+        );
+      }
+
+      // Background Email Notification to all active members
+      ClubMember.find({ club_id: clubId, status: "active" })
+        .populate("user_id")
+        .populate("club_id")
+        .then((members) => {
+          members.forEach((m) => {
+            if (m.user_id && m.user_id.email) {
+              sendFeeNotificationEmail({
+                toEmail: m.user_id.email,
+                userName: m.user_id.full_name || "Thành viên",
+                clubName: m.club_id?.name || "Câu lạc bộ",
+                title: payload.description || period,
+                amount,
+                period,
+              }).catch((e) => console.error("[Fee Email Error]", e));
+            }
+          });
+        })
+        .catch((e) => console.error("[Fee Populate Error]", e));
+    } catch (err) {
+      console.error("Error creating member payment items for income transaction:", err);
+    }
+  }
 
   return Transaction.findById(transaction._id)
     .populate(TRANSACTION_POPULATE)
@@ -55,15 +134,49 @@ const createTransactionRequest = async (clubId, userId, payload) => {
 const updateTransactionRequest = async (clubId, transactionId, userId, payload) => {
   const transaction = await Transaction.findOne({ _id: transactionId, club_id: clubId });
   if (!transaction) throw getStatusError("Transaction not found", 404);
-  if (String(transaction.created_by) !== String(userId)) {
-    throw getStatusError("You can update only your own transaction request", 403);
-  }
-  if (transaction.status !== 0) {
-    throw getStatusError("Only pending transaction requests can be updated", 400);
+
+  if (payload.status !== undefined) {
+    transaction.status = payload.status;
+    if (payload.status === 1) {
+      transaction.approved_by = userId;
+    }
   }
 
-  Object.assign(transaction, payload);
+  if (payload.title) transaction.title = payload.title;
+  if (payload.amount !== undefined) transaction.amount = payload.amount;
+  if (payload.category) transaction.category = payload.category;
+  if (payload.period) transaction.period = payload.period;
+  if (payload.description) transaction.description = payload.description;
+
   await transaction.save();
+
+  // If approved and type is income, generate payment records for active members
+  const isIncome = Number(transaction.type) === 0 || transaction.type === "income";
+  if (transaction.status === 1 && isIncome) {
+    try {
+      const activeMembers = await ClubMember.find({ club_id: clubId, status: "active" });
+      const period = transaction.period || transaction.description || transaction.category || "Hội phí CLB";
+      const amount = transaction.amount || 0;
+
+      const paymentDocs = activeMembers.map((m) => ({
+        membership_id: m._id,
+        transaction_id: transaction._id,
+        period,
+        amount,
+        status: 0,
+        payment_method: 0,
+        order_info: `Thanh toán ${period}`,
+      }));
+
+      if (paymentDocs.length > 0) {
+        await Payment.insertMany(paymentDocs, { ordered: false }).catch((err) =>
+          console.log("[Payment Hook Note] Duplicate payments ignored:", err.message)
+        );
+      }
+    } catch (err) {
+      console.error("Error creating member payment items for approved income transaction:", err);
+    }
+  }
 
   return Transaction.findById(transaction._id)
     .populate(TRANSACTION_POPULATE)
@@ -71,14 +184,28 @@ const updateTransactionRequest = async (clubId, transactionId, userId, payload) 
 };
 
 const getFinancialDashboard = async (clubId) => {
+  // Calculate total actual paid income from Payment collection (status === 1)
+  const paidIncomeAgg = await Payment.aggregate([
+    { $match: { status: 1 } },
+    {
+      $lookup: {
+        from: "clubmembers",
+        localField: "membership_id",
+        foreignField: "_id",
+        as: "member",
+      },
+    },
+    { $unwind: "$member" },
+    { $match: { "member.club_id": new mongoose.Types.ObjectId(clubId) } },
+    { $group: { _id: null, total: { $sum: "$amount" } } },
+  ]);
+  const approvedIncome = paidIncomeAgg[0]?.total || 0;
+
   const [summary] = await Transaction.aggregate([
     { $match: { club_id: new mongoose.Types.ObjectId(clubId) } },
     {
       $group: {
         _id: null,
-        approved_income: {
-          $sum: { $cond: [{ $and: [{ $eq: ["$status", 1] }, { $eq: ["$type", 0] }] }, "$amount", 0] },
-        },
         approved_expense: {
           $sum: { $cond: [{ $and: [{ $eq: ["$status", 1] }, { $eq: ["$type", 1] }] }, "$amount", 0] },
         },
@@ -89,7 +216,6 @@ const getFinancialDashboard = async (clubId) => {
     },
   ]);
 
-  const approvedIncome = summary?.approved_income || 0;
   const approvedExpense = summary?.approved_expense || 0;
   return {
     approved_income: approvedIncome,

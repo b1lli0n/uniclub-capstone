@@ -3,7 +3,7 @@ const Club = require("../../models/club.model");
 const { getStatusError } = require("../../utils/error");
 
 const EVENT_SELECT =
-  "_id club_id title description category start_time end_time location status progress_status is_public capacity media_uris created_at updated_at";
+  "_id club_id title description category start_time end_time location status progress_status is_public capacity media_uris approval_document_url created_at updated_at";
 
 const CLUB_POPULATE = {
   path: "club_id",
@@ -88,6 +88,10 @@ const createEvent = async (clubId, userId, payload) => {
   const event = await Event.create({
     club_id: clubId,
     created_by: userId,
+    status: "opening",
+    progress_status: "completed",
+    check_in_status: "open",
+    is_public: true,
     ...payload,
   });
 
@@ -100,10 +104,7 @@ const createEvent = async (clubId, userId, payload) => {
 };
 
 const updateEvent = async (clubId, eventId, payload) => {
-  const event = await Event.findOne({
-    _id: eventId,
-    club_id: clubId,
-  });
+  const event = await Event.findById(eventId);
 
   if (!event) {
     throw getStatusError("Event not found", 404);
@@ -132,10 +133,7 @@ const updateEvent = async (clubId, eventId, payload) => {
 };
 
 const cancelEvent = async (clubId, eventId) => {
-  const event = await Event.findOne({
-    _id: eventId,
-    club_id: clubId,
-  });
+  const event = await Event.findById(eventId);
 
   if (!event) {
     throw getStatusError("Event not found", 404);

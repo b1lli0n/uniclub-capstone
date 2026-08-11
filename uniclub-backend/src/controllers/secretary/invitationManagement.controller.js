@@ -68,7 +68,7 @@ const sendInvitation = async (req, res, next) => {
       return next(getStatusError("Invalid clubId", 400));
     }
 
-    if (!invitedUserId || !mongoose.Types.ObjectId.isValid(invitedUserId)) {
+    if (!invitedUserId || typeof invitedUserId !== "string" || !invitedUserId.trim()) {
       return next(getStatusError("Invalid invited_user_id", 400));
     }
 

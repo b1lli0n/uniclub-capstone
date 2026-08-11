@@ -118,12 +118,62 @@ function RewardDetail({ reward, isManager, points, onClose, onRedeem, onEdit }) 
   )
 }
 
+function HistoryDetailModal({ item, onClose }) {
+  const isApproved = item.status?.toLowerCase() === 'approved'
+  const isRejected = item.status?.toLowerCase() === 'rejected'
+  const pickupCode = `REDEEM-${item.id?.substring(item.id.length - 8).toUpperCase()}`
+
+  return (
+    <div className="club-rewards-modal" role="dialog" aria-modal="true">
+      <button className="club-rewards-modal__backdrop" aria-label="Close" onClick={onClose} type="button" />
+      <section className="club-rewards-modal__panel club-rewards-detail">
+        <header>
+          <h2>Chi tiết phiếu đổi quà</h2>
+          <button type="button" onClick={onClose}>×</button>
+        </header>
+        <div className="club-rewards-detail__body">
+          <div className="club-rewards-detail__emoji-container" style={{ width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f7', borderRadius: '12px', fontSize: '2.5rem', overflow: 'hidden' }}>
+            <RewardImage src={item.image} alt={item.item} className="club-rewards-detail__emoji" />
+          </div>
+          <div>
+            <p className="club-rewards-eyebrow">Mã phiếu: <strong>{pickupCode}</strong></p>
+            <h3>{item.item}</h3>
+            <strong style={{ color: '#ea580c' }}>-{item.points} pts</strong>
+            <p style={{ marginTop: '0.4rem', color: '#475569', fontSize: '0.9rem' }}>
+              {item.description || 'Phần quà đổi thưởng đặc quyền của câu lạc bộ trên UniClub.'}
+            </p>
+            <p style={{ marginTop: '0.4rem', fontSize: '0.85rem', color: '#64748b' }}>📅 Ngày đổi: {item.date}</p>
+            <div style={{ marginTop: '0.6rem' }}>
+              <Status value={item.status} />
+            </div>
+            {isApproved && (
+              <div style={{ marginTop: '0.8rem', padding: '0.7rem 0.9rem', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0', fontSize: '0.84rem', color: '#166534', lineHeight: 1.5 }}>
+                🎉 <strong>ĐÃ ĐƯỢC PHÊ DUYỆT!</strong><br />
+                Vui lòng xuất trình mã <strong>{pickupCode}</strong> tại phòng Ban chủ nhiệm CLB để nhận phần quà trực tiếp.
+              </div>
+            )}
+            {isRejected && (
+              <div style={{ marginTop: '0.8rem', padding: '0.7rem 0.9rem', background: '#fef2f2', borderRadius: '10px', border: '1px solid #fecaca', fontSize: '0.84rem', color: '#991b1b', lineHeight: 1.5 }}>
+                ❌ <strong>YÊU CẦU CHƯA ĐƯỢC PHÊ DUYỆT</strong><br />
+                {item.rejectionReason ? `Lý do: "${item.rejectionReason}". ` : ''}Điểm thưởng tích lũy đã được hoàn lại đầy đủ vào ví của bạn.
+              </div>
+            )}
+          </div>
+        </div>
+        <footer>
+          <button type="button" onClick={onClose}>Đóng</button>
+        </footer>
+      </section>
+    </div>
+  )
+}
+
 function Status({ value }) {
   const norm = String(value || '').toUpperCase()
   let className = 'club-rewards-status--pending'
   let label = 'Chờ duyệt'
 
-  if (norm === 'APPROVED' || norm === 'APPROVED') {
+  if (norm === 'APPROVED') {
     className = 'club-rewards-status--approved'
     label = 'Đã duyệt'
   } else if (norm === 'REJECTED') {
@@ -153,6 +203,7 @@ function ClubRewardsPage({ isManager = false }) {
   const [editorOpen, setEditorOpen] = useState(false)
   const [detailReward, setDetailReward] = useState(null)
   const [confirmReward, setConfirmReward] = useState(null)
+  const [detailHistory, setDetailHistory] = useState(null)
 
   // 1. Fetch rewards list & points balance
   useEffect(() => {
@@ -176,11 +227,11 @@ function ClubRewardsPage({ isManager = false }) {
             title: r.name,
             type: 'Voucher',
             club: 'CLB',
-            points: r.point_cost,
-            stock: r.quantity,
-            image: r.image_url,
+            points: r.point_cost ?? r.points_required ?? 100,
+            stock: r.quantity ?? 10,
+            image: r.image_url || '🎁',
             description: r.description,
-            isVisible: r.status === 'active',
+            isVisible: r.is_active || r.status === 'active',
           })))
         } else {
           // Member response layout: { success, data: { available_points, rewards: [...] } }
@@ -192,11 +243,11 @@ function ClubRewardsPage({ isManager = false }) {
             title: r.name,
             type: 'Voucher',
             club: 'CLB',
-            points: r.point_cost,
-            stock: r.quantity,
-            image: r.image_url,
+            points: r.point_cost ?? r.points_required ?? 100,
+            stock: r.quantity ?? 10,
+            image: r.image_url || '🎁',
             description: r.description,
-            isVisible: r.status === 'active',
+            isVisible: r.is_active || r.status === 'active',
           })))
         }
         setIsLoading(false)
@@ -520,6 +571,7 @@ function ClubRewardsPage({ isManager = false }) {
                 <th>Phần quà</th>
                 <th>Chi phí</th>
                 <th>Trạng thái</th>
+                <th>Chi tiết</th>
               </tr>
             </thead>
             <tbody>
@@ -532,11 +584,30 @@ function ClubRewardsPage({ isManager = false }) {
                   <td>
                     <Status value={item.status} />
                   </td>
+                  <td>
+                    <button
+                      type="button"
+                      style={{
+                        padding: '0.4rem 0.85rem',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #ff9f2f 0%, #ff8000 100%)',
+                        color: '#ffffff',
+                        border: 'none',
+                        boxShadow: '0 3px 10px rgba(245, 124, 0, 0.22)',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => setDetailHistory(item)}
+                    >
+                      👁️ Xem chi tiết
+                    </button>
+                  </td>
                 </tr>
               ))}
               {!history.length && (
                 <tr>
-                  <td colSpan={isManager ? 5 : 4} style={{ textAlign: 'center', padding: '2rem' }}>Không có lịch sử đổi quà.</td>
+                  <td colSpan={isManager ? 6 : 5} style={{ textAlign: 'center', padding: '2rem' }}>Không có lịch sử đổi quà.</td>
                 </tr>
               )}
             </tbody>
@@ -571,6 +642,8 @@ function ClubRewardsPage({ isManager = false }) {
           </section>
         </div>
       )}
+
+      {detailHistory && <HistoryDetailModal item={detailHistory} onClose={() => setDetailHistory(null)} />}
     </main>
   )
 }

@@ -28,8 +28,10 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.24.0",
     "morgan": "^1.10.0",
+    "nodemailer": "^9.0.5",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
+    "qs": "^6.15.3",
     "selfsigned": "^5.5.0",
     "uniclub-monorepo": "file:..",
     "xlsx": "^0.18.5"

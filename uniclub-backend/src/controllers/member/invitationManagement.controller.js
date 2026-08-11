@@ -9,7 +9,7 @@ const getReceivedInvitations = async (req, res, next) => {
     const { clubId } = req.params;
     const { status } = req.query;
 
-    if (!mongoose.Types.ObjectId.isValid(clubId)) {
+    if (clubId && !mongoose.Types.ObjectId.isValid(clubId)) {
       return next(getStatusError("Invalid clubId", 400));
     }
 
@@ -42,7 +42,7 @@ const getInvitationDetail = async (req, res, next) => {
   try {
     const { clubId, invitationId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(clubId)) {
+    if (clubId && !mongoose.Types.ObjectId.isValid(clubId)) {
       return next(getStatusError("Invalid clubId", 400));
     }
 
@@ -70,7 +70,7 @@ const acceptInvitation = async (req, res, next) => {
   try {
     const { clubId, invitationId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(clubId)) {
+    if (clubId && !mongoose.Types.ObjectId.isValid(clubId)) {
       return next(getStatusError("Invalid clubId", 400));
     }
 
@@ -81,8 +81,7 @@ const acceptInvitation = async (req, res, next) => {
     const data = await invitationManagementService.acceptInvitation(
       req.user.id,
       clubId,
-      invitationId,
-      req.clubMembership
+      invitationId
     );
 
     return res.status(200).json({
@@ -99,7 +98,7 @@ const rejectInvitation = async (req, res, next) => {
   try {
     const { clubId, invitationId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(clubId)) {
+    if (clubId && !mongoose.Types.ObjectId.isValid(clubId)) {
       return next(getStatusError("Invalid clubId", 400));
     }
 

@@ -98,6 +98,25 @@ const createEventRequest = async (req, res, next) => {
 
     const savedRequest = await newRequest.save();
 
+    // Trigger Real-time Email Notification to Admin
+    try {
+      const { sendEventRequestSubmittedEmailToAdmin } = require("../services/email.service");
+      const Club = require("../models/club.model");
+      const User = require("../models/user.model");
+      
+      const clubDoc = await Club.findById(clubId);
+      const userDoc = await User.findById(req.user.id);
+      
+      sendEventRequestSubmittedEmailToAdmin({
+        clubName: clubDoc?.name || "Guitar Club",
+        requesterName: userDoc?.full_name || req.user.email || "Ban Sự Kiện",
+        eventTitle: title,
+        documentUrl: approval_document_url,
+      });
+    } catch (emailErr) {
+      console.error("Failed to send admin event request email:", emailErr);
+    }
+
     return res.status(201).json({
       success: true,
       message: "Event creation request submitted successfully",
@@ -211,10 +230,34 @@ const approveEventRequest = async (req, res, next) => {
       multiplier: request.multiplier,
       media_uris: request.media_uris,
       status: "coming soon",
-      progress_status: "draft", // Assuming it will be draft initially
+      progress_status: "draft",
+      check_in_status: "not_open",
+      approval_document_url: request.approval_document_url || "",
     });
 
     const savedEvent = await newEvent.save();
+
+    // Trigger Real-time Email Notification to Requester Student
+    try {
+      const { sendEventRequestResultEmailToRequester } = require("../services/email.service");
+      const Club = require("../models/club.model");
+      const User = require("../models/user.model");
+      
+      const clubDoc = await Club.findById(request.club_id);
+      const userDoc = await User.findById(request.requested_by);
+      
+      if (userDoc?.email) {
+        sendEventRequestResultEmailToRequester({
+          toEmail: userDoc.email,
+          userName: userDoc.full_name || "Thành viên Ban Sự Kiện",
+          clubName: clubDoc?.name || "Guitar Club",
+          eventTitle: request.title,
+          isApproved: true,
+        });
+      }
+    } catch (emailErr) {
+      console.error("Failed to send approval result email:", emailErr);
+    }
 
     return res.status(200).json({
       success: true,
@@ -257,6 +300,29 @@ const rejectEventRequest = async (req, res, next) => {
     request.reviewed_by = req.user.id;
     request.reviewed_at = new Date();
     await request.save();
+
+    // Trigger Real-time Email Notification to Requester Student
+    try {
+      const { sendEventRequestResultEmailToRequester } = require("../services/email.service");
+      const Club = require("../models/club.model");
+      const User = require("../models/user.model");
+      
+      const clubDoc = await Club.findById(request.club_id);
+      const userDoc = await User.findById(request.requested_by);
+      
+      if (userDoc?.email) {
+        sendEventRequestResultEmailToRequester({
+          toEmail: userDoc.email,
+          userName: userDoc.full_name || "Thành viên Ban Sự Kiện",
+          clubName: clubDoc?.name || "Guitar Club",
+          eventTitle: request.title,
+          isApproved: false,
+          reviewNote: review_note.trim(),
+        });
+      }
+    } catch (emailErr) {
+      console.error("Failed to send rejection result email:", emailErr);
+    }
 
     return res.status(200).json({
       success: true,

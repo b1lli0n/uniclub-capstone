@@ -25,6 +25,7 @@ const clubMembershipRoutes = require("./routes/member/clubMembership.routes");
 const memberAchievementPointsRoutes = require("./routes/member/achievementPoints.routes");
 const presidentJoinFormManagementRoutes = require("./routes/president/joinFormManagement.routes");
 const presidentPointRuleManagementRoutes = require("./routes/president/pointRuleManagement.routes");
+const presidentJoinRequestManagementRoutes = require("./routes/president/joinRequestManagement.routes");
 const eventManagerRoutes = require("./routes/eventManager/eventManagement.routes");
 const memberActivityScheduleRoutes = require("./routes/member/activitySchedule.routes");
 const secretaryActivityScheduleRoutes = require("./routes/secretary/activitySchedule.routes");
@@ -47,8 +48,8 @@ app.use(
   })
 );
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(morgan("dev"));
 app.use(cookieParser());
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
@@ -66,10 +67,12 @@ app.use("/api/events", eventAttendanceRoutes);
 
 app.use("/api/member/clubs-membership", clubMembershipRoutes);
 app.use("/api/member/clubs-membership", memberAchievementPointsRoutes);
+app.use("/api/member/clubs-membership", memberInvitationManagementRoutes);
 app.use("/api/club-management", clubManagementRoutes);
 app.use("/api/club-members", clubMemberRoutes);
 app.use("/api/president/clubs", presidentJoinFormManagementRoutes);
 app.use("/api/president/clubs", presidentPointRuleManagementRoutes);
+app.use("/api/president/join-request-management", presidentJoinRequestManagementRoutes);
 app.use("/api/student/feedback-management", feedbackManagementRoutes);
 app.use("/api/student/clubs-membership", studentClubMembershipRoutes);
 app.use("/api/event-manager/event-management", eventManagerRoutes);
