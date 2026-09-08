@@ -86,8 +86,9 @@ const awardRewardPoints = async ({ clubId, userId, actionTypeCode, eventId, pres
 
     // --- PERFORM AWARD ---
 
-    // Update ClubMember reward_point cache
+    // Update ClubMember reward_point and ranking_point cache
     member.reward_point = (member.reward_point || 0) + pointsToAward;
+    member.ranking_point = (member.ranking_point || 0) + pointsToAward;
     await member.save();
 
     // Calculate month_key

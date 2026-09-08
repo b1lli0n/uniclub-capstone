@@ -7,7 +7,7 @@ const getMyProfile = async (req, res) => {
     const userId = req.user.id;
 
     const user = await User.findById(userId).select(
-      "full_name email avatar_url role status"
+      "full_name email avatar_url role"
     );
 
     let profile = await Profile.findOne({ user_id: userId });
@@ -35,31 +35,89 @@ const getMyProfile = async (req, res) => {
   }
 };
 
+const getUserProfileById = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID",
+      });
+    }
+
+    const user = await User.findById(userId).select(
+      "full_name email avatar_url role"
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    let profile = await Profile.findOne({ user_id: userId });
+
+    if (!profile) {
+      profile = await Profile.create({
+        user_id: userId,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Get user profile successfully",
+      data: {
+        user,
+        profile,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Get user profile failed",
+      error: error.message,
+    });
+  }
+};
+
 const updateMyProfile = async (req, res) => {
   try {
     const userId = req.user.id;
 
     const {
+      avatar,
       student_code,
       phone,
-      major,
       campus,
-      social_links,
     } = req.body;
 
+    let existingProfile = await Profile.findOne({ user_id: userId });
+
+    if (
+      existingProfile &&
+      existingProfile.student_code &&
+      student_code &&
+      student_code.trim() !== existingProfile.student_code
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Student code (MSSV) cannot be changed once set",
+      });
+    }
+
     const updateData = {
-      student_code,
       phone,
-      major,
       campus,
     };
 
-    if (social_links) {
-      updateData.social_links = {
-        facebook: social_links.facebook || "",
-        github: social_links.github || "",
-        linkedin: social_links.linkedin || "",
-      };
+    if (avatar !== undefined) {
+      updateData.avatar = avatar;
+    }
+
+    if (student_code && (!existingProfile || !existingProfile.student_code)) {
+      updateData.student_code = student_code;
     }
 
     const profile = await Profile.findOneAndUpdate(
@@ -93,7 +151,6 @@ const searchUsers = async (req, res) => {
 
     const queryFilter = {
       _id: { $ne: new mongoose.Types.ObjectId(currentUserId) },
-      status: "active",
       role: "student",
     };
 
@@ -130,6 +187,7 @@ const searchUsers = async (req, res) => {
 
 module.exports = {
   getMyProfile,
+  getUserProfileById,
   updateMyProfile,
   searchUsers,
 };

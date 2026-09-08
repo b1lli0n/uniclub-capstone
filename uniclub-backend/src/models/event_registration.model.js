@@ -35,7 +35,7 @@ const eventRegistrationSchema = Schema(
 
     checked_in_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       default: null,
     },
   },

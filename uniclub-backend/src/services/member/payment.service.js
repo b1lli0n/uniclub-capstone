@@ -6,14 +6,14 @@ const Payment = require('../../models/payment.model')
 const Transaction = require('../../models/transaction.model')
 
 const PAYMENT_STATUS = {
-  PENDING: 0,
-  SUCCESS: 1,
-  FAILED: 2
+  PENDING: "pending",
+  SUCCESS: "success",
+  FAILED: "failed"
 }
 
 const PAYMENT_METHOD = {
-  CASH: 0,
-  VNPAY: 1
+  CASH: "cash",
+  VNPAY: "vnpay"
 }
 
 function generateTxnRef() {
@@ -253,7 +253,7 @@ async function listFeeOfUser(userId, options = {}) {
       })
       .populate({
         path: 'transaction_id',
-        select: 'category description type'
+        select: 'title category description type'
       })
       .lean(),
     Payment.countDocuments(query),
@@ -449,7 +449,7 @@ async function getReceiptDetail(clubId, userId, receiptId) {
     })
     .populate({
       path: 'transaction_id',
-      select: 'category description type transaction_date'
+      select: 'title category description type transaction_date'
     })
     .lean()
 

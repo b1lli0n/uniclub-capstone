@@ -32,9 +32,9 @@ const getFeedbackEvent = async (userId, eventId) => {
     Feedback.find({ event_id: eventId })
       .sort({ created_at: -1 })
       .populate("user_id", "_id full_name avatar_url")
-      .select("_id user_id rating comment created_at"),
+      .select("_id user_id rating comment created_at updated_at"),
     Feedback.findOne({ event_id: eventId, user_id: userId })
-      .select("_id rating comment created_at")
+      .select("_id rating comment created_at updated_at")
   ]);
 
   return {

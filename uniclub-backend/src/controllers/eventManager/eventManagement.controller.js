@@ -34,10 +34,6 @@ const parseUpdateEventPayload = (body) => {
     updates.description = parseRequiredString(body.description, "description");
   }
 
-  if (body.content !== undefined) {
-    updates.content = parseRequiredString(body.content, "content");
-  }
-
   if (body.category !== undefined) {
     updates.category = parseRequiredString(body.category, "category");
   }
@@ -62,16 +58,6 @@ const parseUpdateEventPayload = (body) => {
     }
 
     updates.capacity = capacity;
-  }
-
-  if (body.multiplier !== undefined) {
-    const multiplier = Number(body.multiplier);
-
-    if (!Number.isFinite(multiplier) || multiplier <= 0) {
-      throw getStatusError("multiplier must be a positive number", 400);
-    }
-
-    updates.multiplier = multiplier;
   }
 
   if (body.is_public !== undefined) {
@@ -118,7 +104,6 @@ const parseUpdateEventPayload = (body) => {
 const parseCreateEventPayload = (body) => {
   const title = parseRequiredString(body.title, "title");
   const description = parseRequiredString(body.description, "description");
-  const content = parseRequiredString(body.content, "content");
   const category = parseRequiredString(body.category, "category");
   const location = parseRequiredString(body.location, "location");
 
@@ -133,16 +118,6 @@ const parseCreateEventPayload = (body) => {
 
   if (!Number.isInteger(capacity) || capacity <= 0) {
     throw getStatusError("capacity must be a positive integer", 400);
-  }
-
-  let multiplier = 1;
-
-  if (body.multiplier !== undefined && body.multiplier !== null && body.multiplier !== "") {
-    multiplier = Number(body.multiplier);
-
-    if (!Number.isFinite(multiplier) || multiplier <= 0) {
-      throw getStatusError("multiplier must be a positive number", 400);
-    }
   }
 
   let isPublic = true;
@@ -184,14 +159,12 @@ const parseCreateEventPayload = (body) => {
   return {
     title,
     description,
-    content,
     category,
     start_time: startTime,
     end_time: endTime,
     location,
     is_public: isPublic,
     capacity,
-    multiplier,
     progress_status: progressStatus,
     media_uris: mediaUris,
   };

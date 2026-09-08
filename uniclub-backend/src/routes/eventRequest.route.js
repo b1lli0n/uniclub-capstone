@@ -1,7 +1,7 @@
 const express = require("express");
 const eventRequestController = require("../controllers/eventRequest.controller");
-const { verifyToken, protect } = require("../middlewares/auth.middleware");
-const { requireClubRole } = require("../middlewares/clubAuth.middleware");
+const { verifyToken, authorize } = require("../middlewares/auth.middleware");
+const { requireClubRole } = require("../middlewares/club.middleware");
 
 const router = express.Router();
 
@@ -17,7 +17,7 @@ router.post(
 router.get(
   "/",
   verifyToken,
-  protect(["student_affairs"]),
+  authorize(["student_affairs"]),
   eventRequestController.getEventRequests
 );
 
@@ -32,24 +32,39 @@ router.get(
 router.get(
   "/:requestId",
   verifyToken,
-  protect(["student_affairs"]),
+  authorize(["student_affairs"]),
   eventRequestController.getEventRequestDetail
 );
 
-// Admin: Approve an event request
+// Admin: Review an event request (Approve / Reject)
+router.put(
+  "/:requestId/review",
+  verifyToken,
+  authorize(["student_affairs"]),
+  eventRequestController.reviewEventRequest
+);
+
+// Backward-compatibility aliases
 router.put(
   "/:requestId/approve",
   verifyToken,
-  protect(["student_affairs"]),
-  eventRequestController.approveEventRequest
+  authorize(["student_affairs"]),
+  (req, res, next) => {
+    req.body = req.body || {};
+    req.body.status = "approved";
+    return eventRequestController.reviewEventRequest(req, res, next);
+  }
 );
 
-// Admin: Reject an event request
 router.put(
   "/:requestId/reject",
   verifyToken,
-  protect(["student_affairs"]),
-  eventRequestController.rejectEventRequest
+  authorize(["student_affairs"]),
+  (req, res, next) => {
+    req.body = req.body || {};
+    req.body.status = "rejected";
+    return eventRequestController.reviewEventRequest(req, res, next);
+  }
 );
 
 module.exports = router;

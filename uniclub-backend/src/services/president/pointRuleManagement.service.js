@@ -14,6 +14,10 @@ const getPointRules = async (clubId) => {
 
   return PointRule.find({ club_id: clubId })
     .populate("action_type_id", "_id code name description")
+    .populate({
+      path: "created_by",
+      populate: { path: "user_id", select: "_id full_name email avatar_url" },
+    })
     .sort({ created_at: -1 });
 };
 
@@ -57,6 +61,12 @@ const createPointRule = async (presidentId, clubId, data) => {
     throw getStatusError("Limit per day must be a positive number", 400);
   }
 
+  const creatorMember = await ClubMember.findOne({
+    club_id: clubId,
+    user_id: presidentId,
+    status: "active",
+  });
+
   const pointRule = await PointRule.create({
     club_id: clubId,
     action_type_id,
@@ -64,10 +74,16 @@ const createPointRule = async (presidentId, clubId, data) => {
     limit_per_event,
     limit_per_day,
     is_active: is_active !== undefined ? Boolean(is_active) : false,
-    created_by: presidentId,
+    created_by: creatorMember ? creatorMember._id : presidentId,
   });
 
-  return pointRule.populate("action_type_id", "_id code name description");
+  return pointRule.populate([
+    { path: "action_type_id", select: "_id code name description" },
+    {
+      path: "created_by",
+      populate: { path: "user_id", select: "_id full_name email avatar_url" },
+    },
+  ]);
 };
 
 const updatePointRule = async (presidentId, clubId, ruleId, data) => {
@@ -215,19 +231,6 @@ const awardPointsManually = async (presidentId, clubId, memberId, { rule_id, rew
   };
 };
 
-const deletePointRule = async (presidentId, clubId, ruleId) => {
-  if (!mongoose.Types.ObjectId.isValid(clubId) || !mongoose.Types.ObjectId.isValid(ruleId)) {
-    throw getStatusError("Invalid club ID or rule ID", 400);
-  }
-
-  const pointRule = await PointRule.findOneAndDelete({ _id: ruleId, club_id: clubId });
-  if (!pointRule) {
-    throw getStatusError("Point rule not found in this club", 404);
-  }
-
-  return { success: true, message: "Point rule deleted successfully" };
-};
-
 const getActionTypes = async () => {
   return ActionType.find({ is_Active: true }).sort({ created_at: 1 });
 };
@@ -239,5 +242,4 @@ module.exports = {
   togglePointRuleStatus,
   awardPointsManually,
   getActionTypes,
-  deletePointRule,
 };

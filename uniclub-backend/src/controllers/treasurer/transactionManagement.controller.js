@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const transactionService = require("../../services/treasurer/transactionManagement.service");
 const { getStatusError } = require("../../utils/error");
+const { getCurrentSemesterCode } = require("../../utils/semester.helper");
 
 const parseRequiredText = (value, fieldName, maxLength) => {
   if (typeof value !== "string" || !value.trim()) {
@@ -9,6 +10,15 @@ const parseRequiredText = (value, fieldName, maxLength) => {
   const text = value.trim();
   if (text.length > maxLength) throw getStatusError(`${fieldName} is too long`, 400);
   return text;
+};
+
+const parseOptionalPeriod = (value, dateRef) => {
+  if (typeof value === "string" && value.trim()) {
+    const text = value.trim();
+    if (text.length > 30) throw getStatusError("period is too long", 400);
+    return text;
+  }
+  return getCurrentSemesterCode(dateRef);
 };
 
 const parseAmount = (value) => {
@@ -26,40 +36,48 @@ const parseDate = (value, fieldName = "transaction_date") => {
 };
 
 const parseType = (value) => {
-  const type = Number(value);
-  if (!Number.isInteger(type) || ![0, 1].includes(type)) {
-    throw getStatusError("Invalid type. Allowed values: 0 (income), 1 (expense)", 400);
-  }
-  return type;
+  if (value === undefined || value === null) return "income";
+  const typeStr = String(value).trim().toLowerCase();
+  if (typeStr === "0" || typeStr === "income") return "income";
+  if (typeStr === "1" || typeStr === "expense") return "expense";
+  throw getStatusError("Invalid type. Allowed values: income, expense", 400);
 };
 
 const parseStatus = (value) => {
-  if (value === undefined) return undefined;
-  const status = Number(value);
-  if (!Number.isInteger(status) || ![0, 1, 2].includes(status)) {
-    throw getStatusError("Invalid status. Allowed values: 0 (pending), 1 (approved), 2 (rejected)", 400);
-  }
-  return status;
+  if (value === undefined || value === null || value === "") return undefined;
+  const statusStr = String(value).trim().toLowerCase();
+  if (statusStr === "0" || statusStr === "pending") return "pending";
+  if (statusStr === "1" || statusStr === "approved") return "approved";
+  if (statusStr === "2" || statusStr === "rejected") return "rejected";
+  throw getStatusError("Invalid status. Allowed values: pending, approved, rejected", 400);
 };
 
-const parseCreatePayload = (body) => ({
-  type: parseType(body.type),
-  category: parseRequiredText(body.category, "category", 100),
-  period: parseRequiredText(body.period, "period", 30),
-  amount: parseAmount(body.amount),
-  description: parseRequiredText(body.description, "description", 255),
-  transaction_date: parseDate(body.transaction_date),
-});
+const parseCreatePayload = (body) => {
+  const transaction_date = parseDate(body.transaction_date);
+  return {
+    type: parseType(body.type),
+    title: parseRequiredText(body.title || body.category, "title", 100),
+    period: getCurrentSemesterCode(transaction_date), // Tự động 100% từ ngày giao dịch
+    amount: parseAmount(body.amount),
+    description: parseRequiredText(body.description, "description", 255),
+    transaction_date,
+  };
+};
 
 const parseUpdatePayload = (body) => {
   const updates = {};
   if (body.status !== undefined) updates.status = parseStatus(body.status);
   if (body.type !== undefined) updates.type = parseType(body.type);
-  if (body.category !== undefined) updates.category = parseRequiredText(body.category, "category", 100);
-  if (body.period !== undefined) updates.period = parseRequiredText(body.period, "period", 30);
+  if (body.title !== undefined || body.category !== undefined) {
+    updates.title = parseRequiredText(body.title || body.category, "title", 100);
+  }
   if (body.amount !== undefined) updates.amount = parseAmount(body.amount);
   if (body.description !== undefined) updates.description = parseRequiredText(body.description, "description", 255);
-  if (body.transaction_date !== undefined) updates.transaction_date = parseDate(body.transaction_date);
+  if (body.transaction_date !== undefined) {
+    const transaction_date = parseDate(body.transaction_date);
+    updates.transaction_date = transaction_date;
+    updates.period = getCurrentSemesterCode(transaction_date); // Tự động tính lại học kỳ nếu sửa ngày giao dịch
+  }
   if (!Object.keys(updates).length) throw getStatusError("At least one field is required to update", 400);
   return updates;
 };
@@ -153,18 +171,18 @@ const exportFinancialReport = async (req, res, next) => {
       status: parseStatus(req.query.status),
       type: req.query.type === undefined ? undefined : parseType(req.query.type),
     });
-    const header = ["Transaction ID", "Type", "Category", "Period", "Amount", "Description", "Transaction Date", "Status", "Created By", "Approved By"];
+    const header = ["Transaction ID", "Type", "Title", "Period", "Amount", "Description", "Transaction Date", "Status", "Created By", "Approved By"];
     const csvRows = rows.map((item) => [
       item._id,
-      item.type === 0 ? "income" : "expense",
-      item.category,
+      item.type,
+      item.title || item.category || "",
       item.period,
       item.amount,
       item.description,
       item.transaction_date.toISOString(),
-      ["pending", "approved", "rejected"][item.status],
-      item.created_by?.full_name,
-      item.approved_by?.full_name,
+      item.status,
+      item.created_by?.user_id?.full_name || item.created_by?.full_name || "",
+      item.approved_by?.user_id?.full_name || item.approved_by?.full_name || "",
     ]);
     const csv = [header, ...csvRows].map((row) => row.map(escapeCsv).join(",")).join("\r\n");
 

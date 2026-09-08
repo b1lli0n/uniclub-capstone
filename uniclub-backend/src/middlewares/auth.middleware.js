@@ -33,9 +33,9 @@ const verifyToken = (req, res, next) => {
 
 /**
  * Middleware check role hệ thống
- * Usage: protect(["student"]) hoặc protect(["student", "student_affairs"])
+ * Usage: authorize(["student"]) hoặc authorize(["student", "student_affairs"])
  */
-const protect = (allowedRoles = []) => {
+const authorize = (allowedRoles = []) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -71,6 +71,6 @@ const createToken = (payload, options = {}) => {
 
 module.exports = {
   verifyToken,
-  protect,
+  authorize,
   createToken
 };

@@ -38,12 +38,12 @@ const pointRuleSchema = Schema(
 
     created_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       required: true,
     },
   },
   {
-    timestamps: { createdAt: "created_at", updatedAt: false },
+    timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
   }
 );
 

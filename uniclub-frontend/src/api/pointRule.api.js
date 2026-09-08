@@ -37,13 +37,6 @@ export function togglePointRuleStatus(clubId, ruleId, status) {
   })
 }
 
-/** Delete Point Rule (president) */
-export function deletePointRule(clubId, ruleId) {
-  return apiRequest(`/president/clubs/${clubId}/point-rules/${ruleId}`, {
-    method: 'DELETE',
-  })
-}
-
 /** Manually award points to a member (president) */
 export function awardPointsManually(clubId, memberId, data) {
   return apiRequest(`/president/clubs/${clubId}/members/${memberId}/points`, {

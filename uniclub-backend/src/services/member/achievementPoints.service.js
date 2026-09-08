@@ -22,7 +22,7 @@ const getLeaderboard = async (clubId) => {
   // 2. Fetch profiles to get student_code
   const userIds = members.map((m) => m.user_id._id);
   const profiles = await Profile.find({ user_id: { $in: userIds } })
-    .select("user_id student_code major")
+    .select("user_id student_code")
     .lean();
 
   const profileMap = new Map(
@@ -66,7 +66,6 @@ const getLeaderboard = async (clubId) => {
         email: member.user_id.email,
         avatar_url: member.user_id.avatar_url,
         student_code: profile?.student_code || "N/A",
-        major: profile?.major || "N/A",
       },
       role: member.role,
       joined_at: member.joined_at,

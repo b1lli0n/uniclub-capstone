@@ -11,6 +11,7 @@ const userSchema = Schema(
 
     email: {
       type: String,
+      required: true,
       trim: true,
       lowercase: true,
     },
@@ -23,7 +24,7 @@ const userSchema = Schema(
     provider: {
       type: String,
       required: true,
-      enum: ["google", "feId"],
+      enum: ["google", "feid"],
     },
 
     provider_id: {
@@ -34,13 +35,7 @@ const userSchema = Schema(
     role: {
       type: String,
       required: true,
-      enum: ["student", "student_affairs"],
-    },
-
-    status: {
-      type: String,
-      enum: ["active", "inactive", "blocked"],
-      default: "active",
+      enum: ["student", "student_affairs", "admin"],
     },
   },
   {

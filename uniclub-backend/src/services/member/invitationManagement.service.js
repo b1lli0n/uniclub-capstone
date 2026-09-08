@@ -18,7 +18,10 @@ const getReceivedInvitations = async (userId, clubId, { status } = {}) => {
   return Invitation.find(query)
     .sort({ created_at: -1 })
     .populate("club_id", "_id name description logo_url category status")
-    .populate("invited_by", "_id full_name email avatar_url")
+    .populate({
+      path: "invited_by",
+      populate: { path: "user_id", select: "_id full_name email avatar_url" },
+    })
     .select("_id club_id invited_by role message status created_at updated_at");
 };
 
@@ -29,7 +32,10 @@ const getInvitationDetail = async (userId, clubId, invitationId) => {
     invited_user_id: userId,
   })
     .populate("club_id", "_id name description logo_url category status")
-    .populate("invited_by", "_id full_name email avatar_url")
+    .populate({
+      path: "invited_by",
+      populate: { path: "user_id", select: "_id full_name email avatar_url" },
+    })
     .populate("invited_user_id", "_id full_name email avatar_url");
 
   if (!invitation) {

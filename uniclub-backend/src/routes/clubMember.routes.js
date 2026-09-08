@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const { verifyToken } = require("../middlewares/auth.middleware");
-const { requireClubRole } = require("../middlewares/clubRole.middleware");
+const { requireClubRole } = require("../middlewares/club.middleware");
 const clubMemberController = require("../controllers/clubMember.controller");
 
 router.get(

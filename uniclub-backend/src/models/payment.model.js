@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-// status: 0 = pending, 1 = success, 2 = failed
-// payment_method: 0 = cash, 1 = VNPay
+// status: "pending", "success", "failed"
+// payment_method: "vnpay", "cash"
 const paymentSchema = new Schema(
   {
     // The project uses ClubMember as the membership model.
@@ -18,10 +18,27 @@ const paymentSchema = new Schema(
       required: true,
       index: true,
     },
-    period: { type: String, required: true, trim: true, maxlength: 30 },
+    period: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 30,
+      match: [/^(SP|FA|SU)\d{2,4}$/i, "Period must be in semester format like SP24, FA24, SU24"],
+    },
     amount: { type: Number, required: true, min: 0 },
-    status: { type: Number, enum: [0, 1, 2], default: 0, required: true, index: true },
-    payment_method: { type: Number, enum: [0, 1], default: 0, required: true },
+    status: {
+      type: String,
+      enum: ["pending", "success", "failed"],
+      default: "pending",
+      required: true,
+      index: true,
+    },
+    payment_method: {
+      type: String,
+      enum: ["vnpay", "cash"],
+      default: "vnpay",
+      required: true,
+    },
     txn_ref: {
       type: String,
       unique: true,
@@ -29,7 +46,7 @@ const paymentSchema = new Schema(
       trim: true,
       maxlength: 100,
       required: function () {
-        return this.payment_method === 1;
+        return this.payment_method === "vnpay";
       },
     },
     vnp_response_code: {
@@ -37,7 +54,7 @@ const paymentSchema = new Schema(
       trim: true,
       maxlength: 20,
       required: function () {
-        return this.payment_method === 1 && this.status !== 0;
+        return this.payment_method === "vnpay" && this.status !== "pending";
       },
     },
     order_info: { type: String, trim: true, maxlength: 255, default: "" },

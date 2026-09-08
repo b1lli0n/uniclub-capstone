@@ -41,12 +41,12 @@ const joinFormSchema = Schema(
 
     created_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       required: true,
     },
   },
   {
-    timestamps: { createdAt: "created_at", updatedAt: "update_at" },
+    timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
   }
 );
 

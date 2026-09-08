@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-// type: 0 = income (can become a member fee), 1 = expense
-// status: 0 = pending, 1 = approved, 2 = rejected
+// type: "income", "expense"
+// status: "pending", "approved", "rejected"
 const transactionSchema = new Schema(
   {
     club_id: {
@@ -11,19 +11,13 @@ const transactionSchema = new Schema(
       required: true,
       index: true,
     },
-    fee_id: {
-      type: Schema.Types.ObjectId,
-      ref: "Fee",
-      default: null,
-      index: true,
-    },
     type: {
-      type: Number,
+      type: String,
       required: true,
-      enum: [0, 1],
-      default: 0,
+      enum: ["income", "expense"],
+      default: "income",
     },
-    category: {
+    title: {
       type: String,
       required: true,
       trim: true,
@@ -52,25 +46,25 @@ const transactionSchema = new Schema(
       index: true,
     },
     status: {
-      type: Number,
+      type: String,
       required: true,
-      enum: [0, 1, 2],
-      default: 0,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
       index: true,
     },
     created_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       required: true,
       index: true,
     },
     approved_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       default: null,
       index: true,
       required: function () {
-        return this.status === 1 || this.status === 2;
+        return this.status === "approved" || this.status === "rejected";
       },
     },
   },

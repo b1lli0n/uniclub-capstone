@@ -1,6 +1,6 @@
 const express = require("express");
-const { verifyToken, protect } = require("../../middlewares/auth.middleware");
-const { requireClubMember } = require("../../middlewares/clubAuth.middleware");
+const { verifyToken, authorize } = require("../../middlewares/auth.middleware");
+const { requireClubMember } = require("../../middlewares/club.middleware");
 const {
   getClubActivitySchedule,
   getActivityScheduleDetail,
@@ -11,7 +11,7 @@ const router = express.Router({ mergeParams: true });
 router.get(
   "/",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubMember("clubId"),
   getClubActivitySchedule
 );
@@ -19,7 +19,7 @@ router.get(
 router.get(
   "/:activityId",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubMember("clubId"),
   getActivityScheduleDetail
 );

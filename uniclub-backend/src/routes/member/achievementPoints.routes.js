@@ -1,6 +1,6 @@
 const express = require("express");
-const { verifyToken, protect } = require("../../middlewares/auth.middleware");
-const { requireClubMember } = require("../../middlewares/clubAuth.middleware");
+const { verifyToken, authorize } = require("../../middlewares/auth.middleware");
+const { requireClubMember } = require("../../middlewares/club.middleware");
 const {
   getLeaderboard,
   getActivePointRules,
@@ -12,7 +12,7 @@ const router = express.Router();
 // Middleware guard: User must be authenticated, be a student, and be an active member of the club
 const memberGuard = [
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubMember("clubId"),
 ];
 

@@ -1,6 +1,6 @@
 const express = require("express");
-const { verifyToken, protect } = require("../../middlewares/auth.middleware");
-const { requireClubRole } = require("../../middlewares/clubAuth.middleware");
+const { verifyToken, authorize } = require("../../middlewares/auth.middleware");
+const { requireClubRole } = require("../../middlewares/club.middleware");
 const {
   getJoinForm,
   createJoinForm,
@@ -13,7 +13,7 @@ const router = express.Router();
 // Middleware chung cho tất cả routes: phải login + là student + là president của club
 const presidentGuard = [
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(["president"], "clubId"),
 ];
 

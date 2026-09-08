@@ -1,24 +1,34 @@
 const express = require("express");
-const { verifyToken, protect } = require("../../middlewares/auth.middleware");
-const { requireClubRole } = require("../../middlewares/clubAuth.middleware");
+const { verifyToken, authorize } = require("../../middlewares/auth.middleware");
+const { requireClubRole } = require("../../middlewares/club.middleware");
 const {
   getJoinRequestList,
   getJoinRequestDetail,
-  approveJoinRequest,
-  rejectJoinRequest,
+  reviewJoinRequest,
 } = require("../../controllers/president/joinRequestManagement.controller");
 
 const router = express.Router();
 
 const presidentGuard = [
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(["president"], "clubId"),
 ];
 
 router.get("/:clubId/join-requests", ...presidentGuard, getJoinRequestList);
 router.get("/:clubId/join-requests/:requestId", ...presidentGuard, getJoinRequestDetail);
-router.patch("/:clubId/join-requests/:requestId/approve", ...presidentGuard, approveJoinRequest);
-router.patch("/:clubId/join-requests/:requestId/reject", ...presidentGuard, rejectJoinRequest);
+router.patch("/:clubId/join-requests/:requestId/review", ...presidentGuard, reviewJoinRequest);
+
+// Backward-compatibility aliases
+router.patch("/:clubId/join-requests/:requestId/approve", ...presidentGuard, (req, res, next) => {
+  req.body = req.body || {};
+  req.body.status = "approved";
+  return reviewJoinRequest(req, res, next);
+});
+router.patch("/:clubId/join-requests/:requestId/reject", ...presidentGuard, (req, res, next) => {
+  req.body = req.body || {};
+  req.body.status = "rejected";
+  return reviewJoinRequest(req, res, next);
+});
 
 module.exports = router;

@@ -19,15 +19,17 @@ export function getEventRequestDetail(requestId) {
   return apiRequest(`/event-requests/${requestId}`)
 }
 
-export function approveEventRequest(requestId) {
-  return apiRequest(`/event-requests/${requestId}/approve`, {
+export function reviewEventRequest(requestId, { status, review_note = '' }) {
+  return apiRequest(`/event-requests/${requestId}/review`, {
     method: 'PUT',
+    body: JSON.stringify({ status, review_note }),
   })
 }
 
+export function approveEventRequest(requestId) {
+  return reviewEventRequest(requestId, { status: 'approved' })
+}
+
 export function rejectEventRequest(requestId, reviewNote) {
-  return apiRequest(`/event-requests/${requestId}/reject`, {
-    method: 'PUT',
-    body: JSON.stringify({ review_note: reviewNote }),
-  })
+  return reviewEventRequest(requestId, { status: 'rejected', review_note: reviewNote })
 }

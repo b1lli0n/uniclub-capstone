@@ -124,11 +124,8 @@ const getClubMembersForManagement = async ({
         full_name: "$user.full_name",
         email: "$user.email",
         avatar_url: "$user.avatar_url",
-        user_status: "$user.status",
-
         student_code: "$profile.student_code",
         phone: "$profile.phone",
-        major: "$profile.major",
         campus: "$profile.campus",
 
         role: "$role",

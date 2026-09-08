@@ -150,45 +150,25 @@ const getRedemptionHistory = async (req, res, next) => {
 };
 
 /**
- * UC-Approve Reward Redemption
- * President phê duyệt yêu cầu đổi thưởng.
+ * UC-Review Reward Redemption (Approve / Reject)
+ * President phê duyệt hoặc từ chối yêu cầu đổi thưởng.
  */
-const approveRewardRedemption = async (req, res, next) => {
+const reviewRewardRedemption = async (req, res, next) => {
   try {
-    const redemption =
-      await rewardService.approveRewardRedemption({
-        clubId: req.params.clubId,
-        redemptionId: req.params.redemptionId,
-        reviewerId: req.user.id,
-      });
+    const { status, rejection_reason, rejectionReason, review_note, reviewNote } = req.body;
+    const reason = rejection_reason || rejectionReason || review_note || reviewNote || "";
 
-    return res.status(200).json({
-      success: true,
-      message: "Reward redemption approved successfully",
-      data: redemption,
+    const redemption = await rewardService.reviewRewardRedemption({
+      clubId: req.params.clubId,
+      redemptionId: req.params.redemptionId,
+      reviewerId: req.user.id,
+      status,
+      rejectionReason: reason,
     });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * UC-Reject Reward Redemption
- * President từ chối yêu cầu đổi thưởng.
- */
-const rejectRewardRedemption = async (req, res, next) => {
-  try {
-    const redemption =
-      await rewardService.rejectRewardRedemption({
-        clubId: req.params.clubId,
-        redemptionId: req.params.redemptionId,
-        reviewerId: req.user.id,
-        rejectionReason: req.body.rejection_reason,
-      });
 
     return res.status(200).json({
       success: true,
-      message: "Reward redemption rejected successfully",
+      message: `Reward redemption ${status} successfully`,
       data: redemption,
     });
   } catch (error) {
@@ -203,6 +183,5 @@ module.exports = {
   updateReward,
   hideReward,
   getRedemptionHistory,
-  approveRewardRedemption,
-  rejectRewardRedemption,
-};
+  reviewRewardRedemption,
+};

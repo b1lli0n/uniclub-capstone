@@ -72,7 +72,6 @@ const getClubList = async ({ query, currentUser }) => {
 
   const [clubs, total] = await Promise.all([
     Club.find(filter)
-      .populate("created_by", "full_name email avatar_url")
       .sort(sortOption)
       .skip(skip)
       .limit(limitNumber)
@@ -101,7 +100,6 @@ const getClubDetail = async ({ clubId, currentUser }) => {
   }
 
   const club = await Club.findById(clubId)
-    .populate("created_by", "full_name email avatar_url")
     .lean();
 
   if (!club) {
@@ -360,7 +358,6 @@ const updateClubStatus = async ({ clubId, status }) => {
   }
 
   const club = await Club.findById(clubId)
-    .populate("created_by", "full_name email avatar_url")
     .lean();
 
   if (!club) {
@@ -378,7 +375,6 @@ const updateClubStatus = async ({ clubId, status }) => {
     { status },
     { new: true }
   )
-    .populate("created_by", "full_name email avatar_url")
     .lean();
 
   return updatedClub;
@@ -538,7 +534,6 @@ const reviewClubCreationRequest = async ({
           description: request.description || request.reason || "",
           category: request.category || "Arts",
           logo_url: request.logo_url || "https://placehold.co/200x200/png",
-          created_by: request.requested_by,
           status: "active",
         });
       }

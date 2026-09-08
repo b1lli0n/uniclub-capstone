@@ -17,7 +17,7 @@ const invitationSchema = Schema(
 
     invited_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       required: true,
     },
 

@@ -25,7 +25,7 @@ const feedbackSchema = new mongoose.Schema(
     }
   },
   {
-    timestamps: { createdAt: "created_at", updatedAt: false }
+    timestamps: { createdAt: "created_at", updatedAt: "updated_at" }
   }
 );
 

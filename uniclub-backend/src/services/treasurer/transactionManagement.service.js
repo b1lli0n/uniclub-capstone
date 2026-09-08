@@ -4,11 +4,17 @@ const Transaction = require("../../models/transaction.model");
 const { getStatusError } = require("../../utils/error");
 
 const TRANSACTION_SELECT =
-  "_id club_id fee_id type category period amount description transaction_date status created_by approved_by created_at updated_at";
+  "_id club_id type title period amount description transaction_date status created_by approved_by created_at updated_at";
 
 const TRANSACTION_POPULATE = [
-  { path: "created_by", select: "_id full_name email avatar_url" },
-  { path: "approved_by", select: "_id full_name email avatar_url" },
+  {
+    path: "created_by",
+    populate: { path: "user_id", select: "_id full_name email avatar_url" },
+  },
+  {
+    path: "approved_by",
+    populate: { path: "user_id", select: "_id full_name email avatar_url" },
+  },
 ];
 
 const assertActiveClub = async (clubId) => {
@@ -36,7 +42,7 @@ const getTransactionDetail = async (clubId, transactionId) => {
   const doc = transaction.toObject();
 
   // If income transaction, attach member payment list with status
-  if (Number(doc.type) === 0) {
+  if (doc.type === "income" || Number(doc.type) === 0) {
     const payments = await Payment.find({ transaction_id: transactionId })
       .populate({
         path: "membership_id",
@@ -53,7 +59,7 @@ const getTransactionDetail = async (clubId, transactionId) => {
       student_code: p.membership_id?.user_id?.student_code || "",
       avatar_url: p.membership_id?.user_id?.avatar_url || "",
       amount: p.amount,
-      status: p.status, // 0 = pending, 1 = success, 2 = failed
+      status: p.status,
       paid_at: p.paid_at,
     }));
   }
@@ -64,26 +70,28 @@ const getTransactionDetail = async (clubId, transactionId) => {
 const Payment = require("../../models/payment.model");
 const ClubMember = require("../../models/club_member.model");
 const { sendFeeNotificationEmail } = require("../email.service");
+const { getCurrentSemesterCode } = require("../../utils/semester.helper");
 
 const createTransactionRequest = async (clubId, userId, payload) => {
   await assertActiveClub(clubId);
 
+  const creatorMember = await ClubMember.findOne({ club_id: clubId, user_id: userId, status: "active" });
+
   const transaction = await Transaction.create({
     club_id: clubId,
-    created_by: userId,
+    created_by: creatorMember ? creatorMember._id : userId,
     ...payload,
-    status: payload.status !== undefined ? payload.status : 0,
-    fee_id: null,
+    status: payload.status !== undefined ? payload.status : "pending",
     approved_by: null,
   });
 
-  // IF TYPE IS INCOME (0 = Income / Thu):
+  // IF TYPE IS INCOME:
   // Generate pending Payment records for ALL active members of the club & send Email Notification!
-  const isIncome = Number(payload.type) === 0 || payload.type === "income";
+  const isIncome = payload.type === "income" || Number(payload.type) === 0;
   if (isIncome) {
     try {
       const activeMembers = await ClubMember.find({ club_id: clubId, status: "active" });
-      const period = payload.period || payload.description || payload.category || "Hội phí CLB";
+      const period = transaction.period;
       const amount = payload.amount || 0;
 
       const paymentDocs = activeMembers.map((m) => ({
@@ -91,8 +99,8 @@ const createTransactionRequest = async (clubId, userId, payload) => {
         transaction_id: transaction._id,
         period,
         amount,
-        status: 0, // 0 = pending
-        payment_method: 0, // 0 = default
+        status: "pending",
+        payment_method: "vnpay",
         order_info: `Thanh toán ${period}`,
       }));
 
@@ -137,8 +145,9 @@ const updateTransactionRequest = async (clubId, transactionId, userId, payload) 
 
   if (payload.status !== undefined) {
     transaction.status = payload.status;
-    if (payload.status === 1) {
-      transaction.approved_by = userId;
+    if (payload.status === "approved" || payload.status === 1) {
+      const approverMember = await ClubMember.findOne({ club_id: clubId, user_id: userId, status: "active" });
+      transaction.approved_by = approverMember ? approverMember._id : userId;
     }
   }
 
@@ -151,11 +160,12 @@ const updateTransactionRequest = async (clubId, transactionId, userId, payload) 
   await transaction.save();
 
   // If approved and type is income, generate payment records for active members
-  const isIncome = Number(transaction.type) === 0 || transaction.type === "income";
-  if (transaction.status === 1 && isIncome) {
+  const isIncome = transaction.type === "income" || Number(transaction.type) === 0;
+  const isApproved = transaction.status === "approved" || transaction.status === 1;
+  if (isApproved && isIncome) {
     try {
       const activeMembers = await ClubMember.find({ club_id: clubId, status: "active" });
-      const period = transaction.period || transaction.description || transaction.category || "Hội phí CLB";
+      const period = transaction.period;
       const amount = transaction.amount || 0;
 
       const paymentDocs = activeMembers.map((m) => ({
@@ -163,8 +173,8 @@ const updateTransactionRequest = async (clubId, transactionId, userId, payload) 
         transaction_id: transaction._id,
         period,
         amount,
-        status: 0,
-        payment_method: 0,
+        status: "pending",
+        payment_method: "vnpay",
         order_info: `Thanh toán ${period}`,
       }));
 
@@ -184,9 +194,9 @@ const updateTransactionRequest = async (clubId, transactionId, userId, payload) 
 };
 
 const getFinancialDashboard = async (clubId) => {
-  // Calculate total actual paid income from Payment collection (status === 1)
+  // Calculate total actual paid income from Payment collection (status === "success")
   const paidIncomeAgg = await Payment.aggregate([
-    { $match: { status: 1 } },
+    { $match: { status: "success" } },
     {
       $lookup: {
         from: "clubmembers",

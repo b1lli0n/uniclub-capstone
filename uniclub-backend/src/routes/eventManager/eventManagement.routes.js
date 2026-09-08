@@ -1,6 +1,6 @@
 const express = require("express");
 const { verifyToken } = require("../../middlewares/auth.middleware");
-const { requireClubRole } = require("../../middlewares/clubAuth.middleware");
+const { requireClubRole } = require("../../middlewares/club.middleware");
 const {
   getEvents,
   getEventDetail,

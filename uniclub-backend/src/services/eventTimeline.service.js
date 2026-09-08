@@ -100,12 +100,6 @@ const validateEventCanManageTimeline = (event) => {
 const checkTimelineManagePermission = async ({ event, userId }) => {
   validateObjectId(userId, "user ID");
 
-  const isEventCreator = event.created_by.toString() === userId.toString();
-
-  if (isEventCreator) {
-    return true;
-  }
-
   const clubMember = await ClubMember.findOne({
     club_id: event.club_id,
     user_id: userId,
@@ -116,11 +110,14 @@ const checkTimelineManagePermission = async ({ event, userId }) => {
     throw createError("You are not an active member of this club", 403);
   }
 
-  if (!TIMELINE_MANAGE_ROLES.includes(clubMember.role)) {
+  const isEventCreator =
+    String(event.created_by) === String(clubMember._id) || String(event.created_by) === String(userId);
+
+  if (!isEventCreator && !TIMELINE_MANAGE_ROLES.includes(clubMember.role)) {
     throw createError("You do not have permission to manage event timeline", 403);
   }
 
-  return true;
+  return clubMember;
 };
 
 const getTimelineById = async ({ eventId, timelineId }) => {
@@ -145,6 +142,14 @@ const getEventTimelines = async ({ eventId }) => {
     event_id: eventId,
   })
     .sort({ timeline_at: 1, created_at: 1 })
+    .populate({
+      path: "created_by",
+      populate: { path: "user_id", select: "_id full_name email avatar_url" },
+    })
+    .populate({
+      path: "updated_by",
+      populate: { path: "user_id", select: "_id full_name email avatar_url" },
+    })
     .select("-__v");
 
   return timelines;
@@ -162,7 +167,7 @@ const createEventTimeline = async ({
 
   validateEventCanManageTimeline(event);
 
-  await checkTimelineManagePermission({
+  const clubMember = await checkTimelineManagePermission({
     event,
     userId,
   });
@@ -178,8 +183,8 @@ const createEventTimeline = async ({
     timeline_at: timelineDate.timeline_at,
     title: validateRequiredText(title, "Title"),
     description: validateRequiredText(description, "Description"),
-    location: validateRequiredText(location, "Location"),
-    created_by: userId,
+    location: typeof location === "string" ? location.trim() : "",
+    created_by: clubMember._id,
   });
 
   return timeline;
@@ -198,7 +203,7 @@ const updateEventTimeline = async ({
 
   validateEventCanManageTimeline(event);
 
-  await checkTimelineManagePermission({
+  const clubMember = await checkTimelineManagePermission({
     event,
     userId,
   });
@@ -227,10 +232,10 @@ const updateEventTimeline = async ({
   }
 
   if (location !== undefined) {
-    timeline.location = validateRequiredText(location, "Location");
+    timeline.location = typeof location === "string" ? location.trim() : "";
   }
 
-  timeline.updated_by = userId;
+  timeline.updated_by = clubMember._id;
 
   await timeline.save();
 

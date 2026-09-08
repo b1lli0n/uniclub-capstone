@@ -134,7 +134,6 @@ const feidCallback = async (req, res) => {
         provider: "feid",
         provider_id: providerId,
         role: "student",
-        status: "active",
     });
     }
 

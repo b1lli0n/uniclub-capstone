@@ -2,8 +2,8 @@ const express = require("express");
 
 const rewardManagementController = require("../controllers/rewardManagement.controller");
 
-const { verifyToken, protect } = require("../middlewares/auth.middleware");
-const { requireClubRole } = require("../middlewares/clubAuth.middleware");
+const { verifyToken, authorize } = require("../middlewares/auth.middleware");
+const { requireClubRole } = require("../middlewares/club.middleware");
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ const router = express.Router();
 router.get(
   "/clubs/:clubId/rewards",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(["president"]),
   rewardManagementController.getRewards
 );
@@ -24,7 +24,7 @@ router.get(
 router.get(
   "/clubs/:clubId/rewards/:rewardId",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(["president"]),
   rewardManagementController.getRewardDetail
 );
@@ -35,7 +35,7 @@ router.get(
 router.post(
   "/clubs/:clubId/rewards",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(["president"]),
   rewardManagementController.createReward
 );
@@ -46,7 +46,7 @@ router.post(
 router.patch(
   "/clubs/:clubId/rewards/:rewardId",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(["president"]),
   rewardManagementController.updateReward
 );
@@ -57,7 +57,7 @@ router.patch(
 router.patch(
   "/clubs/:clubId/rewards/:rewardId/hide",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(["president"]),
   rewardManagementController.hideReward
 );
@@ -68,31 +68,45 @@ router.patch(
 router.get(
   "/clubs/:clubId/reward-redemptions",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(["president"]),
   rewardManagementController.getRedemptionHistory
 );
 
 /**
- * UC-Approve Reward Redemption
+ * UC-Review Reward Redemption (Approve / Reject)
  */
+router.patch(
+  "/clubs/:clubId/reward-redemptions/:redemptionId/review",
+  verifyToken,
+  authorize(["student"]),
+  requireClubRole(["president"]),
+  rewardManagementController.reviewRewardRedemption
+);
+
+// Backward-compatibility aliases
 router.patch(
   "/clubs/:clubId/reward-redemptions/:redemptionId/approve",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(["president"]),
-  rewardManagementController.approveRewardRedemption
+  (req, res, next) => {
+    req.body = req.body || {};
+    req.body.status = "approved";
+    return rewardManagementController.reviewRewardRedemption(req, res, next);
+  }
 );
 
-/**
- * UC-Reject Reward Redemption
- */
 router.patch(
   "/clubs/:clubId/reward-redemptions/:redemptionId/reject",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(["president"]),
-  rewardManagementController.rejectRewardRedemption
+  (req, res, next) => {
+    req.body = req.body || {};
+    req.body.status = "rejected";
+    return rewardManagementController.reviewRewardRedemption(req, res, next);
+  }
 );
 
 module.exports = router;

@@ -35,19 +35,19 @@ const eventTimelineSchema = Schema(
 
     location: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
     },
 
     created_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       required: true,
     },
 
     updated_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       default: null,
     },
 

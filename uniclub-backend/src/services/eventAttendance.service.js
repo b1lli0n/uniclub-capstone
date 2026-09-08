@@ -68,11 +68,11 @@ const buildAttendanceRow = (registration) => {
     registration_id: registration._id,
     user: user
       ? {
-          _id: user._id,
-          full_name: user.full_name,
-          email: user.email,
-          avatar_url: user.avatar_url,
-        }
+        _id: user._id,
+        full_name: user.full_name,
+        email: user.email,
+        avatar_url: user.avatar_url,
+      }
       : null,
     status: registration.status,
     check_in_time: registration.check_in_time,
@@ -94,6 +94,10 @@ const getAttendanceList = async ({ eventId, userId, search }) => {
     status: { $ne: "cancelled" },
   })
     .populate("user_id", "full_name email avatar_url")
+    .populate({
+      path: "checked_in_by",
+      populate: { path: "user_id", select: "_id full_name email avatar_url" },
+    })
     .sort({ registered_at: 1 })
     .select("-__v");
 
@@ -211,8 +215,14 @@ const updateAttendanceStatus = async ({
     registration.status = status;
 
     if (status === "attended") {
+      const checkerMember = await ClubMember.findOne({
+        club_id: event.club_id,
+        user_id: userId,
+        status: "active",
+      });
+
       registration.check_in_time = new Date();
-      registration.checked_in_by = userId;
+      registration.checked_in_by = checkerMember ? checkerMember._id : userId;
     }
 
     if (status === "registered" || status === "absent") {

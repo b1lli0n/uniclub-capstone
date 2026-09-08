@@ -10,7 +10,7 @@ const eventCreationRequestSchema = Schema(
     },
     requested_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       required: true,
     },
     title: {
@@ -23,15 +23,12 @@ const eventCreationRequestSchema = Schema(
       required: true,
       trim: true,
     },
-    content: {
-      type: String,
-      required: true,
-      trim: true,
-    },
     category: {
       type: String,
       required: true,
       trim: true,
+      enum: ["Arts", "Sports", "Academic", "Event", "Other"],
+      default: "Other",
     },
     start_time: {
       type: Date,
@@ -55,18 +52,9 @@ const eventCreationRequestSchema = Schema(
       type: Number,
       required: true,
     },
-    multiplier: {
-      type: Number,
-      required: true,
-      default: 1,
-    },
-    media_uris: {
-      type: [String],
-      default: [],
-    },
     approval_document_url: {
       type: String,
-      required: true, // File word is required
+      required: false,
     },
     status: {
       type: String,

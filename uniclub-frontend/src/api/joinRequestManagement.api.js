@@ -14,21 +14,23 @@ export function getClubJoinRequestDetail(clubId, requestId) {
   )
 }
 
+/** Review Join Request (Approve / Reject) */
+export function reviewJoinRequest(clubId, requestId, { status, review_note = '' }) {
+  return apiRequest(
+    `/president/join-request-management/${clubId}/join-requests/${requestId}/review`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ status, review_note }),
+    },
+  )
+}
+
 /** Approve Join Request */
 export function approveJoinRequest(clubId, requestId) {
-  return apiRequest(
-    `/president/join-request-management/${clubId}/join-requests/${requestId}/approve`,
-    { method: 'PATCH' },
-  )
+  return reviewJoinRequest(clubId, requestId, { status: 'approved' })
 }
 
 /** Reject Join Request */
 export function rejectJoinRequest(clubId, requestId, reviewNote) {
-  return apiRequest(
-    `/president/join-request-management/${clubId}/join-requests/${requestId}/reject`,
-    {
-      method: 'PATCH',
-      body: JSON.stringify({ review_note: reviewNote }),
-    },
-  )
+  return reviewJoinRequest(clubId, requestId, { status: 'rejected', review_note: reviewNote })
 }

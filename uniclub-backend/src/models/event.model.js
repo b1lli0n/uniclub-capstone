@@ -11,7 +11,7 @@ const eventSchema = Schema(
 
     created_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       required: true,
     },
 
@@ -27,16 +27,12 @@ const eventSchema = Schema(
       trim: true,
     },
 
-    content: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
     category: {
       type: String,
       required: true,
       trim: true,
+      enum: ["Arts", "Sports", "Academic", "Event", "Other"],
+      default: "Other",
     },
 
     start_time: {
@@ -64,12 +60,6 @@ const eventSchema = Schema(
     capacity: {
       type: Number,
       required: true,
-    },
-
-    multiplier: {
-      type: Number,
-      required: true,
-      default: 1,
     },
 
     status: {

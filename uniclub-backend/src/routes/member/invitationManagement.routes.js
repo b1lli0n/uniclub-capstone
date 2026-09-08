@@ -1,6 +1,6 @@
 const express = require("express");
-const { verifyToken, protect } = require("../../middlewares/auth.middleware");
-const { requireClubMember } = require("../../middlewares/clubAuth.middleware");
+const { verifyToken, authorize } = require("../../middlewares/auth.middleware");
+const { requireClubMember } = require("../../middlewares/club.middleware");
 const {
   getReceivedInvitations,
   getInvitationDetail,
@@ -13,56 +13,56 @@ const router = express.Router();
 router.get(
   "/invitations",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   getReceivedInvitations
 );
 
 router.get(
   "/:clubId/invitations",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   getReceivedInvitations
 );
 
 router.get(
   "/invitations/:invitationId",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   getInvitationDetail
 );
 
 router.get(
   "/:clubId/invitations/:invitationId",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   getInvitationDetail
 );
 
 router.patch(
   "/invitations/:invitationId/accept",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   acceptInvitation
 );
 
 router.patch(
   "/:clubId/invitations/:invitationId/accept",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   acceptInvitation
 );
 
 router.patch(
   "/invitations/:invitationId/reject",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   rejectInvitation
 );
 
 router.patch(
   "/:clubId/invitations/:invitationId/reject",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   rejectInvitation
 );
 

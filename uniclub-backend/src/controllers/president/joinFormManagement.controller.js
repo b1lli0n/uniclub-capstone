@@ -19,7 +19,10 @@ const getJoinForm = async (req, res) => {
     // Lấy form mới nhất (active trước, nếu không có lấy inactive)
     const form = await JoinForm.findOne({ club_id: clubId })
       .sort({ created_at: -1 })
-      .populate("created_by", "full_name email avatar_url")
+      .populate({
+        path: "created_by",
+        populate: { path: "user_id", select: "full_name email avatar_url" },
+      })
       .lean();
 
     if (!form) {
@@ -78,16 +81,22 @@ const createJoinForm = async (req, res) => {
       { $set: { status: "inactive" } }
     );
 
+    const ClubMember = require("../../models/club_member.model");
+    const member = req.clubMember || (await ClubMember.findOne({ club_id: clubId, user_id: userId }));
+
     const form = await JoinForm.create({
       club_id: clubId,
       title: title.trim(),
       description: description.trim(),
       questions: cleanQuestions,
       status: "active",
-      created_by: userId,
+      created_by: member ? member._id : userId,
     });
 
-    const populated = await form.populate("created_by", "full_name email avatar_url");
+    const populated = await form.populate({
+      path: "created_by",
+      populate: { path: "user_id", select: "full_name email avatar_url" },
+    });
 
     return res.status(201).json({
       success: true,
@@ -146,7 +155,10 @@ const updateJoinForm = async (req, res) => {
     }
 
     await form.save();
-    const populated = await form.populate("created_by", "full_name email avatar_url");
+    const populated = await form.populate({
+      path: "created_by",
+      populate: { path: "user_id", select: "full_name email avatar_url" },
+    });
 
     return res.status(200).json({
       success: true,

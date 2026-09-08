@@ -9,41 +9,29 @@ const profileSchema = new mongoose.Schema(
       unique: true,
     },
 
+    avatar: {
+      type: String,
+      default: "",
+    },
+
     student_code: {
       type: String,
       trim: true,
+      unique: true,
+      sparse: true,
     },
 
     phone: {
       type: String,
       trim: true,
-    },
-
-    major: {
-      type: String,
-      trim: true,
+      unique: true,
+      sparse: true,
     },
 
     campus: {
       type: String,
       trim: true,
-    },
-
-    social_links: {
-      facebook: {
-        type: String,
-        default: "",
-      },
-
-      github: {
-        type: String,
-        default: "",
-      },
-
-      linkedin: {
-        type: String,
-        default: "",
-      },
+      default: "Cần Thơ",
     },
   },
   {

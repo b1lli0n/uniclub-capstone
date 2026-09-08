@@ -1,5 +1,5 @@
 const express = require("express");
-const { verifyToken, protect } = require("../../middlewares/auth.middleware");
+const { verifyToken, authorize } = require("../../middlewares/auth.middleware");
 const {
   getClubJoinForm,
   submitJoinRequest,
@@ -10,24 +10,24 @@ const {
 
 const router = express.Router();
 
-router.get("/join-requests", verifyToken, protect(["student"]), getMyJoinRequests);
+router.get("/join-requests", verifyToken, authorize(["student"]), getMyJoinRequests);
 router.patch(
   "/join-requests/:requestId/cancel",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   cancelJoinRequest
 );
 router.get(
   "/join-requests/:requestId",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   getJoinRequestDetail
 );
-router.get("/:clubId/join-form", verifyToken, protect(["student"]), getClubJoinForm);
+router.get("/:clubId/join-form", verifyToken, authorize(["student"]), getClubJoinForm);
 router.post(
   "/:clubId/join-requests",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   submitJoinRequest
 );
 

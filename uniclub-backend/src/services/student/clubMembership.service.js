@@ -1,5 +1,5 @@
 const JoinForm = require("../../models/join_form.model");
-const JoinRequest = require("../../models/joinRequest.model");
+const JoinRequest = require("../../models/join_request.model");
 const { getStatusError } = require("../../utils/error");
 
 const getClubJoinForm = async (clubId) => {
@@ -8,7 +8,7 @@ const getClubJoinForm = async (clubId) => {
     status: "active",
   })
     .sort({ created_at: -1 })
-    .select("_id club_id title description questions status created_at update_at");
+    .select("_id club_id title description questions status created_at updated_at");
 
   if (!form) {
     throw getStatusError("Join form is not available for this club", 404);
@@ -54,11 +54,11 @@ const submitJoinRequest = async (userId, clubId, formId, answers) => {
     user_id: userId,
     club_id: clubId,
     status: "rejected",
-  }).sort({ create_at: -1 });
+  }).sort({ created_at: -1 });
 
   if (rejectedRequest) {
     const cooldownPeriodMs = 24 * 60 * 60 * 1000; // 24 hours cooldown
-    const rejectedTime = new Date(rejectedRequest.reviewed_at || rejectedRequest.create_at).getTime();
+    const rejectedTime = new Date(rejectedRequest.reviewed_at || rejectedRequest.created_at).getTime();
     const now = Date.now();
     const elapsedMs = now - rejectedTime;
 
@@ -98,10 +98,10 @@ const getMyJoinRequests = async (userId, { status } = {}) => {
   }
 
   return JoinRequest.find(query)
-    .sort({ create_at: -1 })
+    .sort({ created_at: -1 })
     .populate("club_id", "_id name logo_url category")
     .populate("form_id", "_id title")
-    .select("_id club_id form_id answers status review_note reviewed_at create_at");
+    .select("_id club_id form_id answers status review_note reviewed_at created_at updated_at");
 };
 
 const getJoinRequestDetail = async (userId, requestId) => {
@@ -111,7 +111,10 @@ const getJoinRequestDetail = async (userId, requestId) => {
   })
     .populate("club_id", "_id name logo_url category description")
     .populate("form_id", "_id title description questions")
-    .populate("reviewed_by", "_id full_name");
+    .populate({
+      path: "reviewed_by",
+      populate: { path: "user_id", select: "_id full_name email avatar_url" },
+    });
 
   if (!joinRequest) {
     throw getStatusError("Join request not found", 404);

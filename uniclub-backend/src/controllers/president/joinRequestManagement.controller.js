@@ -27,31 +27,19 @@ const getJoinRequestDetail = async (req, res, next) => {
   }
 };
 
-const approveJoinRequest = async (req, res, next) => {
+const reviewJoinRequest = async (req, res, next) => {
   try {
     const { clubId, requestId } = req.params;
-    const presidentId = req.user._id;
-    const result = await joinRequestManagementService.approveJoinRequest(presidentId, clubId, requestId);
-    return res.status(200).json({
-      success: true,
-      data: result,
-      message: "Approved join request successfully",
+    const { status, review_note, reviewNote } = req.body;
+    const presidentId = req.user._id || req.user.id;
+    const result = await joinRequestManagementService.reviewJoinRequest(presidentId, clubId, requestId, {
+      status,
+      review_note: review_note || reviewNote || "",
     });
-  } catch (error) {
-    next(error);
-  }
-};
-
-const rejectJoinRequest = async (req, res, next) => {
-  try {
-    const { clubId, requestId } = req.params;
-    const { review_note } = req.body;
-    const presidentId = req.user._id;
-    const result = await joinRequestManagementService.rejectJoinRequest(presidentId, clubId, requestId, review_note);
     return res.status(200).json({
       success: true,
       data: result,
-      message: "Rejected join request successfully",
+      message: `${status === "approved" ? "Approved" : "Rejected"} join request successfully`,
     });
   } catch (error) {
     next(error);
@@ -61,6 +49,5 @@ const rejectJoinRequest = async (req, res, next) => {
 module.exports = {
   getJoinRequestList,
   getJoinRequestDetail,
-  approveJoinRequest,
-  rejectJoinRequest,
+  reviewJoinRequest,
 };

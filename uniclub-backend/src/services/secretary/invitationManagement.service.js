@@ -9,7 +9,10 @@ const populateInvitation = (query) =>
   query
     .populate("club_id", "_id name description logo_url category status")
     .populate("invited_user_id", "_id full_name email avatar_url")
-    .populate("invited_by", "_id full_name email avatar_url");
+    .populate({
+      path: "invited_by",
+      populate: { path: "user_id", select: "_id full_name email avatar_url" },
+    });
 
 const getInvitationList = async (clubId, { status } = {}) => {
   const query = { club_id: clubId };
@@ -99,10 +102,16 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
     throw getStatusError("A pending invitation already exists for this user", 409);
   }
 
+  const secretaryMember = await ClubMember.findOne({
+    club_id: clubId,
+    user_id: secretaryId,
+    status: "active",
+  });
+
   const invitation = await Invitation.create({
     club_id: clubId,
     invited_user_id: resolvedUserId,
-    invited_by: secretaryId,
+    invited_by: secretaryMember ? secretaryMember._id : secretaryId,
     role: invitationRole,
     message: typeof message === "string" ? message.trim() : "",
     status: "pending",

@@ -1,6 +1,6 @@
 const express = require("express");
-const { verifyToken, protect } = require("../../middlewares/auth.middleware");
-const { requireClubRole } = require("../../middlewares/clubAuth.middleware");
+const { verifyToken, authorize } = require("../../middlewares/auth.middleware");
+const { requireClubRole } = require("../../middlewares/club.middleware");
 const {
   getInvitationList,
   getInvitationDetail,
@@ -16,35 +16,35 @@ const committeeRoles = ["president", "leader", "secretary"];
 router.get(
   "/:clubId/invitations",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(committeeRoles, "clubId"),
   getInvitationList
 );
 router.get(
   "/:clubId/invitations/:invitationId",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(committeeRoles, "clubId"),
   getInvitationDetail
 );
 router.post(
   "/:clubId/invitations",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(committeeRoles, "clubId"),
   sendInvitation
 );
 router.patch(
   "/:clubId/invitations/:invitationId/cancel",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(committeeRoles, "clubId"),
   cancelInvitation
 );
 router.patch(
   "/:clubId/invitations/:invitationId/resend",
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(committeeRoles, "clubId"),
   resendInvitation
 );

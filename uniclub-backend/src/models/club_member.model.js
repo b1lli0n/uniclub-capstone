@@ -43,7 +43,13 @@ const clubMemberSchema = Schema(
     // Số điểm mà thành viên có thể dùng để đổi thưởng trong CLB này.
     reward_point: {
       type: Number,
-      required: true,
+      default: 0,
+      min: 0,
+    },
+
+    // Số điểm dùng cho việc xếp hạng thành viên.
+    ranking_point: {
+      type: Number,
       default: 0,
       min: 0,
     },

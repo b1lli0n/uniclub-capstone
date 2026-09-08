@@ -1,6 +1,6 @@
 const express = require("express");
-const { verifyToken, protect } = require("../../middlewares/auth.middleware");
-const { requireClubRole } = require("../../middlewares/clubAuth.middleware");
+const { verifyToken, authorize } = require("../../middlewares/auth.middleware");
+const { requireClubRole } = require("../../middlewares/club.middleware");
 const {
   getPointRules,
   createPointRule,
@@ -8,7 +8,6 @@ const {
   togglePointRuleStatus,
   awardPoints,
   getActionTypes,
-  deletePointRule,
 } = require("../../controllers/president/pointRuleManagement.controller");
 
 const router = express.Router();
@@ -19,7 +18,7 @@ router.get("/action-types", verifyToken, getActionTypes);
 // Middleware guard: User must be authenticated, be a student, and have the president role in the club
 const presidentGuard = [
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(["president"], "clubId"),
 ];
 
@@ -38,10 +37,6 @@ router.patch("/:clubId/point-rules/:ruleId", ...presidentGuard, updatePointRule)
 // PATCH  /api/president/clubs/:clubId/point-rules/:ruleId/status
 // -> Activate/deactivate a point rule
 router.patch("/:clubId/point-rules/:ruleId/status", ...presidentGuard, togglePointRuleStatus);
-
-// DELETE /api/president/clubs/:clubId/point-rules/:ruleId
-// -> Delete a point rule
-router.delete("/:clubId/point-rules/:ruleId", ...presidentGuard, deletePointRule);
 
 // POST   /api/president/clubs/:clubId/members/:memberId/points
 // -> Manually award/deduct points to a club member

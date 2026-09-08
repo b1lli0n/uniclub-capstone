@@ -2,10 +2,17 @@ const mongoose = require("mongoose");
 const ClubMember = require("../models/club_member.model");
 const { getStatusError } = require("../utils/error");
 
+/**
+ * Helper to resolve club ID from request params, body, or query
+ */
 const resolveClubId = (req, paramName) => {
   return req.params[paramName] || req.body?.club_id || req.query?.club_id;
 };
 
+/**
+ * Middleware to check if user is an active member of the specified club
+ * Usage: requireClubMember("clubId")
+ */
 const requireClubMember = (paramName = "clubId") => {
   return async (req, res, next) => {
     try {
@@ -30,6 +37,7 @@ const requireClubMember = (paramName = "clubId") => {
       }
 
       req.clubMembership = membership;
+      req.clubMember = membership;
       next();
     } catch (error) {
       next(error);
@@ -37,6 +45,10 @@ const requireClubMember = (paramName = "clubId") => {
   };
 };
 
+/**
+ * Middleware to check if user has one of the allowed roles in the specified club
+ * Usage: requireClubRole(["president", "secretary"], "clubId")
+ */
 const requireClubRole = (allowedRoles = [], paramName = "clubId") => {
   return async (req, res, next) => {
     try {
@@ -65,6 +77,7 @@ const requireClubRole = (allowedRoles = [], paramName = "clubId") => {
       }
 
       req.clubMembership = membership;
+      req.clubMember = membership;
       next();
     } catch (error) {
       next(error);

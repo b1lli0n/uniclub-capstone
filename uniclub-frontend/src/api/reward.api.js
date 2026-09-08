@@ -55,15 +55,17 @@ export function getManagerRedemptionHistory(clubId, params) {
   return apiRequest(`/president/reward-management/clubs/${clubId}/reward-redemptions${toQueryString(params)}`)
 }
 
-export function approveRedemption(clubId, redemptionId) {
-  return apiRequest(`/president/reward-management/clubs/${clubId}/reward-redemptions/${redemptionId}/approve`, {
+export function reviewRedemption(clubId, redemptionId, { status, rejection_reason = '' }) {
+  return apiRequest(`/president/reward-management/clubs/${clubId}/reward-redemptions/${redemptionId}/review`, {
     method: 'PATCH',
+    body: JSON.stringify({ status, rejection_reason }),
   })
 }
 
+export function approveRedemption(clubId, redemptionId) {
+  return reviewRedemption(clubId, redemptionId, { status: 'approved' })
+}
+
 export function rejectRedemption(clubId, redemptionId, reason) {
-  return apiRequest(`/president/reward-management/clubs/${clubId}/reward-redemptions/${redemptionId}/reject`, {
-    method: 'PATCH',
-    body: JSON.stringify({ rejection_reason: reason }),
-  })
+  return reviewRedemption(clubId, redemptionId, { status: 'rejected', rejection_reason: reason })
 }

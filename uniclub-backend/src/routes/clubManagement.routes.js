@@ -1,13 +1,13 @@
 const express = require("express");
 const router = express.Router();
 
-const { verifyToken, protect } = require("../middlewares/auth.middleware");
+const { verifyToken, authorize } = require("../middlewares/auth.middleware");
 const clubManagementController = require("../controllers/clubManagement.controller");
 
 router.get(
   "/",
   verifyToken,
-  protect(["student_affairs"]),
+  authorize(["student_affairs"]),
   clubManagementController.getClubList
 );
 
@@ -15,7 +15,7 @@ router.get(
 router.get(
   "/club-creation-requests",
   verifyToken,
-  protect(["student_affairs"]),
+  authorize(["student_affairs"]),
   clubManagementController.getClubCreationRequestList
 );
 
@@ -23,7 +23,7 @@ router.get(
 router.get(
   "/club-creation-requests/:id",
   verifyToken,
-  protect(["student_affairs"]),
+  authorize(["student_affairs"]),
   clubManagementController.getClubCreationRequestDetail
 );
 
@@ -31,35 +31,35 @@ router.get(
 router.patch(
   "/club-creation-requests/:id/review",
   verifyToken,
-  protect(["student_affairs"]),
+  authorize(["student_affairs"]),
   clubManagementController.reviewClubCreationRequest
 );
 
 router.get(
   "/:clubId",
   verifyToken,
-  protect(["student_affairs"]),
+  authorize(["student_affairs"]),
   clubManagementController.getClubDetail
 );
 
 router.get(
   "/:clubId/members",
   verifyToken,
-  protect(["student_affairs"]),
+  authorize(["student_affairs"]),
   clubManagementController.getClubMembers
 );
 
 router.patch(
   "/:clubId/members/:memberId/role",
   verifyToken,
-  protect(["student_affairs"]),
+  authorize(["student_affairs"]),
   clubManagementController.assignManagementRole
 );
 
 router.patch(
   "/:clubId/status",
   verifyToken,
-  protect(["student_affairs"]),
+  authorize(["student_affairs"]),
   clubManagementController.updateClubStatus
 );
 

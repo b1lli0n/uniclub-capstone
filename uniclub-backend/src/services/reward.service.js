@@ -689,6 +689,37 @@ const rejectRewardRedemption = async ({
   return redemption;
 };
 
+/**
+ * UC-Review Reward Redemption (Approve / Reject)
+ * President phê duyệt hoặc từ chối yêu cầu đổi thưởng.
+ */
+const reviewRewardRedemption = async ({
+  clubId,
+  redemptionId,
+  reviewerId,
+  status,
+  rejectionReason,
+}) => {
+  validateObjectId(clubId, "club ID");
+  validateObjectId(redemptionId, "redemption ID");
+  validateObjectId(reviewerId, "reviewer ID");
+
+  if (!status || !["approved", "rejected"].includes(status)) {
+    throw getStatusError("Invalid status. Allowed values: approved, rejected", 400);
+  }
+
+  if (status === "approved") {
+    return approveRewardRedemption({ clubId, redemptionId, reviewerId });
+  } else {
+    return rejectRewardRedemption({
+      clubId,
+      redemptionId,
+      reviewerId,
+      rejectionReason,
+    });
+  }
+};
+
 module.exports = {
   getRewards,
   getRewardDetail,
@@ -698,4 +729,5 @@ module.exports = {
   getRedemptionHistory,
   approveRewardRedemption,
   rejectRewardRedemption,
-};
+  reviewRewardRedemption,
+};

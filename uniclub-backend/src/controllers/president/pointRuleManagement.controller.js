@@ -106,22 +106,6 @@ const getActionTypes = async (req, res, next) => {
   }
 };
 
-const deletePointRule = async (req, res, next) => {
-  try {
-    const { clubId, ruleId } = req.params;
-    const presidentId = req.user.id;
-    const result = await pointRuleManagementService.deletePointRule(presidentId, clubId, ruleId);
-
-    return res.status(200).json({
-      success: true,
-      message: "Point rule deleted successfully",
-      data: result,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 module.exports = {
   getPointRules,
   createPointRule,
@@ -129,5 +113,4 @@ module.exports = {
   togglePointRuleStatus,
   awardPoints,
   getActionTypes,
-  deletePointRule,
 };

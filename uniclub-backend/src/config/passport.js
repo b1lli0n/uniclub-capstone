@@ -37,15 +37,9 @@ passport.use(
             email: email,
             avatar_url: profile.photos?.[0]?.value,
             role: "student",
-            status: "active",
           });
         }
 
-        if (user.status !== "active") {
-          return done(null, false, {
-            message: "Account is inactive",
-          });
-        }
         return done(null, user);
       } catch (error) {
         return done(error, null);

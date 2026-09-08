@@ -25,6 +25,8 @@ const clubSchema = Schema(
       type: String,
       required: true,
       trim: true,
+      enum: ["Arts", "Sports", "Academic", "Event", "Other"],
+      default: "Other",
     },
 
     status: {
@@ -33,15 +35,9 @@ const clubSchema = Schema(
       enum: ["active", "inactive"],
       default: "active",
     },
-
-    created_by: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
   },
   {
-    timestamps: { createdAt: "created_at", updatedAt: "update_at" },
+    timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
   }
 );
 

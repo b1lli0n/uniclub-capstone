@@ -1,5 +1,6 @@
 const Event = require("../../models/event.model");
 const Club = require("../../models/club.model");
+const ClubMember = require("../../models/club_member.model");
 const { getStatusError } = require("../../utils/error");
 
 const EVENT_SELECT =
@@ -8,6 +9,11 @@ const EVENT_SELECT =
 const CLUB_POPULATE = {
   path: "club_id",
   select: "_id name logo_url category status",
+};
+
+const CREATED_BY_POPULATE = {
+  path: "created_by",
+  populate: { path: "user_id", select: "_id full_name email avatar_url" },
 };
 
 const getCompletedEvents = async (clubId) => {
@@ -58,8 +64,8 @@ const getEventDetail = async (clubId, eventId) => {
     club_id: clubId,
   })
     .populate("club_id", "_id name logo_url category status description")
-    .populate("created_by", "_id full_name email avatar_url")
-    .select("_id club_id created_by title description content category start_time end_time location is_public capacity multiplier status progress_status check_in_status media_uris feedback_summary created_at updated_at");
+    .populate(CREATED_BY_POPULATE)
+    .select("_id club_id created_by title description category start_time end_time location is_public capacity status progress_status check_in_status media_uris feedback_summary created_at updated_at");
 
   if (!event) {
     throw getStatusError("Event not found", 404);
@@ -85,9 +91,15 @@ const assertActiveClub = async (clubId) => {
 const createEvent = async (clubId, userId, payload) => {
   await assertActiveClub(clubId);
 
+  const creatorMember = await ClubMember.findOne({
+    club_id: clubId,
+    user_id: userId,
+    status: "active",
+  });
+
   const event = await Event.create({
     club_id: clubId,
-    created_by: userId,
+    created_by: creatorMember ? creatorMember._id : userId,
     status: "opening",
     progress_status: "completed",
     check_in_status: "open",
@@ -97,9 +109,9 @@ const createEvent = async (clubId, userId, payload) => {
 
   return Event.findById(event._id)
     .populate("club_id", "_id name logo_url category status")
-    .populate("created_by", "_id full_name email avatar_url")
+    .populate(CREATED_BY_POPULATE)
     .select(
-      "_id club_id created_by title description content category start_time end_time location is_public capacity multiplier status progress_status check_in_status media_uris created_at updated_at"
+      "_id club_id created_by title description category start_time end_time location is_public capacity status progress_status check_in_status media_uris created_at updated_at"
     );
 };
 
@@ -126,9 +138,9 @@ const updateEvent = async (clubId, eventId, payload) => {
 
   return Event.findById(event._id)
     .populate("club_id", "_id name logo_url category status")
-    .populate("created_by", "_id full_name email avatar_url")
+    .populate(CREATED_BY_POPULATE)
     .select(
-      "_id club_id created_by title description content category start_time end_time location is_public capacity multiplier status progress_status check_in_status media_uris created_at updated_at"
+      "_id club_id created_by title description category start_time end_time location is_public capacity status progress_status check_in_status media_uris created_at updated_at"
     );
 };
 
@@ -153,9 +165,9 @@ const cancelEvent = async (clubId, eventId) => {
 
   return Event.findById(event._id)
     .populate("club_id", "_id name logo_url category status")
-    .populate("created_by", "_id full_name email avatar_url")
+    .populate(CREATED_BY_POPULATE)
     .select(
-      "_id club_id created_by title description content category start_time end_time location is_public capacity multiplier status progress_status check_in_status media_uris created_at updated_at"
+      "_id club_id created_by title description category start_time end_time location is_public capacity status progress_status check_in_status media_uris created_at updated_at"
     );
 };
 

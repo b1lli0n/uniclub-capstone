@@ -1,7 +1,7 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const env = require("../config/env");
-const { verifyToken, protect } = require("../middlewares/auth.middleware");
+const { verifyToken, authorize } = require("../middlewares/auth.middleware");
 const {
   getPublicEvents,
   getEventDetail,
@@ -39,9 +39,9 @@ router.get("/my-registrations", verifyToken, getMyRegistrations);
 router.get("/:eventId", verifyTokenOptional, getEventDetail);
 
 // 4. Register for Event
-router.post("/:eventId/register", verifyToken, protect(["student"]), registerForEvent);
+router.post("/:eventId/register", verifyToken, authorize(["student"]), registerForEvent);
 
 // 5. Cancel Event Registration
-router.post("/:eventId/cancel", verifyToken, protect(["student"]), cancelEventRegistration);
+router.post("/:eventId/cancel", verifyToken, authorize(["student"]), cancelEventRegistration);
 
 module.exports = router;

@@ -1,6 +1,6 @@
 const express = require("express");
-const { verifyToken, protect } = require("../../middlewares/auth.middleware");
-const { requireClubRole } = require("../../middlewares/clubAuth.middleware");
+const { verifyToken, authorize } = require("../../middlewares/auth.middleware");
+const { requireClubRole } = require("../../middlewares/club.middleware");
 const {
   getPollList,
   getPollDetail,
@@ -13,7 +13,7 @@ const router = express.Router({ mergeParams: true });
 
 const secretaryAuth = [
   verifyToken,
-  protect(["student"]),
+  authorize(["student"]),
   requireClubRole(["president", "leader", "secretary"], "clubId"),
 ];
 

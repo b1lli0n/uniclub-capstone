@@ -35,7 +35,7 @@ const joinRequestSchema = Schema(
 
     reviewed_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       default: null,
     },
 
@@ -50,7 +50,7 @@ const joinRequestSchema = Schema(
     },
   },
   {
-    timestamps: { createdAt: "create_at", updatedAt: false },
+    timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
   }
 );
 
