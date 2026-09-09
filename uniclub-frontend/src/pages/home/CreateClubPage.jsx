@@ -120,7 +120,7 @@ function CreateClubPage({ onCancel, onSubmit }) {
         logo_url: logoUrl || 'https://placehold.co/200x200/png',
         member_ids: members.map((member) => member.value),
       })
-      // Hiển thị thông báo cho chức năng gửi yêu cầu tạo câu lạc bộ.
+      // Display notification when club creation request is submitted.
       showToast({
         type: 'success',
         title: 'Request submitted',

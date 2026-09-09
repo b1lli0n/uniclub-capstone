@@ -161,7 +161,7 @@ function ClubDetailPage({ clubId, onBack }) {
         answers: joinAnswers,
       })
       setJoinModalOpen(false)
-      // Hiển thị thông báo cho chức năng gửi yêu cầu tham gia câu lạc bộ.
+      // Display notification when club join request is submitted.
       showToast({
         type: 'success',
         title: 'Join request sent',
@@ -184,7 +184,7 @@ function ClubDetailPage({ clubId, onBack }) {
       await leaveClub(clubId)
       setCurrentMembership(null)
       setLeaveModalOpen(false)
-      // Hiển thị thông báo cho chức năng rời câu lạc bộ.
+      // Display notification when member leaves club.
       showToast({
         type: 'success',
         title: 'Left club',
@@ -215,7 +215,7 @@ function ClubDetailPage({ clubId, onBack }) {
     try {
       await removeMember(clubId, memberId)
       setMemberRows((members) => members.filter((member) => member.id !== memberId))
-      // Hiển thị thông báo cho chức năng xóa thành viên khỏi câu lạc bộ.
+      // Display notification when member is removed from club.
       showToast({
         type: 'success',
         title: 'Member removed',

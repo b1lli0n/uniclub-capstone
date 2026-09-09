@@ -48,7 +48,8 @@ function canManageClubMembers(clubId) {
 }
 
 function canManageClubInvitations(clubId) {
-  return isClubMember(clubId)
+  const role = getMembership(clubId)?.role?.toLowerCase()
+  return role === 'president' || role === 'leader' || role === 'secretary'
 }
 
 function canManageClubEvents(clubId) {
@@ -70,7 +71,8 @@ function canManageActivitySchedule(clubId) {
 }
 
 function canManageClubPolls(clubId) {
-  return isClubMember(clubId)
+  const role = getMembership(clubId)?.role?.toLowerCase()
+  return role === 'president' || role === 'leader' || role === 'secretary'
 }
 
 function canManageClubFinance(clubId) {
@@ -121,7 +123,7 @@ function ProtectedLayout({
   }, [isAuthenticated])
 
   const handleLogout = () => {
-    if (window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi UniClub không?')) {
+    if (window.confirm('Are you sure you want to log out of UniClub?')) {
       localStorage.removeItem('token')
       navigate('/login', { replace: true })
     }
@@ -232,7 +234,7 @@ function ClubRoute({ pageId, guard = 'member', children }) {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <p>Đang xác thực quyền truy cập...</p>
+        <p>Authenticating access permissions...</p>
       </div>
     )
   }
@@ -247,9 +249,9 @@ function ClubRoute({ pageId, guard = 'member', children }) {
   const canManageEvents = role === 'president' || role === 'leader' || role === 'event_manager' || role === 'event management'
   const canManageSchedule = role === 'president' || role === 'secretary' || role === 'leader'
   const canViewFees = isMember
-  const canManagePolls = isMember
+  const canManagePolls = role === 'president' || role === 'leader' || role === 'secretary'
   const canManageFinance = role === 'president' || role === 'leader' || role === 'treasurer'
-  const canManageInvitations = isMember
+  const canManageInvitations = role === 'president' || role === 'leader' || role === 'secretary'
 
   const isAllowed =
     guard === 'member'
@@ -287,6 +289,8 @@ function ClubRoute({ pageId, guard = 'member', children }) {
         navigate,
         canManageRewards: role === 'president' || role === 'leader' || role === 'vice leader',
         canManageSchedule,
+        canManagePolls,
+        canManageInvitations,
       })}
     </ProtectedLayout>
   )
@@ -325,7 +329,7 @@ function ClubJoinRequestsRoute() {
 
 function ClubInvitationsRoute() {
   return (
-    <ClubRoute pageId="invitations" guard="member">
+    <ClubRoute pageId="invitations" guard="secretary">
       {({ clubId }) => <ClubInvitationsPage clubId={clubId} />}
     </ClubRoute>
   )
@@ -334,7 +338,13 @@ function ClubInvitationsRoute() {
 function ClubPollsRoute() {
   return (
     <ClubRoute pageId="polls" guard="member">
-      {({ clubId }) => <ClubPollsPage clubId={clubId} />}
+      {({ clubId, canManagePolls, membership }) => (
+        <ClubPollsPage
+          clubId={clubId}
+          canManagePolls={canManagePolls}
+          userRole={membership?.role?.toLowerCase()}
+        />
+      )}
     </ClubRoute>
   )
 }
@@ -596,7 +606,7 @@ function AppRouter() {
           <AdminRoute>
             <AdminDashboardPage
               onLogout={() => {
-                if (window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống Admin không?')) {
+                if (window.confirm('Are you sure you want to log out of the Admin panel?')) {
                   localStorage.removeItem('token')
                   navigate('/login', { replace: true })
                 }

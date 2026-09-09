@@ -65,8 +65,8 @@ const eventSchema = Schema(
     status: {
       type: String,
       required: true,
-      enum: ["coming soon", "opening", "closed", "cancelled"],
-      default: "coming soon",
+      enum: ["coming_soon", "opening", "closed", "cancelled"],
+      default: "coming_soon",
     },
 
     progress_status: {

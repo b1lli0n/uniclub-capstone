@@ -42,40 +42,40 @@ function RewardEditor({ reward, onClose, onSave }) {
       <button className="club-rewards-modal__backdrop" aria-label="Close" onClick={onClose} type="button" />
       <form className="club-rewards-modal__panel" onSubmit={submit}>
         <header>
-          <h2>{reward?.id ? 'Cập nhật phần thưởng' : 'Tạo phần thưởng mới'}</h2>
+          <h2>{reward?.id ? 'Update Reward' : 'Create New Reward'}</h2>
           <button type="button" onClick={onClose}>×</button>
         </header>
         <label>
-          Tên phần thưởng
-          <input value={draft.title} onChange={(event) => change('title', event.target.value)} required />
+          Reward Name
+          <input value={draft.title} onChange={(event) => change('title', event.target.value)} required placeholder="e.g. Cinema Ticket, Highlands Coffee Voucher..." />
         </label>
         <div className="club-rewards-form-grid">
           <label>
-            Điểm yêu cầu
-            <input type="number" min="1" value={draft.points} onChange={(event) => change('points', event.target.value)} required />
+            Points Required
+            <input type="number" min="1" value={draft.points} onChange={(event) => change('points', event.target.value)} required placeholder="e.g. 150" />
           </label>
           <label>
-            Số lượng trong kho
-            <input type="number" min="0" value={draft.stock} onChange={(event) => change('stock', event.target.value)} required />
+            Stock Quantity
+            <input type="number" min="0" value={draft.stock} onChange={(event) => change('stock', event.target.value)} required placeholder="e.g. 20" />
           </label>
         </div>
         <div className="club-rewards-form-grid">
           <label>
-            Phân loại
-            <input value={draft.type} onChange={(event) => change('type', event.target.value)} placeholder="Voucher, ticket..." />
+            Category / Type
+            <input value={draft.type} onChange={(event) => change('type', event.target.value)} placeholder="e.g. Voucher, Ticket, Merchandise..." />
           </label>
           <label>
-            Đường dẫn ảnh / Icon
-            <input value={draft.image} onChange={(event) => change('image', event.target.value)} placeholder="Emoji hoặc URL ảnh" />
+            Image URL / Emoji Icon
+            <input value={draft.image} onChange={(event) => change('image', event.target.value)} placeholder="Emoji (🎁) or image URL" />
           </label>
         </div>
         <label>
-          Mô tả chi tiết
-          <textarea rows="3" value={draft.description} onChange={(event) => change('description', event.target.value)} />
+          Detailed Description
+          <textarea rows="3" value={draft.description} onChange={(event) => change('description', event.target.value)} placeholder="Describe how to use this reward, terms and conditions..." />
         </label>
         <footer>
-          <button type="button" onClick={onClose}>Huỷ bỏ</button>
-          <button type="submit">Lưu lại</button>
+          <button type="button" onClick={onClose}>Cancel</button>
+          <button type="submit">Save Reward</button>
         </footer>
       </form>
     </div>
@@ -88,7 +88,7 @@ function RewardDetail({ reward, isManager, points, onClose, onRedeem, onEdit }) 
       <button className="club-rewards-modal__backdrop" aria-label="Close" onClick={onClose} type="button" />
       <section className="club-rewards-modal__panel club-rewards-detail">
         <header>
-          <h2>Chi tiết phần thưởng</h2>
+          <h2>Reward Details</h2>
           <button type="button" onClick={onClose}>×</button>
         </header>
         <div className="club-rewards-detail__body">
@@ -96,20 +96,20 @@ function RewardDetail({ reward, isManager, points, onClose, onRedeem, onEdit }) 
             <RewardImage src={reward.image} alt={reward.title} className="club-rewards-detail__emoji" />
           </div>
           <div>
-            <p className="club-rewards-eyebrow">{reward.type || 'Phần thưởng'} · {reward.club}</p>
+            <p className="club-rewards-eyebrow">{reward.type || 'Reward'} · {reward.club}</p>
             <h3>{reward.title}</h3>
             <strong>{reward.points} pts</strong>
             <p>{reward.description}</p>
-            <small>Số lượng khả dụng: {reward.stock}</small>
+            <small>Available Stock: {reward.stock}</small>
           </div>
         </div>
         <footer>
-          <button type="button" onClick={onClose}>Đóng</button>
+          <button type="button" onClick={onClose}>Close</button>
           {isManager ? (
-            <button type="button" onClick={onEdit}>Sửa thông tin</button>
+            <button type="button" onClick={onEdit}>Edit Reward</button>
           ) : (
             <button type="button" disabled={points < reward.points || !reward.stock} onClick={onRedeem}>
-              {points < reward.points ? 'Không đủ điểm' : !reward.stock ? 'Hết hàng' : 'Đổi thưởng'}
+              {points < reward.points ? 'Insufficient Points' : !reward.stock ? 'Out of Stock' : 'Redeem Reward'}
             </button>
           )}
         </footer>
@@ -128,7 +128,7 @@ function HistoryDetailModal({ item, onClose }) {
       <button className="club-rewards-modal__backdrop" aria-label="Close" onClick={onClose} type="button" />
       <section className="club-rewards-modal__panel club-rewards-detail">
         <header>
-          <h2>Chi tiết phiếu đổi quà</h2>
+          <h2>Redemption Voucher Details</h2>
           <button type="button" onClick={onClose}>×</button>
         </header>
         <div className="club-rewards-detail__body">
@@ -136,32 +136,32 @@ function HistoryDetailModal({ item, onClose }) {
             <RewardImage src={item.image} alt={item.item} className="club-rewards-detail__emoji" />
           </div>
           <div>
-            <p className="club-rewards-eyebrow">Mã phiếu: <strong>{pickupCode}</strong></p>
+            <p className="club-rewards-eyebrow">Voucher Code: <strong>{pickupCode}</strong></p>
             <h3>{item.item}</h3>
             <strong style={{ color: '#ea580c' }}>-{item.points} pts</strong>
             <p style={{ marginTop: '0.4rem', color: '#475569', fontSize: '0.9rem' }}>
-              {item.description || 'Phần quà đổi thưởng đặc quyền của câu lạc bộ trên UniClub.'}
+              {item.description || 'Exclusive club reward redemption on UniClub.'}
             </p>
-            <p style={{ marginTop: '0.4rem', fontSize: '0.85rem', color: '#64748b' }}>📅 Ngày đổi: {item.date}</p>
+            <p style={{ marginTop: '0.4rem', fontSize: '0.85rem', color: '#64748b' }}>📅 Date: {item.date}</p>
             <div style={{ marginTop: '0.6rem' }}>
               <Status value={item.status} />
             </div>
             {isApproved && (
               <div style={{ marginTop: '0.8rem', padding: '0.7rem 0.9rem', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0', fontSize: '0.84rem', color: '#166534', lineHeight: 1.5 }}>
-                🎉 <strong>ĐÃ ĐƯỢC PHÊ DUYỆT!</strong><br />
-                Vui lòng xuất trình mã <strong>{pickupCode}</strong> tại phòng Ban chủ nhiệm CLB để nhận phần quà trực tiếp.
+                🎉 <strong>APPROVED!</strong><br />
+                Please present voucher code <strong>{pickupCode}</strong> at the Club Board office to receive your reward directly.
               </div>
             )}
             {isRejected && (
               <div style={{ marginTop: '0.8rem', padding: '0.7rem 0.9rem', background: '#fef2f2', borderRadius: '10px', border: '1px solid #fecaca', fontSize: '0.84rem', color: '#991b1b', lineHeight: 1.5 }}>
-                ❌ <strong>YÊU CẦU CHƯA ĐƯỢC PHÊ DUYỆT</strong><br />
-                {item.rejectionReason ? `Lý do: "${item.rejectionReason}". ` : ''}Điểm thưởng tích lũy đã được hoàn lại đầy đủ vào ví của bạn.
+                ❌ <strong>REDEMPTION NOT APPROVED</strong><br />
+                {item.rejectionReason ? `Reason: "${item.rejectionReason}". ` : ''}Your reward points have been fully refunded to your balance.
               </div>
             )}
           </div>
         </div>
         <footer>
-          <button type="button" onClick={onClose}>Đóng</button>
+          <button type="button" onClick={onClose}>Close</button>
         </footer>
       </section>
     </div>
@@ -171,14 +171,14 @@ function HistoryDetailModal({ item, onClose }) {
 function Status({ value }) {
   const norm = String(value || '').toUpperCase()
   let className = 'club-rewards-status--pending'
-  let label = 'Chờ duyệt'
+  let label = 'Pending'
 
   if (norm === 'APPROVED') {
     className = 'club-rewards-status--approved'
-    label = 'Đã duyệt'
+    label = 'Approved'
   } else if (norm === 'REJECTED') {
     className = 'club-rewards-status--rejected'
-    label = 'Từ chối'
+    label = 'Rejected'
   }
 
   return <span className={`club-rewards-status ${className}`}>{label}</span>
@@ -195,6 +195,10 @@ function ClubRewardsPage({ isManager = false }) {
   
   const [tab, setTab] = useState('inventory')
   const [query, setQuery] = useState('')
+  const [stockFilter, setStockFilter] = useState('all')
+  const [sortBy, setSortBy] = useState('default')
+  const [historyStatusFilter, setHistoryStatusFilter] = useState('all')
+
   const [isLoading, setIsLoading] = useState(true)
   const [isActionLoading, setIsActionLoading] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
@@ -220,13 +224,12 @@ function ClubRewardsPage({ isManager = false }) {
         if (!active) return
         
         if (isManager) {
-          // President response layout: { success, data: [...] }
           const list = res.data || []
           setRewards(list.map(r => ({
             id: r._id,
             title: r.name,
-            type: 'Voucher',
-            club: 'CLB',
+            type: r.type || 'Voucher',
+            club: 'Club',
             points: r.points_required ?? 100,
             stock: r.quantity ?? 10,
             image: r.image_url || '🎁',
@@ -234,15 +237,14 @@ function ClubRewardsPage({ isManager = false }) {
             isVisible: r.status === 'active',
           })))
         } else {
-          // Member response layout: { success, data: { available_points, rewards: [...] } }
           const payload = res.data || {}
           setPoints(payload.available_points || 0)
           const list = payload.rewards || []
           setRewards(list.map(r => ({
             id: r._id,
             title: r.name,
-            type: 'Voucher',
-            club: 'CLB',
+            type: r.type || 'Voucher',
+            club: 'Club',
             points: r.points_required ?? 100,
             stock: r.quantity ?? 10,
             image: r.image_url || '🎁',
@@ -266,7 +268,6 @@ function ClubRewardsPage({ isManager = false }) {
     let active = true
 
     if (isManager) {
-      // Fetch manager requests & history
       Promise.all([
         getManagerRedemptionHistory(clubId, { status: 'pending', limit: 100 }),
         getManagerRedemptionHistory(clubId, { limit: 100 }),
@@ -277,9 +278,9 @@ function ClubRewardsPage({ isManager = false }) {
           const reqs = reqRes.data || []
           setRequests(reqs.map(item => ({
             id: item._id,
-            date: new Date(item.created_at).toLocaleDateString('vi-VN'),
-            member: item.membership_id?.user_id?.full_name || 'Thành viên',
-            item: item.reward_id?.name || 'Phần thưởng',
+            date: new Date(item.created_at).toLocaleDateString('en-US'),
+            member: item.membership_id?.user_id?.full_name || 'Member',
+            item: item.reward_id?.name || 'Reward',
             points: item.total_point,
             status: item.status,
           })))
@@ -287,24 +288,23 @@ function ClubRewardsPage({ isManager = false }) {
           const hists = histRes.data || []
           setHistory(hists.map(item => ({
             id: item._id,
-            date: new Date(item.created_at).toLocaleDateString('vi-VN'),
-            member: item.membership_id?.user_id?.full_name || 'Thành viên',
-            item: item.reward_id?.name || 'Phần thưởng',
+            date: new Date(item.created_at).toLocaleDateString('en-US'),
+            member: item.membership_id?.user_id?.full_name || 'Member',
+            item: item.reward_id?.name || 'Reward',
             points: item.total_point,
             status: item.status,
           })))
         })
         .catch(err => console.error('Failed to load redemption history:', err))
     } else {
-      // Fetch member redemption history
       getMemberRedemptionHistory(clubId, { limit: 100 })
         .then((res) => {
           if (!active) return
           const hists = res.data || []
           setHistory(hists.map(item => ({
             id: item._id,
-            date: new Date(item.created_at).toLocaleDateString('vi-VN'),
-            item: item.reward_id?.name || 'Phần thưởng',
+            date: new Date(item.created_at).toLocaleDateString('en-US'),
+            item: item.reward_id?.name || 'Reward',
             points: item.total_point || item.points_spent,
             status: item.status,
           })))
@@ -316,11 +316,32 @@ function ClubRewardsPage({ isManager = false }) {
   }, [clubId, isManager, reloadKey, tab])
 
   const visibleRewards = useMemo(() => {
-    return rewards.filter((reward) => {
-      const search = `${reward.title}`.toLowerCase().includes(query.toLowerCase())
+    let result = rewards.filter((reward) => {
+      const search = `${reward.title} ${reward.type || ''}`.toLowerCase().includes(query.toLowerCase())
       return search && (isManager || reward.isVisible)
     })
-  }, [isManager, query, rewards])
+
+    if (stockFilter === 'in_stock') {
+      result = result.filter((r) => r.stock > 0)
+    } else if (stockFilter === 'out_of_stock') {
+      result = result.filter((r) => r.stock === 0)
+    }
+
+    if (sortBy === 'points_asc') {
+      result = [...result].sort((a, b) => a.points - b.points)
+    } else if (sortBy === 'points_desc') {
+      result = [...result].sort((a, b) => b.points - a.points)
+    } else if (sortBy === 'name_asc') {
+      result = [...result].sort((a, b) => a.title.localeCompare(b.title))
+    }
+
+    return result
+  }, [isManager, query, rewards, stockFilter, sortBy])
+
+  const visibleHistory = useMemo(() => {
+    if (historyStatusFilter === 'all') return history
+    return history.filter((item) => String(item.status || '').toLowerCase() === historyStatusFilter.toLowerCase())
+  }, [history, historyStatusFilter])
 
   // 3. Fetch detailed reward info on click
   function fetchDetail(reward) {
@@ -337,8 +358,8 @@ function ClubRewardsPage({ isManager = false }) {
           setDetailReward({
             id: r._id,
             title: r.name,
-            type: 'Voucher',
-            club: 'CLB',
+            type: r.type || 'Voucher',
+            club: 'Club',
             points: r.points_required ?? 100,
             stock: r.quantity,
             image: r.image_url,
@@ -372,13 +393,13 @@ function ClubRewardsPage({ isManager = false }) {
       .then(() => {
         showToast({
           type: 'success',
-          message: editorReward?.id ? 'Cập nhật phần thưởng thành công!' : 'Tạo phần thưởng mới thành công!',
+          message: editorReward?.id ? 'Reward updated successfully!' : 'New reward created successfully!',
         })
         setEditorOpen(false)
         setReloadKey(k => k + 1)
       })
       .catch((err) => {
-        showToast({ type: 'error', message: err.message || 'Lỗi khi lưu phần thưởng' })
+        showToast({ type: 'error', message: err.message || 'Failed to save reward' })
       })
       .finally(() => setIsActionLoading(false))
   }
@@ -392,14 +413,14 @@ function ClubRewardsPage({ isManager = false }) {
       .then(() => {
         showToast({
           type: 'success',
-          message: 'Yêu cầu đổi quà đã được gửi đi! Vui lòng đợi duyệt.',
+          message: 'Redemption request submitted! Please wait for approval.',
         })
         setConfirmReward(null)
         setDetailReward(null)
         setReloadKey(k => k + 1)
       })
       .catch((err) => {
-        showToast({ type: 'error', message: err.message || 'Yêu cầu đổi quà thất bại.' })
+        showToast({ type: 'error', message: err.message || 'Failed to redeem reward.' })
       })
       .finally(() => setIsActionLoading(false))
   }
@@ -411,12 +432,12 @@ function ClubRewardsPage({ isManager = false }) {
       .then(() => {
         showToast({
           type: 'success',
-          message: 'Thay đổi trạng thái hiển thị thành công!',
+          message: 'Reward visibility updated successfully!',
         })
         setReloadKey(k => k + 1)
       })
       .catch((err) => {
-        showToast({ type: 'error', message: err.message || 'Lỗi khi cập nhật hiển thị.' })
+        showToast({ type: 'error', message: err.message || 'Failed to update visibility.' })
       })
   }
 
@@ -428,27 +449,27 @@ function ClubRewardsPage({ isManager = false }) {
     if (status === 'APPROVED') {
       approveRedemption(clubId, request.id)
         .then(() => {
-          showToast({ type: 'success', message: 'Duyệt yêu cầu đổi quà thành công!' })
+          showToast({ type: 'success', message: 'Redemption request approved successfully!' })
           setReloadKey(k => k + 1)
         })
         .catch((err) => {
-          showToast({ type: 'error', message: err.message || 'Duyệt thất bại.' })
+          showToast({ type: 'error', message: err.message || 'Failed to approve redemption.' })
         })
         .finally(() => setIsActionLoading(false))
     } else {
-      const reason = window.prompt('Nhập lý do từ chối yêu cầu đổi quà:')
+      const reason = window.prompt('Enter rejection reason:')
       if (reason === null) {
         setIsActionLoading(false)
         return
       }
       
-      rejectRedemption(clubId, request.id, reason || 'Từ chối bởi admin')
+      rejectRedemption(clubId, request.id, reason || 'Rejected by club administrator')
         .then(() => {
-          showToast({ type: 'success', message: 'Từ chối yêu cầu đổi quà thành công!' })
+          showToast({ type: 'success', message: 'Redemption request rejected.' })
           setReloadKey(k => k + 1)
         })
         .catch((err) => {
-          showToast({ type: 'error', message: err.message || 'Từ chối thất bại.' })
+          showToast({ type: 'error', message: err.message || 'Failed to reject redemption.' })
         })
         .finally(() => setIsActionLoading(false))
     }
@@ -458,13 +479,13 @@ function ClubRewardsPage({ isManager = false }) {
     <main className="club-rewards-page">
       <section className="club-rewards-hero">
         <div>
-          <span>Quản lý đổi thưởng</span>
-          <h1>{isManager ? 'Quản lý phần quà' : 'Cửa hàng đổi quà'}</h1>
-          <p>{isManager ? 'Tạo mới, chỉnh sửa, ẩn/hiện và phê duyệt yêu cầu đổi quà của thành viên.' : 'Sử dụng điểm đóng góp của bạn để đổi các phần quà ý nghĩa từ câu lạc bộ.'}</p>
+          <span>Rewards System</span>
+          <h1>{isManager ? 'Reward Management' : 'Reward Store'}</h1>
+          <p>{isManager ? 'Create, edit, toggle visibility, and approve member redemption requests.' : 'Redeem your earned contribution points for exclusive club rewards and vouchers.'}</p>
         </div>
         {!isManager && (
           <div className="club-rewards-balance">
-            <span>Điểm khả dụng của bạn</span>
+            <span>Your Available Points</span>
             <strong>{points} pts</strong>
           </div>
         )}
@@ -473,20 +494,83 @@ function ClubRewardsPage({ isManager = false }) {
       <div className="club-rewards-toolbar">
         {isManager && (
           <div className="club-rewards-tabs">
-            <button className={tab === 'inventory' ? 'is-active' : ''} onClick={() => setTab('inventory')}>Kho phần thưởng</button>
+            <button className={tab === 'inventory' ? 'is-active' : ''} onClick={() => setTab('inventory')}>Reward Inventory</button>
             <button className={tab === 'requests' ? 'is-active' : ''} onClick={() => setTab('requests')}>
-              Yêu cầu chờ duyệt <b>{requests.length}</b>
+              Pending Requests <b>{requests.length}</b>
             </button>
-            <button className={tab === 'history' ? 'is-active' : ''} onClick={() => setTab('history')}>Lịch sử duyệt</button>
+            <button className={tab === 'history' ? 'is-active' : ''} onClick={() => setTab('history')}>Redemption History</button>
           </div>
         )}
         {!isManager && (
           <button className="club-rewards-history-link" onClick={() => setTab(tab === 'history' ? 'inventory' : 'history')}>
-            {tab === 'history' ? '← Xem cửa hàng quà' : 'Xem lịch sử đổi quà của tôi'}
+            {tab === 'history' ? '← Back to Reward Store' : 'My Redemption History'}
           </button>
         )}
+
         {tab === 'inventory' && (
-          <input type="search" placeholder="Tìm kiếm phần quà..." value={query} onChange={(event) => setQuery(event.target.value)} />
+          <div className="club-rewards-controls">
+            <input
+              type="search"
+              placeholder="Search rewards..."
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              aria-label="Search rewards"
+            />
+
+            <div className="club-rewards-control-group">
+              <label htmlFor="rewards-stock" className="club-rewards-control-label">
+                STOCK
+              </label>
+              <select
+                id="rewards-stock"
+                className="club-rewards-select"
+                value={stockFilter}
+                onChange={(e) => setStockFilter(e.target.value)}
+              >
+                <option value="all">All Stock</option>
+                <option value="in_stock">In Stock</option>
+                <option value="out_of_stock">Out of Stock</option>
+              </select>
+            </div>
+
+            <div className="club-rewards-control-group">
+              <label htmlFor="rewards-sort" className="club-rewards-control-label">
+                SORT
+              </label>
+              <select
+                id="rewards-sort"
+                className="club-rewards-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="default">Default Order</option>
+                <option value="points_asc">Points: Low to High</option>
+                <option value="points_desc">Points: High to Low</option>
+                <option value="name_asc">Name: A - Z</option>
+              </select>
+            </div>
+          </div>
+        )}
+
+        {tab === 'history' && (
+          <div className="club-rewards-controls">
+            <div className="club-rewards-control-group">
+              <label htmlFor="history-status" className="club-rewards-control-label">
+                STATUS
+              </label>
+              <select
+                id="history-status"
+                className="club-rewards-select"
+                value={historyStatusFilter}
+                onChange={(e) => setHistoryStatusFilter(e.target.value)}
+              >
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
         )}
       </div>
 
@@ -494,10 +578,10 @@ function ClubRewardsPage({ isManager = false }) {
         <section className="club-rewards-grid">
           {isManager && (
             <button className="club-reward-card club-reward-card--add" onClick={() => { setEditorReward(null); setEditorOpen(true) }} type="button">
-              +<span>Tạo phần quà</span>
+              +<span>Create Reward</span>
             </button>
           )}
-          {isLoading && <p style={{ gridColumn: '1/-1', textAlign: 'center', padding: '2rem', color: '#666' }}>Đang tải danh sách phần quà...</p>}
+          {isLoading && <p style={{ gridColumn: '1/-1', textAlign: 'center', padding: '2rem', color: '#666' }}>Loading rewards...</p>}
           {!isLoading && visibleRewards.map((reward) => (
             <article key={reward.id} className={`club-reward-card${!reward.isVisible ? ' is-hidden' : ''}`} onClick={() => fetchDetail(reward)}>
               <div className="club-reward-card__image" style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fc', overflow: 'hidden', fontSize: '3.5rem' }}>
@@ -508,34 +592,40 @@ function ClubRewardsPage({ isManager = false }) {
                 <h2>{reward.title}</h2>
                 <p>{reward.club}</p>
                 <strong>{reward.points} pts</strong>
-                <small>Còn lại trong kho: {reward.stock}</small>
+                <small>In Stock: {reward.stock}</small>
                 {isManager ? (
                   <label className="club-reward-visibility" onClick={(event) => event.stopPropagation()}>
                     <input type="checkbox" checked={reward.isVisible} onChange={() => handleToggleVisibility(reward)} />
-                    {reward.isVisible ? 'Hiển thị' : 'Đang ẩn'}
+                    {reward.isVisible ? 'Visible' : 'Hidden'}
                   </label>
                 ) : (
                   <button type="button" disabled={points < reward.points || !reward.stock} onClick={(event) => { event.stopPropagation(); setConfirmReward(reward) }}>
-                    Đổi quà
+                    Redeem
                   </button>
                 )}
               </div>
             </article>
           ))}
+          {!isLoading && visibleRewards.length === 0 && (
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem 1rem', color: '#8c735d' }}>
+              <h3>No matching rewards found</h3>
+              <p>Try adjusting your search query or stock filter.</p>
+            </div>
+          )}
         </section>
       )}
 
       {tab === 'requests' && isManager && (
         <section className="club-rewards-table-card">
-          <h2>Yêu cầu đổi quà đang chờ phê duyệt</h2>
+          <h2>Pending Redemption Requests</h2>
           <table>
             <thead>
               <tr>
-                <th>Ngày tạo</th>
-                <th>Thành viên</th>
-                <th>Phần quà</th>
-                <th>Giá trị</th>
-                <th>Hành động</th>
+                <th>Date</th>
+                <th>Member</th>
+                <th>Reward</th>
+                <th>Points</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -546,14 +636,14 @@ function ClubRewardsPage({ isManager = false }) {
                   <td>{request.item}</td>
                   <td>{request.points} pts</td>
                   <td>
-                    <button onClick={() => processRequest(request, 'APPROVED')} disabled={isActionLoading}>Duyệt</button>
-                    <button className="is-danger" onClick={() => processRequest(request, 'REJECTED')} disabled={isActionLoading}>Từ chối</button>
+                    <button onClick={() => processRequest(request, 'APPROVED')} disabled={isActionLoading}>Approve</button>
+                    <button className="is-danger" onClick={() => processRequest(request, 'REJECTED')} disabled={isActionLoading}>Reject</button>
                   </td>
                 </tr>
               ))}
               {!requests.length && (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>Không có yêu cầu nào chờ duyệt.</td>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>No pending redemption requests.</td>
                 </tr>
               )}
             </tbody>
@@ -563,20 +653,20 @@ function ClubRewardsPage({ isManager = false }) {
 
       {tab === 'history' && (
         <section className="club-rewards-table-card">
-          <h2>{isManager ? 'Lịch sử xử lý đổi thưởng' : 'Lịch sử đổi thưởng của tôi'}</h2>
+          <h2>{isManager ? 'Redemption History Log' : 'My Redemption History'}</h2>
           <table>
             <thead>
               <tr>
-                <th>Ngày tạo</th>
-                {isManager && <th>Thành viên</th>}
-                <th>Phần quà</th>
-                <th>Chi phí</th>
-                <th>Trạng thái</th>
-                <th>Chi tiết</th>
+                <th>Date</th>
+                {isManager && <th>Member</th>}
+                <th>Reward</th>
+                <th>Cost</th>
+                <th>Status</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {history.map((item) => (
+              {visibleHistory.map((item) => (
                 <tr key={item.id}>
                   <td>{item.date}</td>
                   {isManager && <td>{item.member}</td>}
@@ -601,14 +691,14 @@ function ClubRewardsPage({ isManager = false }) {
                       }}
                       onClick={() => setDetailHistory(item)}
                     >
-                      👁️ Xem chi tiết
+                      👁️ View Details
                     </button>
                   </td>
                 </tr>
               ))}
-              {!history.length && (
+              {!visibleHistory.length && (
                 <tr>
-                  <td colSpan={isManager ? 6 : 5} style={{ textAlign: 'center', padding: '2rem' }}>Không có lịch sử đổi quà.</td>
+                  <td colSpan={isManager ? 6 : 5} style={{ textAlign: 'center', padding: '2rem' }}>No redemption records found.</td>
                 </tr>
               )}
             </tbody>
@@ -633,12 +723,12 @@ function ClubRewardsPage({ isManager = false }) {
         <div className="club-rewards-modal" role="dialog" aria-modal="true">
           <button className="club-rewards-modal__backdrop" aria-label="Close" onClick={() => setConfirmReward(null)} type="button" />
           <section className="club-rewards-modal__panel club-rewards-confirm">
-            <h2>Xác nhận đổi thưởng</h2>
-            <p>Bạn có chắc chắn muốn đổi phần quà <strong>{confirmReward.title}</strong> với chi phí <strong>{confirmReward.points} điểm</strong>?</p>
-            <p>Số dư điểm sau khi đổi: {points - confirmReward.points} pts</p>
+            <h2>Confirm Redemption</h2>
+            <p>Are you sure you want to redeem <strong>{confirmReward.title}</strong> for <strong>{confirmReward.points} points</strong>?</p>
+            <p>Balance after redemption: {points - confirmReward.points} pts</p>
             <footer>
-              <button onClick={() => setConfirmReward(null)} type="button" disabled={isActionLoading}>Huỷ</button>
-              <button onClick={handleRedeemReward} type="button" disabled={isActionLoading}>Xác nhận</button>
+              <button onClick={() => setConfirmReward(null)} type="button" disabled={isActionLoading}>Cancel</button>
+              <button onClick={handleRedeemReward} type="button" disabled={isActionLoading}>Confirm Redeem</button>
             </footer>
           </section>
         </div>

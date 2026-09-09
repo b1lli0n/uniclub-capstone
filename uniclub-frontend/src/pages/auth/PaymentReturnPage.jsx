@@ -33,28 +33,28 @@ export default function PaymentReturnPage() {
               ✓
             </div>
             <h1 style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1d1d1f', margin: '0 0 0.5rem 0' }}>
-              Thanh Toán Thành Công!
+              Payment Successful!
             </h1>
             <p style={{ color: '#86868b', fontSize: '0.95rem', margin: '0 0 2rem 0' }}>
-              Giao dịch của bạn qua VNPay đã được xác nhận thành công trên hệ thống UniClub.
+              Your VNPay transaction has been successfully confirmed in the UniClub system.
             </p>
 
             <div className="club-fees-summary-box" style={{ textAlign: 'left', marginBottom: '2rem' }}>
               {txnRef && (
                 <div className="club-fees-summary-row">
-                  <span>Mã giao dịch (TxnRef):</span>
+                  <span>Transaction Ref (TxnRef):</span>
                   <strong style={{ fontFamily: 'monospace' }}>{txnRef}</strong>
                 </div>
               )}
               {vnpResponseCode && (
                 <div className="club-fees-summary-row">
-                  <span>Mã phản hồi VNPay:</span>
-                  <strong>{vnpResponseCode} (Giao dịch thành công)</strong>
+                  <span>VNPay Response Code:</span>
+                  <strong>{vnpResponseCode} (Transaction Successful)</strong>
                 </div>
               )}
               {paymentId && (
                 <div className="club-fees-summary-row">
-                  <span>Mã khoản phí:</span>
+                  <span>Fee Record ID:</span>
                   <strong>#{paymentId}</strong>
                 </div>
               )}
@@ -67,7 +67,7 @@ export default function PaymentReturnPage() {
                   className="club-fee-btn club-fee-btn--pay"
                   onClick={() => navigate(`/clubs/my-fees/receipts/${paymentId}`)}
                 >
-                  📄 Xem biên lai
+                  📄 View Receipt
                 </button>
               )}
               <button
@@ -75,7 +75,7 @@ export default function PaymentReturnPage() {
                 className="club-fee-btn club-fee-btn--receipt"
                 onClick={() => navigate('/my-clubs')}
               >
-                Về danh sách CLB
+                Back to My Clubs
               </button>
             </div>
           </>
@@ -96,10 +96,10 @@ export default function PaymentReturnPage() {
               ✕
             </div>
             <h1 style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1d1d1f', margin: '0 0 0.5rem 0' }}>
-              Thanh Toán Thất Bại
+              Payment Failed
             </h1>
             <p style={{ color: '#86868b', fontSize: '0.95rem', margin: '0 0 2rem 0' }}>
-              {message || 'Giao dịch qua VNPay không thành công hoặc đã bị hủy bỏ bởi người dùng.'}
+              {message || 'The VNPay transaction was unsuccessful or was cancelled by the user.'}
             </p>
 
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
@@ -108,14 +108,14 @@ export default function PaymentReturnPage() {
                 className="club-fee-btn club-fee-btn--pay"
                 onClick={() => navigate(-1)}
               >
-                🔄 Thử lại
+                🔄 Try Again
               </button>
               <button
                 type="button"
                 className="club-fee-btn club-fee-btn--receipt"
                 onClick={() => navigate('/my-clubs')}
               >
-                Về trang chủ
+                Back to My Clubs
               </button>
             </div>
           </>

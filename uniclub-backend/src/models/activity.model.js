@@ -10,7 +10,7 @@ const activitySchema = new Schema(
     },
     created_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       required: true,
     },
     title: {
@@ -37,22 +37,15 @@ const activitySchema = new Schema(
     status: {
       type: String,
       required: true,
-      enum: ["coming_soon", "opening", "closed", "cancelled"],
+      enum: ["coming_soon", "opening", "closed"],
       default: "coming_soon",
-    },
-    progress_status: {
-      type: String,
-      required: true,
-      enum: ["draft", "published"],
-      default: "draft",
-    },
-    media_urls: {
-      type: [String],
-      default: [],
     },
   },
   {
-    timestamps: true,
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
   }
 );
 

@@ -1,8 +1,17 @@
 const Activity = require("../../models/activity.model");
+const ClubMember = require("../../models/club_member.model");
 const { getStatusError } = require("../../utils/error");
 
-const ACTIVITY_STATUS = ["coming_soon", "opening", "closed", "cancelled"];
-const PROGRESS_STATUS = ["draft", "published"];
+const ACTIVITY_STATUS = ["coming_soon", "opening", "closed"];
+
+const CREATED_BY_POPULATE = {
+  path: "created_by",
+  select: "_id user_id role",
+  populate: {
+    path: "user_id",
+    select: "_id full_name email avatar_url",
+  },
+};
 
 const parsePositiveInt = (value, fallback) => {
   const parsed = parseInt(value, 10);
@@ -15,7 +24,6 @@ const buildActivityQuery = (clubId, filters = {}) => {
     end_date: endDate,
     search,
     status,
-    progress_status: progressStatus,
   } = filters;
 
   const query = {
@@ -24,10 +32,6 @@ const buildActivityQuery = (clubId, filters = {}) => {
 
   if (status && ACTIVITY_STATUS.includes(status)) {
     query.status = status;
-  }
-
-  if (progressStatus && PROGRESS_STATUS.includes(progressStatus)) {
-    query.progress_status = progressStatus;
   }
 
   if (startDate || endDate) {
@@ -56,12 +60,12 @@ const getClubActivitySchedule = async (clubId, filters = {}) => {
 
   const [activities, total] = await Promise.all([
     Activity.find(query)
-      .populate("created_by", "_id full_name avatar_url")
+      .populate(CREATED_BY_POPULATE)
       .sort({ start_time: 1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .select(
-        "_id club_id created_by title description location start_time end_time status progress_status media_urls createdAt updatedAt"
+        "_id club_id created_by title description location start_time end_time status created_at updated_at createdAt updatedAt"
       ),
     Activity.countDocuments(query),
   ]);
@@ -82,10 +86,10 @@ const getActivityScheduleDetail = async (clubId, activityId) => {
     _id: activityId,
     club_id: clubId,
   })
-    .populate("created_by", "_id full_name email avatar_url")
+    .populate(CREATED_BY_POPULATE)
     .populate("club_id", "_id name logo_url")
     .select(
-      "_id club_id created_by title description location start_time end_time status progress_status media_urls createdAt updatedAt"
+      "_id club_id created_by title description location start_time end_time status created_at updated_at createdAt updatedAt"
     );
 
   if (!activity) {
@@ -103,8 +107,6 @@ const createActivity = async (clubId, userId, payload) => {
     start_time: startTime,
     end_time: endTime,
     status = "coming_soon",
-    progress_status: progressStatus = "draft",
-    media_urls: mediaUrls = [],
   } = payload;
 
   if (new Date(startTime) >= new Date(endTime)) {
@@ -115,28 +117,30 @@ const createActivity = async (clubId, userId, payload) => {
     throw getStatusError("Invalid status", 400);
   }
 
-  if (!PROGRESS_STATUS.includes(progressStatus)) {
-    throw getStatusError("Invalid progress_status", 400);
-  }
+  const clubMember = await ClubMember.findOne({
+    club_id: clubId,
+    user_id: userId,
+    status: "active",
+  });
+
+  const createdBy = clubMember ? clubMember._id : userId;
 
   const activity = await Activity.create({
     club_id: clubId,
-    created_by: userId,
+    created_by: createdBy,
     title: title.trim(),
     description: description.trim(),
     location: location.trim(),
     start_time: new Date(startTime),
     end_time: new Date(endTime),
     status,
-    progress_status: progressStatus,
-    media_urls: mediaUrls,
   });
 
   return Activity.findById(activity._id)
-    .populate("created_by", "_id full_name email avatar_url")
+    .populate(CREATED_BY_POPULATE)
     .populate("club_id", "_id name logo_url")
     .select(
-      "_id club_id created_by title description location start_time end_time status progress_status media_urls createdAt updatedAt"
+      "_id club_id created_by title description location start_time end_time status created_at updated_at createdAt updatedAt"
     );
 };
 
@@ -157,8 +161,6 @@ const updateActivity = async (clubId, activityId, payload) => {
     start_time: startTime,
     end_time: endTime,
     status,
-    progress_status: progressStatus,
-    media_urls: mediaUrls,
   } = payload;
 
   if (title !== undefined) {
@@ -198,24 +200,13 @@ const updateActivity = async (clubId, activityId, payload) => {
     activity.status = status;
   }
 
-  if (progressStatus !== undefined) {
-    if (!PROGRESS_STATUS.includes(progressStatus)) {
-      throw getStatusError("Invalid progress_status", 400);
-    }
-    activity.progress_status = progressStatus;
-  }
-
-  if (mediaUrls !== undefined) {
-    activity.media_urls = mediaUrls;
-  }
-
   await activity.save();
 
   return Activity.findById(activity._id)
-    .populate("created_by", "_id full_name email avatar_url")
+    .populate(CREATED_BY_POPULATE)
     .populate("club_id", "_id name logo_url")
     .select(
-      "_id club_id created_by title description location start_time end_time status progress_status media_urls createdAt updatedAt"
+      "_id club_id created_by title description location start_time end_time status created_at updated_at createdAt updatedAt"
     );
 };
 
@@ -233,7 +224,6 @@ const deleteActivity = async (clubId, activityId) => {
 };
 
 const ActivityAttendance = require("../../models/activity_attendance.model");
-const ClubMember = require("../../models/club_member.model");
 const { awardRewardPoints } = require("../pointsAward.helper");
 
 const getActivityAttendance = async (clubId, activityId) => {
@@ -245,9 +235,7 @@ const getActivityAttendance = async (clubId, activityId) => {
   const attendances = await ActivityAttendance.find({
     activity_id: activityId,
     club_id: clubId,
-  })
-    .populate("user_id", "_id full_name email avatar_url")
-    .lean();
+  }).lean();
 
   const members = await ClubMember.find({ club_id: clubId, status: "active" })
     .populate("user_id", "_id full_name email avatar_url")
@@ -255,13 +243,14 @@ const getActivityAttendance = async (clubId, activityId) => {
 
   const attendanceMap = new Map();
   attendances.forEach((att) => {
-    const uid = String(att.user_id?._id || att.user_id);
-    attendanceMap.set(uid, att);
+    const mid = String(att.membership_id?._id || att.membership_id);
+    attendanceMap.set(mid, att);
   });
 
   const memberList = members.map((m) => {
+    const memberId = String(m._id);
     const userId = String(m.user_id?._id || m.user_id);
-    const existing = attendanceMap.get(userId);
+    const existing = attendanceMap.get(memberId);
     return {
       id: userId,
       membershipId: m._id,
@@ -270,7 +259,7 @@ const getActivityAttendance = async (clubId, activityId) => {
       avatarUrl: m.user_id?.avatar_url || "",
       checked: existing ? existing.status === "attended" : false,
       status: existing ? existing.status : "pending",
-      pointsAwarded: existing ? existing.points_awarded : 0,
+      checkInTime: existing ? existing.check_in_time : null,
     };
   });
 
@@ -287,25 +276,38 @@ const saveActivityAttendance = async (clubId, activityId, memberAttendanceList, 
     throw getStatusError("Activity not found", 404);
   }
 
+  const adminMember = await ClubMember.findOne({
+    club_id: clubId,
+    user_id: adminUserId,
+    status: "active",
+  });
+  const checkedBy = adminMember ? adminMember._id : null;
+
   let awardedCount = 0;
 
   for (const item of memberAttendanceList) {
-    const { userId, checked } = item;
-    if (!userId) continue;
+    const { userId, membershipId, checked } = item;
+    if (!userId && !membershipId) continue;
 
-    const member = await ClubMember.findOne({ user_id: userId, club_id: clubId, status: "active" });
+    let member = null;
+    if (membershipId) {
+      member = await ClubMember.findOne({ _id: membershipId, club_id: clubId, status: "active" });
+    } else if (userId) {
+      member = await ClubMember.findOne({ user_id: userId, club_id: clubId, status: "active" });
+    }
     if (!member) continue;
 
+    const actualUserId = String(member.user_id);
     const status = checked ? "attended" : "absent";
 
     await ActivityAttendance.findOneAndUpdate(
       { activity_id: activityId, membership_id: member._id },
       {
         club_id: clubId,
-        user_id: userId,
+        membership_id: member._id,
         status,
         check_in_time: checked ? new Date() : null,
-        checked_by: adminUserId,
+        checked_by: checkedBy,
       },
       { upsert: true, new: true }
     );
@@ -313,7 +315,7 @@ const saveActivityAttendance = async (clubId, activityId, memberAttendanceList, 
     if (checked) {
       const awardRes = await awardRewardPoints({
         clubId,
-        userId,
+        userId: actualUserId,
         actionTypeCode: "meeting",
         eventId: activityId,
         presidentId: adminUserId,
@@ -322,7 +324,7 @@ const saveActivityAttendance = async (clubId, activityId, memberAttendanceList, 
       if (!awardRes) {
         await awardRewardPoints({
           clubId,
-          userId,
+          userId: actualUserId,
           actionTypeCode: "attendance",
           eventId: activityId,
           presidentId: adminUserId,

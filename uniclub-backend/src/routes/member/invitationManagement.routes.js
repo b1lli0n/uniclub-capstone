@@ -1,6 +1,5 @@
 const express = require("express");
 const { verifyToken, authorize } = require("../../middlewares/auth.middleware");
-const { requireClubMember } = require("../../middlewares/club.middleware");
 const {
   getReceivedInvitations,
   getInvitationDetail,

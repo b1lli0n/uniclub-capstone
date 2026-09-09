@@ -194,7 +194,7 @@ const reviewEventRequest = async ({ requestId, status, reviewNote, reviewerId })
       location: request.location,
       is_public: request.is_public,
       capacity: request.capacity,
-      status: "coming soon",
+      status: "coming_soon",
       progress_status: "draft",
       check_in_status: "not_open",
       approval_document_url: request.approval_document_url || "",

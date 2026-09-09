@@ -127,7 +127,7 @@ function ClubJoinRequestsPage({ clubId }) {
       setDetailRequest((request) =>
         request?.id === requestId ? { ...request, status: nextStatus } : request,
       )
-      // Hiển thị thông báo cho chức năng duyệt hoặc từ chối yêu cầu tham gia.
+      // Display notification when join request is approved or rejected.
       showToast({
         type: 'success',
         title: isApprove ? 'Request approved' : 'Request rejected',

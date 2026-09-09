@@ -95,7 +95,7 @@ function HomePage({ onCreateClub, onSelectClub, onSelectEvent, onViewAll }) {
           <div className="home-hero__art">
             <img
               src={heroGroupImage}
-              alt="Nhóm sinh viên UniClub"
+              alt="UniClub students community"
               className="home-hero__img"
             />
           </div>

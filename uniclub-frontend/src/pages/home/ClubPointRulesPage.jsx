@@ -176,7 +176,7 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
     memberId: '',
     ruleId: '',
     rewardPoint: '50',
-    reason: 'Biểu diễn văn nghệ mốc 09:15',
+    reason: 'Stage performance at 09:15',
   })
 
   const [targetClubId, setTargetClubId] = useState(clubId)
@@ -312,13 +312,13 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
       await awardPointsManually(activeId, awardDraft.memberId, {
         rule_id: awardDraft.ruleId || undefined,
         reward_point: Number(awardDraft.rewardPoint),
-        reason: awardDraft.reason.trim() || 'Cộng điểm thưởng đóng góp hoạt động CLB',
+        reason: awardDraft.reason.trim() || 'Contribution reward points for club activities',
       })
 
       showToast({
         type: 'success',
         title: 'Points awarded!',
-        message: `Đã trao +${awardDraft.rewardPoint} điểm thưởng cho thành viên ${memberName} thành công!`,
+        message: `Successfully awarded +${awardDraft.rewardPoint} points to member ${memberName}!`,
       })
       setAwardModalOpen(false)
     } catch (err) {
@@ -535,8 +535,8 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
             </div>
-            <h3>Hiện tại chưa có point rule nào hoạt động</h3>
-            <p>Ban chủ nhiệm CLB chưa bật hoặc tạo quy tắc cộng điểm thưởng nào cho các hoạt động.</p>
+            <h3>No active point rules found</h3>
+            <p>The club board has not enabled or configured any point rules for activities yet.</p>
           </div>
         ) : null}
       </section>
@@ -598,18 +598,16 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
                 value={awardDraft.ruleId}
                 onChange={(e) => {
                   const rId = e.target.value
-                  const selectedRule = visibleRules.find((r) => r.id === rId)
+                  const found = (Array.isArray(rules) ? rules : []).find(r => r.id === rId)
                   setAwardDraft({
                     ...awardDraft,
                     ruleId: rId,
-                    rewardPoint: selectedRule
-                      ? String(selectedRule.rewardPointNum || parsePointValue(selectedRule.rewardPoints))
-                      : awardDraft.rewardPoint,
+                    rewardPoint: found ? String(found.rewardPointNum || 50) : awardDraft.rewardPoint,
                   })
                 }}
               >
-                <option value="">-- Custom Reward / Direct Award --</option>
-                {visibleRules.map((r) => (
+                <option value="">-- Manual Custom Points --</option>
+                {(Array.isArray(rules) ? rules : []).map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.title} ({r.rewardPoints})
                   </option>
@@ -618,13 +616,14 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
             </label>
 
             <label className="club-point-rules-field">
-              <span>Reward Points (+Pts) *</span>
+              <span>Points to Award *</span>
               <input
                 type="number"
                 min="1"
+                required
                 value={awardDraft.rewardPoint}
                 onChange={(e) => setAwardDraft({ ...awardDraft, rewardPoint: e.target.value })}
-                placeholder="50"
+                placeholder="e.g. 50"
               />
             </label>
 
@@ -634,7 +633,7 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
                 rows={3}
                 value={awardDraft.reason}
                 onChange={(e) => setAwardDraft({ ...awardDraft, reason: e.target.value })}
-                placeholder="Ví dụ: Biểu diễn Guitar tiết mục mốc 09:15 / Hỗ trợ tình nguyện sự kiện Gala..."
+                placeholder="e.g. Guitar performance at 09:15 / Volunteer support for Gala event..."
               />
             </label>
 
@@ -684,7 +683,7 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
                 min="0"
                 value={draft.rewardPoints}
                 onChange={(event) => updateDraft('rewardPoints', event.target.value)}
-                placeholder="Ví dụ: 50"
+                placeholder="e.g. 50"
               />
             </label>
 

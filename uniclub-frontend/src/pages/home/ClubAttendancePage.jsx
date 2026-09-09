@@ -301,15 +301,15 @@ function ClubAttendancePage({ clubId }) {
         showToast({
           type: 'success',
           title: 'Checked in',
-          message: `${target?.memberName || 'Thành viên'} đã được điểm danh thành công.`,
+          message: `${target?.memberName || 'Member'} has been checked in successfully.`,
         })
       }
     } catch (err) {
       console.error("Check-in error:", err)
       showToast({
         type: 'error',
-        title: 'Check-in thất bại',
-        message: err.message || 'Có lỗi xảy ra khi thực hiện điểm danh.',
+        title: 'Check-in failed',
+        message: err.message || 'An error occurred while checking in.',
       })
     }
   }
@@ -348,8 +348,8 @@ function ClubAttendancePage({ clubId }) {
       console.error("Failed to toggle check-in status:", err)
       showToast({
         type: 'error',
-        title: 'Thao tác thất bại',
-        message: err.message || 'Không thể thay đổi trạng thái check-in của sự kiện.',
+        title: 'Action failed',
+        message: err.message || 'Could not update event check-in status.',
       })
     }
   }
@@ -499,7 +499,7 @@ function ClubAttendancePage({ clubId }) {
               <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" strokeLinecap="round" />
               <path d="M7 7h2v2H7zM15 7h2v2h-2zM7 15h2v2H7z" />
             </svg>
-            Quét QR
+            Scan QR
           </button>
         </div>
       </section>

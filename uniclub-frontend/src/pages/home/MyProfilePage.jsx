@@ -94,7 +94,7 @@ function MyProfilePage({ currentUser }) {
         social_links: profile.socialLinks,
       })
       setIsEditing(false)
-      // Hiển thị thông báo cho chức năng cập nhật hồ sơ.
+      // Display notification when profile is updated.
       showToast({
         type: 'success',
         title: 'Profile updated',

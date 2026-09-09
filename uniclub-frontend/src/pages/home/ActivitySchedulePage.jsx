@@ -30,20 +30,13 @@ const STATUS_FILTERS = [
   { id: 'coming_soon', label: 'Coming Soon' },
   { id: 'opening', label: 'Opening' },
   { id: 'closed', label: 'Closed' },
-  { id: 'cancelled', label: 'Cancelled' },
 ]
 
 const STATUS_META = {
   coming_soon: { label: 'Coming Soon', emoji: '⏳', cardType: 'meeting' },
   opening: { label: 'Opening', emoji: '🟢', cardType: 'workshop' },
   closed: { label: 'Closed', emoji: '✅', cardType: 'outing' },
-  cancelled: { label: 'Cancelled', emoji: '⛔', cardType: 'outing' },
 }
-
-const PROGRESS_OPTIONS = [
-  { id: 'draft', label: 'Draft' },
-  { id: 'published', label: 'Published' },
-]
 
 const EMPTY_FORM = {
   id: null,
@@ -54,7 +47,6 @@ const EMPTY_FORM = {
   location: '',
   description: '',
   status: 'coming_soon',
-  progressStatus: 'draft',
 }
 
 function startOfDay(date) {
@@ -118,7 +110,7 @@ function mapActivityFromApi(apiActivity) {
   const end = apiActivity.end_time ? new Date(apiActivity.end_time) : null
 
   let status = apiActivity.status || 'coming_soon'
-  if (status !== 'cancelled' && start && end) {
+  if (start && end) {
     if (now < start) {
       status = 'coming_soon'
     } else if (now >= start && now <= end) {
@@ -140,12 +132,10 @@ function mapActivityFromApi(apiActivity) {
     time: formatTimeRange(apiActivity.start_time, apiActivity.end_time),
     dayIndex: apiActivity.start_time != null ? getDayIndex(apiActivity.start_time) : 0,
     status,
-    progressStatus: apiActivity.progress_status || 'draft',
     type: meta.cardType,
     statusLabel: meta.label,
     statusEmoji: meta.emoji,
-    mediaUrls: apiActivity.media_urls || [],
-    createdBy: apiActivity.created_by || null,
+    createdBy: apiActivity.created_by?.user_id || apiActivity.created_by || null,
     club: apiActivity.club_id || null,
   }
 }
@@ -211,6 +201,7 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
     const attendanceList = getMemberAttendance(activityId)
     const payload = attendanceList.map((m) => ({
       userId: m.id,
+      membershipId: m.membershipId,
       checked: Boolean(m.checked),
     }))
 
@@ -232,13 +223,13 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
 
       showToast({
         type: 'success',
-        message: `🎉 Đã lưu vĩnh viễn vào MongoDB! Đã tính & cộng +30 pts cho ${checkedCount} thành viên có mặt.`,
+        message: `Attendance saved successfully! Added +30 pts for ${checkedCount} attended member(s).`,
       })
     } catch (err) {
       console.error('Save attendance error:', err)
       showToast({
         type: 'error',
-        message: err.message || 'Lỗi khi lưu điểm danh vào MongoDB',
+        message: err.message || 'Failed to save attendance',
       })
     }
   }
@@ -364,7 +355,6 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
       location: activity.location || '',
       description: activity.description || '',
       status: activity.status || 'coming_soon',
-      progressStatus: activity.progressStatus || 'draft',
     })
     setShowFormModal(true)
   }
@@ -428,7 +418,6 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
       start_time: startTime,
       end_time: endTime,
       status: formData.status,
-      progress_status: formData.progressStatus,
     }
 
     setSaving(true)
@@ -587,9 +576,7 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                       </div>
                       <h3 className="activity-card__title">{activity.title}</h3>
                       <div className="activity-card__pts" style={{ opacity: 0.85 }}>
-                        {isSecretary
-                          ? `${activity.statusLabel} · ${activity.progressStatus}`
-                          : activity.location || 'No location'}
+                        {activity.location || 'No location'}
                       </div>
                     </div>
                   ))}
@@ -635,7 +622,6 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                     style={{ fontSize: '13px', padding: '6px 12px', borderRadius: '12px', marginBottom: '24px' }}
                   >
                     Status: {selectedActivity.statusLabel}
-                    {isSecretary ? ` · ${selectedActivity.progressStatus}` : ''}
                   </div>
                   <div className="activity-detail-meta">
                     <div className="meta-box">
@@ -932,20 +918,7 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                 </div>
               </div>
 
-              <div style={{ marginBottom: '24px' }}>
-                <label style={labelStyle}>Progress</label>
-                <select
-                  value={formData.progressStatus}
-                  onChange={(e) => setFormData({ ...formData, progressStatus: e.target.value })}
-                  style={{ ...inputStyle, background: '#ffffff', color: '#0f172a' }}
-                >
-                  {PROGRESS_OPTIONS.map((opt) => (
-                    <option key={opt.id} value={opt.id} style={{ background: '#ffffff', color: '#0f172a' }}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+
 
               <div style={{ marginBottom: '24px' }}>
                 <label style={labelStyle}>Location *</label>

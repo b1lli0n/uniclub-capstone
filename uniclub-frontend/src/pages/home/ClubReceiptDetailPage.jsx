@@ -5,14 +5,14 @@ import { getReceiptDetail } from '../../api/payment.api'
 import '../../styles/club-fees.css'
 
 function formatVND(amount) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0)
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount || 0)
 }
 
 function formatDate(dateStr) {
   if (!dateStr) return 'N/A'
-  return new Date(dateStr).toLocaleDateString('vi-VN', {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
     day: '2-digit',
-    month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
@@ -40,7 +40,7 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
         }
       } catch (err) {
         console.error('Failed to load receipt:', err)
-        toast.error?.(err.message || 'Không thể lấy thông tin biên lai thanh toán')
+        toast.error?.(err.message || 'Failed to load receipt details')
       } finally {
         setLoading(false)
       }
@@ -55,7 +55,7 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
     return (
       <div className="club-fees-container" style={{ textAlign: 'center', padding: '4rem 1rem' }}>
         <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⌛</div>
-        <p style={{ color: '#86868b' }}>Đang tải thông tin biên lai thanh toán...</p>
+        <p style={{ color: '#86868b' }}>Loading receipt details...</p>
       </div>
     )
   }
@@ -64,14 +64,14 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
     return (
       <div className="club-fees-container" style={{ textAlign: 'center', padding: '4rem 1rem' }}>
         <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⚠️</div>
-        <p style={{ color: '#86868b' }}>Không tìm thấy biên lai thanh toán</p>
+        <p style={{ color: '#86868b' }}>Payment receipt not found</p>
         <button
           type="button"
           className="club-fee-btn club-fee-btn--receipt"
           style={{ marginTop: '1rem' }}
-          onClick={() => navigate(clubId ? `/clubs/${clubId}/fees` : '/my-clubs')}
+          onClick={() => navigate(clubId ? `/clubs/${clubId}/fees` : '/my-fees')}
         >
-          Quay lại danh sách phí
+          Back to Membership Fees
         </button>
       </div>
     )
@@ -83,66 +83,66 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
         <button
           type="button"
           className="club-fee-btn club-fee-btn--receipt"
-          onClick={() => navigate(clubId ? `/clubs/${clubId}/fees` : -1)}
+          onClick={() => navigate(clubId ? `/clubs/${clubId}/fees` : '/my-fees')}
         >
-          ← Quay lại
+          ← Back
         </button>
         <button
           type="button"
           className="club-fee-btn club-fee-btn--pay"
           onClick={() => window.print()}
         >
-          🖨️ In / Tải biên lai (PDF)
+          🖨️ Print / Download Receipt (PDF)
         </button>
       </div>
 
       <div className="club-receipt-paper">
         <div className="club-receipt-header">
           <div className="club-receipt-header__badge">
-            ✓ BIÊN LAI THANH TOÁN THÀNH CÔNG
+            ✓ PAYMENT RECEIPT - SUCCESSFUL
           </div>
           <h2 style={{ margin: '0 0 0.5rem 0', fontSize: '1.6rem', color: '#1d1d1f' }}>
-            HỆ THỐNG QUẢN LÝ CÂU LẠC BỘ UNICLUB
+            UNICLUB - CLUB MANAGEMENT SYSTEM
           </h2>
           <p style={{ margin: 0, color: '#86868b', fontSize: '0.9rem' }}>
-            Mã biên lai: <strong>#{receipt.receiptId || receipt._id}</strong>
+            Receipt ID: <strong>#{receipt.receiptId || receipt._id}</strong>
           </p>
         </div>
 
         <div className="club-receipt-grid">
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">Câu lạc bộ</span>
+            <span className="club-receipt-field__label">Club</span>
             <span className="club-receipt-field__value">{receipt.club?.name || 'N/A'}</span>
           </div>
 
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">Thành viên nộp</span>
+            <span className="club-receipt-field__label">Member Name</span>
             <span className="club-receipt-field__value">{receipt.user?.full_name || 'N/A'}</span>
           </div>
 
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">Email thành viên</span>
+            <span className="club-receipt-field__label">Member Email</span>
             <span className="club-receipt-field__value">{receipt.user?.email || 'N/A'}</span>
           </div>
 
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">Kỳ đóng phí</span>
+            <span className="club-receipt-field__label">Billing Period</span>
             <span className="club-receipt-field__value">{receipt.period}</span>
           </div>
 
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">Nội dung nộp</span>
-            <span className="club-receipt-field__value">{receipt.order_info || `Phí thành viên ${receipt.period}`}</span>
+            <span className="club-receipt-field__label">Description</span>
+            <span className="club-receipt-field__value">{receipt.order_info || `Membership Fee ${receipt.period}`}</span>
           </div>
 
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">Phương thức thanh toán</span>
-            <span className="club-receipt-field__value">{receipt.payment_method_label}</span>
+            <span className="club-receipt-field__label">Payment Method</span>
+            <span className="club-receipt-field__value">{receipt.payment_method_label || 'VNPay'}</span>
           </div>
 
           {receipt.txn_ref && (
             <div className="club-receipt-field">
-              <span className="club-receipt-field__label">Mã giao dịch VNPay (TxnRef)</span>
+              <span className="club-receipt-field__label">VNPay Transaction Ref (TxnRef)</span>
               <span className="club-receipt-field__value" style={{ fontFamily: 'monospace' }}>
                 {receipt.txn_ref}
               </span>
@@ -151,13 +151,13 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
 
           {receipt.vnp_response_code && (
             <div className="club-receipt-field">
-              <span className="club-receipt-field__label">Mã phản hồi VNPay</span>
-              <span className="club-receipt-field__value">{receipt.vnp_response_code} (Thành công)</span>
+              <span className="club-receipt-field__label">VNPay Response Code</span>
+              <span className="club-receipt-field__value">{receipt.vnp_response_code} (Success)</span>
             </div>
           )}
 
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">Thời gian thanh toán</span>
+            <span className="club-receipt-field__label">Payment Date & Time</span>
             <span className="club-receipt-field__value">{formatDate(receipt.paid_at || receipt.created_at)}</span>
           </div>
         </div>
@@ -170,14 +170,13 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-
-          <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1d1d1f' }}>Tổng số tiền đã nộp:</span>
+          <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1d1d1f' }}>Total Amount Paid:</span>
           <span style={{ fontSize: '1.6rem', fontWeight: 700, color: '#0071e3' }}>{formatVND(receipt.amount)}</span>
         </div>
 
         <div style={{ marginTop: '2.5rem', textAlign: 'center', color: '#86868b', fontSize: '0.85rem' }}>
-          <p style={{ margin: '0 0 0.25rem 0' }}>Cảm ơn bạn đã tham gia đóng góp cho các hoạt động của câu lạc bộ!</p>
-          <p style={{ margin: 0 }}>Biên lai điện tử có giá trị xác nhận thanh toán hợp lệ trên hệ thống UniClub.</p>
+          <p style={{ margin: '0 0 0.25rem 0' }}>Thank you for contributing to our club activities!</p>
+          <p style={{ margin: 0 }}>This digital receipt serves as official proof of payment in the UniClub system.</p>
         </div>
       </div>
     </div>

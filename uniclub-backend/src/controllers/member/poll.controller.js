@@ -65,9 +65,11 @@ const votePoll = async (req, res, next) => {
 
     const data = await pollService.votePoll(clubId, pollId, req.user.id, optionId);
 
+    const message = data.my_vote ? "Vote recorded successfully" : "Vote cancelled successfully";
+
     return res.status(200).json({
       success: true,
-      message: "Poll voted successfully",
+      message,
       data,
     });
   } catch (error) {

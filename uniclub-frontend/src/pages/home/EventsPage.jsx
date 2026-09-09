@@ -32,7 +32,7 @@ function mapEventFromApi(apiEvent) {
     date: formattedDate,
     participants: apiEvent.capacity || 0,
     gradient: CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.academic,
-    status: apiEvent.status || 'coming soon',
+    status: apiEvent.status === 'coming soon' ? 'coming_soon' : (apiEvent.status || 'coming_soon'),
     imageUrl: resolveEventUploadImage(apiEvent.media_uris || apiEvent.image_url, category),
   }
 }
@@ -170,13 +170,13 @@ function EventCard({ event, onSelect }) {
           textTransform: 'uppercase',
           boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
           background: event.status === 'opening' ? '#e2f9e6' :
-                      event.status === 'coming soon' ? '#e6f3ff' :
+                      (event.status === 'coming_soon' || event.status === 'coming soon') ? '#e6f3ff' :
                       event.status === 'closed' ? '#fff4e6' : '#fce8e6',
           color: event.status === 'opening' ? '#1b8a36' :
-                 event.status === 'coming soon' ? '#0284c7' :
+                 (event.status === 'coming_soon' || event.status === 'coming soon') ? '#0284c7' :
                  event.status === 'closed' ? '#d97706' : '#dc2626'
         }}>
-          {event.status}
+          {event.status === 'coming_soon' ? 'coming soon' : event.status}
         </span>
       </div>
       <div className="clubs-card__body events-card__body">
@@ -219,7 +219,7 @@ function EventCard({ event, onSelect }) {
 const STATUS_FILTER_OPTIONS = [
   { value: 'all', label: 'All Statuses' },
   { value: 'opening', label: 'Opening' },
-  { value: 'coming soon', label: 'Coming Soon' },
+  { value: 'coming_soon', label: 'Coming Soon' },
   { value: 'closed', label: 'Closed' },
   { value: 'cancelled', label: 'Cancelled' },
 ]
@@ -261,7 +261,7 @@ function EventsPage() {
     }
 
     if (statusFilter !== 'all') {
-      result = result.filter((event) => event.status === statusFilter)
+      result = result.filter((event) => event.status === statusFilter || (statusFilter === 'coming_soon' && event.status === 'coming soon'))
     } else {
       result = result.filter((event) => event.status !== 'closed' && event.status !== 'cancelled')
     }

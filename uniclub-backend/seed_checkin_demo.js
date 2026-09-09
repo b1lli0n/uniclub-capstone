@@ -202,7 +202,7 @@ async function main() {
   const evt3 = await Event.create({
     club_id: clubId, title: "UniClub's Got Talent Auditions", description: "Vòng thử giọng tài năng.",
     content: "Vòng thử giọng tài năng campus.", category: "arts",
-    location: "FPT University Da Nang – Hội trường A", status: "coming soon",
+    location: "FPT University Da Nang – Hội trường A", status: "coming_soon",
     check_in_status: "not_open", start_time: new Date(now + 7*day), end_time: new Date(now + 7*day + 3*hr),
     created_by: tyUser._id, capacity: 100, is_public: true, multiplier: 1, progress_status: "completed",
   });

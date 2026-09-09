@@ -205,6 +205,17 @@ function ClubInvitationsPage({ clubId }) {
     }
   }
 
+  if (!loading && !canManageInvitations) {
+    return (
+      <main className="club-invitations-page">
+        <section className="club-invitations-empty" style={{ margin: '3rem auto', padding: '3rem', textAlign: 'center' }}>
+          <h2>Access Restricted</h2>
+          <p>Only the club Secretary or President can manage invitations.</p>
+        </section>
+      </main>
+    )
+  }
+
   return (
     <main className="club-invitations-page">
       <section className="club-invitations-hero">

@@ -27,7 +27,7 @@ function QRModal({ registrationId, eventTitle, onClose }) {
       >
         <div style={{ fontSize: '2.2rem', marginBottom: '0.4rem' }}>🎟️</div>
         <h3 style={{ margin: '0 0 0.3rem', fontSize: '1rem', fontWeight: 700, color: '#1a1a2e' }}>
-          Mã vé check-in
+          Check-in Ticket
         </h3>
         <p style={{ margin: '0 0 1.25rem', fontSize: '0.82rem', color: '#777', lineHeight: 1.4 }}>
           {eventTitle}
@@ -44,7 +44,7 @@ function QRModal({ registrationId, eventTitle, onClose }) {
               fontWeight: 700, fontSize: '0.88rem',
             }}
           >
-            Đóng
+            Close
           </button>
         </div>
       </div>
@@ -58,22 +58,22 @@ function EventRow({ reg, onShowQR, navigate }) {
   const club  = event.club_id || {}
 
   const startDate = event.start_time
-    ? new Date(event.start_time).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    ? new Date(event.start_time).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })
     : '—'
   const startTime = event.start_time
-    ? new Date(event.start_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+    ? new Date(event.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     : ''
 
   const checkInOpen = event.check_in_status === 'open'
 
   const STATUS = {
-    pending:    { label: 'Chờ duyệt',     bg: '#fffbeb', color: '#b45309', border: '#fef3c7' },
-    approved:   { label: 'Chờ check-in',  bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
-    registered: { label: 'Chờ check-in',  bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
-    attended:   { label: '✓ Đã check-in', bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
-    absent:     { label: 'Vắng mặt',      bg: '#fef2f2', color: '#991b1b', border: '#fecaca' },
-    cancelled:  { label: 'Đã huỷ',        bg: '#f9fafb', color: '#6b7280', border: '#e5e7eb' },
-    rejected:   { label: 'Từ chối',       bg: '#fef2f2', color: '#991b1b', border: '#fecaca' },
+    pending:    { label: 'Pending',              bg: '#fffbeb', color: '#b45309', border: '#fef3c7' },
+    approved:   { label: 'Ready for Check-in',   bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
+    registered: { label: 'Ready for Check-in',   bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
+    attended:   { label: '✓ Checked In',         bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
+    absent:     { label: 'Absent',               bg: '#fef2f2', color: '#991b1b', border: '#fecaca' },
+    cancelled:  { label: 'Cancelled',            bg: '#f9fafb', color: '#6b7280', border: '#e5e7eb' },
+    rejected:   { label: 'Rejected',             bg: '#fef2f2', color: '#991b1b', border: '#fecaca' },
   }
   const st = STATUS[reg.status] || STATUS.registered
 
@@ -88,7 +88,7 @@ function EventRow({ reg, onShowQR, navigate }) {
       <div style={{ flex: '1 1 260px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem', flexWrap: 'wrap' }}>
           <h3 style={{ margin: 0, fontSize: '1rem', color: '#3d2e24', fontWeight: 700 }}>
-            {event.title || 'Sự kiện'}
+            {event.title || 'Event'}
           </h3>
           {checkInOpen && (
             <span style={{
@@ -123,7 +123,7 @@ function EventRow({ reg, onShowQR, navigate }) {
         {(reg.status === 'registered' || reg.status === 'approved' || reg.status === 'attended') && (
           <button
             onClick={() => onShowQR(reg)}
-            title="Xem mã QR check-in"
+            title="View QR check-in code"
             style={{
               padding: '0.5rem 0.9rem', border: 'none', borderRadius: '10px', cursor: 'pointer',
               background: checkInOpen ? '#6366f1' : '#f3f4f6',
@@ -134,7 +134,7 @@ function EventRow({ reg, onShowQR, navigate }) {
               transition: 'all 0.2s',
             }}
           >
-            🎟️ {checkInOpen ? 'QR Check-in' : 'Xem vé'}
+            🎟️ {checkInOpen ? 'QR Check-in' : 'View Ticket'}
           </button>
         )}
 
@@ -148,7 +148,7 @@ function EventRow({ reg, onShowQR, navigate }) {
             boxShadow: '0 2px 8px rgba(245,124,0,0.2)',
           }}
         >
-          Chi tiết
+          Details
         </button>
       </div>
     </div>
@@ -204,17 +204,17 @@ function MyEventsPage() {
           🎟️ My Events
         </h1>
         <p style={{ color: '#8c7e95', margin: 0, fontSize: '0.9rem' }}>
-          Các sự kiện bạn đã đăng ký – bấm <strong>QR Check-in</strong> khi cổng đang mở để lấy mã quét.
+          Events you have registered for – click <strong>QR Check-in</strong> when check-in is open to display your scan code.
         </p>
       </section>
 
       {/* Stats */}
       <section style={{ display: 'flex', gap: '1rem', marginBottom: '1.75rem', flexWrap: 'wrap' }}>
         {[
-          { num: clubsCount,           label: 'Câu lạc bộ' },
-          { num: registrations.length, label: 'Đã đăng ký' },
-          { num: openRegs.length,      label: 'Check-in đang mở', highlight: openRegs.length > 0 },
-          { num: doneRegs.filter(r => r.status === 'attended').length, label: 'Đã tham dự' },
+          { num: clubsCount,           label: 'Clubs' },
+          { num: registrations.length, label: 'Registered' },
+          { num: openRegs.length,      label: 'Check-in Open', highlight: openRegs.length > 0 },
+          { num: doneRegs.filter(r => r.status === 'attended').length, label: 'Attended' },
         ].map(s => (
           <div key={s.label} style={{
             flex: '1 1 120px', padding: '1rem 1.25rem', background: '#fff',
@@ -232,14 +232,14 @@ function MyEventsPage() {
 
       {/* Content */}
       <section style={{ background: '#fff', border: '1px solid #f0e4d8', borderRadius: '20px', padding: '1.5rem', boxShadow: '0 4px 16px rgba(92,64,51,0.05)' }}>
-        {loading && <p style={{ textAlign: 'center', color: '#8c7e95', padding: '3rem 0' }}>Đang tải...</p>}
+        {loading && <p style={{ textAlign: 'center', color: '#8c7e95', padding: '3rem 0' }}>Loading...</p>}
 
         {!loading && registrations.length === 0 && (
           <div style={{ textAlign: 'center', padding: '4rem 1.5rem' }}>
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
-            <p style={{ color: '#8c7e95', marginBottom: '1.5rem' }}>Bạn chưa đăng ký sự kiện nào.</p>
+            <p style={{ color: '#8c7e95', marginBottom: '1.5rem' }}>You have not registered for any events yet.</p>
             <button onClick={() => navigate('/events')} style={{ padding: '0.6rem 1.5rem', background: '#F57C00', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>
-              Khám phá sự kiện
+              Explore Events
             </button>
           </div>
         )}
@@ -250,7 +250,7 @@ function MyEventsPage() {
             {openRegs.length > 0 && (
               <>
                 <p style={{ margin: '0 0 0.25rem', fontSize: '0.78rem', fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  🟢 Check-in đang mở
+                  🟢 Check-in Open
                 </p>
                 {openRegs.map(r => <EventRow key={r._id} reg={r} onShowQR={setQrReg} navigate={navigate} />)}
                 {(upcomingRegs.length > 0 || doneRegs.length > 0) && <hr style={{ border: 'none', borderTop: '1px dashed #f0e4d8', margin: '0.25rem 0' }} />}
@@ -261,7 +261,7 @@ function MyEventsPage() {
             {upcomingRegs.length > 0 && (
               <>
                 <p style={{ margin: '0 0 0.25rem', fontSize: '0.78rem', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  📅 Đã đăng ký
+                  📅 Registered Events
                 </p>
                 {upcomingRegs.map(r => <EventRow key={r._id} reg={r} onShowQR={setQrReg} navigate={navigate} />)}
                 {doneRegs.length > 0 && <hr style={{ border: 'none', borderTop: '1px dashed #f0e4d8', margin: '0.25rem 0' }} />}
@@ -272,7 +272,7 @@ function MyEventsPage() {
             {doneRegs.length > 0 && (
               <>
                 <p style={{ margin: '0 0 0.25rem', fontSize: '0.78rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  📁 Đã qua
+                  📁 Past Events
                 </p>
                 {doneRegs.map(r => <EventRow key={r._id} reg={r} onShowQR={setQrReg} navigate={navigate} />)}
               </>
