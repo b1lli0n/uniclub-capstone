@@ -1,6 +1,17 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
+const questionSchema = new Schema(
+  {
+    content: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  },
+  { _id: true } // Mongoose tự động sinh _id (ObjectId) cho từng câu hỏi
+);
+
 const joinFormSchema = Schema(
   {
     club_id: {
@@ -22,7 +33,18 @@ const joinFormSchema = Schema(
     },
 
     questions: {
-      type: [String],
+      type: [questionSchema],
+      set: (val) => {
+        if (Array.isArray(val)) {
+          return val.map((q) => {
+            if (typeof q === "string") {
+              return { content: q.trim() };
+            }
+            return q;
+          });
+        }
+        return val;
+      },
       required: true,
       validate: {
         validator(value) {

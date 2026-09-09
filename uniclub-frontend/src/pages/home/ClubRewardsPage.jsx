@@ -227,11 +227,11 @@ function ClubRewardsPage({ isManager = false }) {
             title: r.name,
             type: 'Voucher',
             club: 'CLB',
-            points: r.point_cost ?? r.points_required ?? 100,
+            points: r.points_required ?? 100,
             stock: r.quantity ?? 10,
             image: r.image_url || '🎁',
             description: r.description,
-            isVisible: r.is_active || r.status === 'active',
+            isVisible: r.status === 'active',
           })))
         } else {
           // Member response layout: { success, data: { available_points, rewards: [...] } }
@@ -243,11 +243,11 @@ function ClubRewardsPage({ isManager = false }) {
             title: r.name,
             type: 'Voucher',
             club: 'CLB',
-            points: r.point_cost ?? r.points_required ?? 100,
+            points: r.points_required ?? 100,
             stock: r.quantity ?? 10,
             image: r.image_url || '🎁',
             description: r.description,
-            isVisible: r.is_active || r.status === 'active',
+            isVisible: r.status === 'active',
           })))
         }
         setIsLoading(false)
@@ -339,7 +339,7 @@ function ClubRewardsPage({ isManager = false }) {
             title: r.name,
             type: 'Voucher',
             club: 'CLB',
-            points: r.point_cost,
+            points: r.points_required ?? 100,
             stock: r.quantity,
             image: r.image_url,
             description: r.description,
@@ -359,6 +359,7 @@ function ClubRewardsPage({ isManager = false }) {
       name: draft.title,
       description: draft.description,
       image_url: draft.image,
+      points_required: draft.points,
       point_cost: draft.points,
       quantity: draft.stock,
     }

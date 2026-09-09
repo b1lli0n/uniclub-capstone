@@ -17,7 +17,7 @@ const rewardSchema = Schema(
 
     description: {
       type: String,
-      required: false,
+      required: true,
       trim: true,
       default: "",
     },
@@ -34,22 +34,11 @@ const rewardSchema = Schema(
       required: false,
     },
 
-    point_cost: {
-      type: Number,
-      required: false,
-    },
-
     quantity: {
       type: Number,
       required: true,
       min: 0,
       default: 0,
-    },
-
-    is_active: {
-      type: Boolean,
-      required: true,
-      default: false,
     },
 
     status: {
@@ -61,7 +50,7 @@ const rewardSchema = Schema(
 
     created_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       required: false,
     },
   },
@@ -73,27 +62,7 @@ const rewardSchema = Schema(
   }
 );
 
-// Pre-save hook to synchronize points_required/point_cost and is_active/status
-rewardSchema.pre("save", function (next) {
-  // Sync point_cost and points_required
-  if (this.point_cost !== undefined) {
-    this.points_required = this.point_cost;
-  } else if (this.points_required !== undefined) {
-    this.point_cost = this.points_required;
-  }
-
-  // Sync status and is_active
-  if (this.status !== undefined) {
-    this.is_active = (this.status === "active");
-  } else if (this.is_active !== undefined) {
-    this.status = this.is_active ? "active" : "hidden";
-  }
-
-  next();
-});
-
 rewardSchema.index({ club_id: 1 });
-rewardSchema.index({ club_id: 1, is_active: 1 });
 rewardSchema.index({ club_id: 1, status: 1 });
 rewardSchema.index({ club_id: 1, created_at: -1 });
 rewardSchema.index({ club_id: 1, name: 1 });

@@ -23,6 +23,7 @@ const eventTimelineRoutes = require("./routes/eventTimeline.routes");
 const eventAttendanceRoutes = require("./routes/eventAttendance.routes");
 const clubMembershipRoutes = require("./routes/member/clubMembership.routes");
 const memberAchievementPointsRoutes = require("./routes/member/achievementPoints.routes");
+const memberRewardRoutes = require("./routes/member/reward.routes");
 const presidentJoinFormManagementRoutes = require("./routes/president/joinFormManagement.routes");
 const presidentPointRuleManagementRoutes = require("./routes/president/pointRuleManagement.routes");
 const presidentJoinRequestManagementRoutes = require("./routes/president/joinRequestManagement.routes");
@@ -67,6 +68,7 @@ app.use("/api/events", eventAttendanceRoutes);
 
 app.use("/api/member/clubs-membership", clubMembershipRoutes);
 app.use("/api/member/clubs-membership", memberAchievementPointsRoutes);
+app.use("/api/member/clubs-membership", memberRewardRoutes);
 app.use("/api/member/clubs-membership", memberInvitationManagementRoutes);
 app.use("/api/club-management", clubManagementRoutes);
 app.use("/api/club-members", clubMemberRoutes);

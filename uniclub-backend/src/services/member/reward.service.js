@@ -32,7 +32,7 @@ const getMemberRewards = async ({ clubId, userId, search }) => {
 
   const filter = {
     club_id: clubId,
-    $or: [{ is_active: true }, { status: "active" }],
+    status: "active",
   };
 
   if (search?.trim()) {
@@ -42,7 +42,7 @@ const getMemberRewards = async ({ clubId, userId, search }) => {
 
   const rewards = await Reward.find(filter)
     .sort({ created_at: -1 })
-    .select("_id name description points_required point_cost image_url quantity is_active status created_at");
+    .select("_id name description points_required image_url quantity status created_at");
 
   return {
     available_points: membership.reward_point,
@@ -56,9 +56,9 @@ const getMemberRewardDetail = async ({ clubId, rewardId, userId }) => {
 
   const [membership, reward] = await Promise.all([
     getActiveMembership(clubId, userId),
-    Reward.findOne({ _id: rewardId, club_id: clubId, is_active: true })
+    Reward.findOne({ _id: rewardId, club_id: clubId, status: "active" })
       .populate("club_id", "_id name logo_url")
-      .select("_id club_id name description points_required point_cost image_url quantity is_active status created_at updated_at"),
+      .select("_id club_id name description points_required image_url quantity status created_at updated_at"),
   ]);
 
   if (!reward) {
@@ -156,7 +156,7 @@ const redeemReward = async ({ clubId, rewardId, userId }) => {
   const memberPoints = membership.reward_point || 0;
   const availablePoints = Math.max(memberPoints - pendingPoints, 0);
 
-  const cost = reward.point_cost ?? reward.points_required ?? 100;
+  const cost = reward.points_required ?? 100;
   if (availablePoints < cost) {
     throw getStatusError("Insufficient reward points", 400);
   }
@@ -172,7 +172,7 @@ const redeemReward = async ({ clubId, rewardId, userId }) => {
     status: "pending",
   });
 
-  await redemption.populate("reward_id", "_id name description points_required point_cost quantity image_url");
+  await redemption.populate("reward_id", "_id name description points_required quantity image_url");
 
   // Trigger Email notification to Leader
   try {

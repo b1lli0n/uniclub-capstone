@@ -1,33 +1,23 @@
-const Profile = require("../models/profile.model");
-const User = require("../models/user.model");
-const mongoose = require("mongoose");
+const profileService = require("../services/profile.service");
 
-const getMyProfile = async (req, res) => {
+const getMyProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    const data = await profileService.getMyProfile(userId);
 
-    const user = await User.findById(userId).select(
-      "full_name email avatar_url role"
-    );
-
-    let profile = await Profile.findOne({ user_id: userId });
-
-    if (!profile) {
-      profile = await Profile.create({
-        user_id: userId,
-      });
-    }
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Get profile successfully",
-      data: {
-        user,
-        profile,
-      },
+      data,
     });
   } catch (error) {
-    res.status(500).json({
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    return res.status(500).json({
       success: false,
       message: "Get profile failed",
       error: error.message,
@@ -35,45 +25,23 @@ const getMyProfile = async (req, res) => {
   }
 };
 
-const getUserProfileById = async (req, res) => {
+const getUserProfileById = async (req, res, next) => {
   try {
     const { userId } = req.params;
-
-    if (!mongoose.isValidObjectId(userId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid user ID",
-      });
-    }
-
-    const user = await User.findById(userId).select(
-      "full_name email avatar_url role"
-    );
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    let profile = await Profile.findOne({ user_id: userId });
-
-    if (!profile) {
-      profile = await Profile.create({
-        user_id: userId,
-      });
-    }
+    const data = await profileService.getUserProfileById(userId);
 
     return res.status(200).json({
       success: true,
       message: "Get user profile successfully",
-      data: {
-        user,
-        profile,
-      },
+      data,
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
     return res.status(500).json({
       success: false,
       message: "Get user profile failed",
@@ -82,61 +50,31 @@ const getUserProfileById = async (req, res) => {
   }
 };
 
-const updateMyProfile = async (req, res) => {
+const updateMyProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    const { avatar, student_code, phone, campus } = req.body;
 
-    const {
+    const profile = await profileService.updateMyProfile(userId, {
       avatar,
       student_code,
       phone,
       campus,
-    } = req.body;
+    });
 
-    let existingProfile = await Profile.findOne({ user_id: userId });
-
-    if (
-      existingProfile &&
-      existingProfile.student_code &&
-      student_code &&
-      student_code.trim() !== existingProfile.student_code
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Student code (MSSV) cannot be changed once set",
-      });
-    }
-
-    const updateData = {
-      phone,
-      campus,
-    };
-
-    if (avatar !== undefined) {
-      updateData.avatar = avatar;
-    }
-
-    if (student_code && (!existingProfile || !existingProfile.student_code)) {
-      updateData.student_code = student_code;
-    }
-
-    const profile = await Profile.findOneAndUpdate(
-      { user_id: userId },
-      updateData,
-      {
-        new: true,
-        upsert: true,
-        runValidators: true,
-      }
-    );
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Update profile successfully",
       data: profile,
     });
   } catch (error) {
-    res.status(500).json({
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    return res.status(500).json({
       success: false,
       message: "Update profile failed",
       error: error.message,
@@ -144,40 +82,28 @@ const updateMyProfile = async (req, res) => {
   }
 };
 
-const searchUsers = async (req, res) => {
+const searchUsers = async (req, res, next) => {
   try {
     const { q } = req.query;
     const currentUserId = req.user.id;
 
-    const queryFilter = {
-      _id: { $ne: new mongoose.Types.ObjectId(currentUserId) },
-      role: "student",
-    };
-
-    if (q && q.trim().length >= 1) {
-      const keyword = q.trim();
-      queryFilter.$or = [
-        { full_name: { $regex: keyword, $options: "i" } },
-        { email: { $regex: keyword, $options: "i" } },
-      ];
-    }
-
-    const users = await User.find(queryFilter)
-      .select("_id full_name email avatar_url")
-      .limit(10);
+    const data = await profileService.searchUsers({
+      keyword: q,
+      currentUserId,
+    });
 
     return res.status(200).json({
       success: true,
-      data: users.map((u) => ({
-        value: u._id,
-        label: `${u.full_name} (${u.email})`,
-        name: u.full_name,
-        email: u.email,
-        avatarUrl: u.avatar_url || "",
-      })),
+      data,
     });
   } catch (error) {
-    res.status(500).json({
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    return res.status(500).json({
       success: false,
       message: "Search users failed",
       error: error.message,

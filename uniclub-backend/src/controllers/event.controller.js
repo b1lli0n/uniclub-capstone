@@ -1,10 +1,4 @@
-const mongoose = require("mongoose");
-const Event = require("../models/event.model");
-const EventRegistration = require("../models/event_registration.model");
-const ClubMember = require("../models/club_member.model");
-const { getStatusError } = require("../utils/error");
-
-const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
+const eventService = require("../services/event.service");
 
 // ─────────────────────────────────────────────────────────────
 // UC: View Public Events (học sinh xem các sự kiện được public)
@@ -14,25 +8,19 @@ const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 const getPublicEvents = async (req, res, next) => {
   try {
     const { clubId } = req.query;
-    const filter = {
-      is_public: true,
-      status: { $ne: "cancelled" },
-    };
+    const events = await eventService.getPublicEvents({ clubId });
 
-    if (clubId) {
-      if (!isValidId(clubId)) {
-        return res.status(400).json({ success: false, message: "Invalid club ID" });
-      }
-      filter.club_id = clubId;
-    }
-
-    const events = await Event.find(filter)
-      .sort({ start_time: 1 })
-      .populate("club_id", "name logo_url")
-      .lean();
-
-    return res.status(200).json({ success: true, data: events });
+    return res.status(200).json({
+      success: true,
+      data: events,
+    });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -44,35 +32,22 @@ const getPublicEvents = async (req, res, next) => {
 const getClubEventsForMember = async (req, res, next) => {
   try {
     const { clubId } = req.params;
-
-    if (!isValidId(clubId)) {
-      return res.status(400).json({ success: false, message: "Invalid club ID" });
-    }
-
-    // Check membership
-    const membership = await ClubMember.findOne({
-      user_id: req.user.id,
-      club_id: clubId,
-      status: "active",
+    const events = await eventService.getClubEventsForMember({
+      clubId,
+      userId: req.user.id,
     });
 
-    if (!membership) {
-      return res.status(403).json({
+    return res.status(200).json({
+      success: true,
+      data: events,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
         success: false,
-        message: "You are not an active member of this club",
+        message: error.message,
       });
     }
-
-    // Lấy tất cả event không bị hủy của club
-    const events = await Event.find({
-      club_id: clubId,
-      status: { $ne: "cancelled" },
-    })
-      .sort({ start_time: -1 })
-      .lean();
-
-    return res.status(200).json({ success: true, data: events });
-  } catch (error) {
     next(error);
   }
 };
@@ -84,78 +59,22 @@ const getClubEventsForMember = async (req, res, next) => {
 const getEventDetail = async (req, res, next) => {
   try {
     const { eventId } = req.params;
-
-    if (!isValidId(eventId)) {
-      return res.status(400).json({ success: false, message: "Invalid event ID" });
-    }
-
-    const event = await Event.findById(eventId)
-      .populate("club_id", "name logo_url")
-      .lean();
-
-    if (!event) {
-      return res.status(404).json({ success: false, message: "Event not found" });
-    }
-
-    // Check roles/visibility nếu event là private
-    if (!event.is_public) {
-      if (!req.user) {
-        return res.status(401).json({
-          success: false,
-          message: "Authentication required to view private event details",
-        });
-      }
-
-      const membership = await ClubMember.findOne({
-        user_id: req.user.id,
-        club_id: event.club_id._id || event.club_id,
-        status: "active",
-      });
-
-      if (!membership) {
-        return res.status(403).json({
-          success: false,
-          message: "This is a private event. Only club members can view details.",
-        });
-      }
-    }
-
-    // Lấy thông tin đăng ký của user hiện tại (nếu đã đăng nhập)
-    let isRegistered = false;
-    let registrationStatus = null;
-    let registrationId = null;
-
-    if (req.user?.id) {
-      const reg = await EventRegistration.findOne({
-        event_id: eventId,
-        user_id: req.user.id,
-      }).lean();
-
-      if (reg) {
-        // user is registered if registration is approved, attended or pending approval
-        isRegistered = ["pending", "approved", "attended", "registered"].includes(reg.status);
-        registrationStatus = reg.status;
-        registrationId = reg._id;
-      }
-    }
-
-    // Đếm số lượng slot đã đăng ký thực tế
-    const registeredCount = await EventRegistration.countDocuments({
-      event_id: eventId,
-      status: { $in: ["approved", "registered", "attended"] },
+    const data = await eventService.getEventDetail({
+      eventId,
+      currentUser: req.user,
     });
 
     return res.status(200).json({
       success: true,
-      data: {
-        ...event,
-        isRegistered,
-        registrationStatus,
-        registrationId,
-        registeredCount,
-      },
+      data,
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -167,135 +86,11 @@ const getEventDetail = async (req, res, next) => {
 const registerForEvent = async (req, res, next) => {
   try {
     const { eventId } = req.params;
-
-    if (!isValidId(eventId)) {
-      return res.status(400).json({ success: false, message: "Invalid event ID" });
-    }
-
-    const event = await Event.findById(eventId);
-    if (!event) {
-      return res.status(404).json({ success: false, message: "Event not found" });
-    }
-
-    // 1. Kiểm tra trạng thái đăng ký của event
-    if (event.status !== "opening") {
-      return res.status(400).json({
-        success: false,
-        message: `Event registration is not open (status: ${event.status})`,
-      });
-    }
-
-    // 2. Kiểm tra thời gian sự kiện diễn ra
-    if (event.end_time && new Date() > new Date(event.end_time)) {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot register because the event has ended",
-      });
-    }
-
-    // 3. Kiểm tra membership (nếu event không phải public)
-    if (!event.is_public) {
-      const membership = await ClubMember.findOne({
-        user_id: req.user.id,
-        club_id: event.club_id,
-        status: "active",
-      });
-
-      if (!membership) {
-        return res.status(403).json({
-          success: false,
-          message: "Only active members of this club can register for this event",
-        });
-      }
-    }
-
-    // 4. Kiểm tra giới hạn số lượng (capacity)
-    const registeredCount = await EventRegistration.countDocuments({
-      event_id: eventId,
-      status: { $in: ["approved", "registered", "attended"] },
+    const reg = await eventService.registerForEvent({
+      eventId,
+      userId: req.user.id,
+      userEmail: req.user.email,
     });
-
-    if (registeredCount >= event.capacity) {
-      return res.status(400).json({
-        success: false,
-        message: "Event capacity has been reached",
-      });
-    }
-
-    // 5. Tiến hành lưu đăng ký (upsert)
-    let reg = await EventRegistration.findOne({
-      event_id: eventId,
-      user_id: req.user.id,
-    });
-
-    if (reg) {
-      if (["pending", "approved", "attended", "registered"].includes(reg.status)) {
-        return res.status(400).json({
-          success: false,
-          message: "You have already registered for this event",
-        });
-      }
-      reg.status = "registered";
-      reg.registered_at = new Date();
-      await reg.save();
-    } else {
-      reg = await EventRegistration.create({
-        event_id: eventId,
-        user_id: req.user.id,
-        status: "registered",
-        registered_at: new Date(),
-      });
-    }
-
-    // Call point award hook for registration/attendance
-    try {
-      const { awardRewardPoints } = require("../services/pointsAward.helper");
-      let awarded = await awardRewardPoints({
-        clubId: event.club_id,
-        userId: req.user.id,
-        actionTypeCode: "register_event",
-        eventId: event._id,
-      });
-
-      if (!awarded) {
-        await awardRewardPoints({
-          clubId: event.club_id,
-          userId: req.user.id,
-          actionTypeCode: "attendance",
-          eventId: event._id,
-        });
-      }
-    } catch (ptsErr) {
-      console.error("Points award error on registration:", ptsErr);
-    }
-
-    // Trigger Real-time Ticket QR Email Notification to Student
-    try {
-      const { sendEventTicketEmail } = require("../services/email.service");
-      const Club = require("../models/club.model");
-      const User = require("../models/user.model");
-      
-      const clubDoc = await Club.findById(event.club_id);
-      const userDoc = await User.findById(req.user.id);
-      
-      if (userDoc?.email) {
-        const ticketCode = `UC-EVT-${reg._id.toString().substring(18).toUpperCase()}`;
-        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${reg._id}`;
-        
-        sendEventTicketEmail({
-          toEmail: userDoc.email,
-          userName: userDoc.full_name || req.user.email || "Sinh viên UniClub",
-          clubName: clubDoc?.name || "Guitar Club",
-          eventTitle: event.title,
-          eventDate: event.start_time,
-          eventLocation: event.location || "Hội trường A101",
-          ticketCode,
-          qrCodeUrl,
-        });
-      }
-    } catch (ticketEmailErr) {
-      console.error("Failed to send ticket email:", ticketEmailErr);
-    }
 
     return res.status(201).json({
       success: true,
@@ -303,6 +98,12 @@ const registerForEvent = async (req, res, next) => {
       data: reg,
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -314,40 +115,10 @@ const registerForEvent = async (req, res, next) => {
 const cancelEventRegistration = async (req, res, next) => {
   try {
     const { eventId } = req.params;
-
-    if (!isValidId(eventId)) {
-      return res.status(400).json({ success: false, message: "Invalid event ID" });
-    }
-
-    const event = await Event.findById(eventId);
-    if (!event) {
-      return res.status(404).json({ success: false, message: "Event not found" });
-    }
-
-    // 1. Kiểm tra thời gian (chỉ được huỷ trước khi bắt đầu)
-    if (new Date() > new Date(event.start_time)) {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot cancel registration after the event has started",
-      });
-    }
-
-    // 2. Tìm bản ghi đăng ký hiện tại
-    const reg = await EventRegistration.findOne({
-      event_id: eventId,
-      user_id: req.user.id,
-      status: { $in: ["pending", "approved", "registered"] },
+    const reg = await eventService.cancelEventRegistration({
+      eventId,
+      userId: req.user.id,
     });
-
-    if (!reg) {
-      return res.status(400).json({
-        success: false,
-        message: "No active registration found for this event",
-      });
-    }
-
-    reg.status = "cancelled";
-    await reg.save();
 
     return res.status(200).json({
       success: true,
@@ -355,6 +126,12 @@ const cancelEventRegistration = async (req, res, next) => {
       data: reg,
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -365,19 +142,19 @@ const cancelEventRegistration = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────
 const getMyRegistrations = async (req, res, next) => {
   try {
-    const registrations = await EventRegistration.find({ user_id: req.user.id })
-      .populate({
-        path: "event_id",
-        populate: {
-          path: "club_id",
-          select: "name logo_url"
-        }
-      })
-      .sort({ registered_at: -1 })
-      .lean();
+    const registrations = await eventService.getMyRegistrations(req.user.id);
 
-    return res.status(200).json({ success: true, data: registrations });
+    return res.status(200).json({
+      success: true,
+      data: registrations,
+    });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
     next(error);
   }
 };

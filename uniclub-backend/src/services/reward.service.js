@@ -82,19 +82,23 @@ const getRewards = async ({
     "created_at",
     "updated_at",
     "name",
+    "points_required",
     "point_cost",
     "quantity",
   ];
 
   const selectedSortField = allowedSortFields.includes(sortBy)
-    ? sortBy
+    ? (sortBy === "point_cost" ? "points_required" : sortBy)
     : "created_at";
 
   const selectedSortOrder = sortOrder === "asc" ? 1 : -1;
 
   const [rewards, totalItems] = await Promise.all([
     Reward.find(filter)
-      .populate("created_by", "full_name email avatar_url")
+      .populate({
+        path: "created_by",
+        populate: { path: "user_id", select: "full_name email avatar_url" },
+      })
       .sort({
         [selectedSortField]: selectedSortOrder,
         _id: -1,
@@ -150,6 +154,7 @@ const createReward = async ({
   description = "",
   image_url = "",
   point_cost,
+  points_required,
   quantity,
 }) => {
   validateObjectId(clubId, "club ID");
@@ -159,7 +164,8 @@ const createReward = async ({
     throw getStatusError("Reward name is required", 400);
   }
 
-  const normalizedPointCost = Number(point_cost);
+  const costValue = points_required !== undefined ? points_required : point_cost;
+  const normalizedPointCost = Number(costValue);
   const normalizedQuantity = Number(quantity);
 
   if (
@@ -182,19 +188,29 @@ const createReward = async ({
     );
   }
 
+  const ClubMember = require("../models/club_member.model");
+  const member = await ClubMember.findOne({
+    club_id: clubId,
+    user_id: userId,
+    status: "active",
+  });
+
   const reward = await Reward.create({
     club_id: clubId,
     name: name.trim(),
     description: description?.trim() || "",
     image_url: image_url?.trim() || "",
-    point_cost: normalizedPointCost,
+    points_required: normalizedPointCost,
     quantity: normalizedQuantity,
     status: "active",
-    created_by: userId,
+    created_by: member ? member._id : userId,
   });
 
   return Reward.findById(reward._id)
-    .populate("created_by", "full_name email avatar_url")
+    .populate({
+      path: "created_by",
+      populate: { path: "user_id", select: "full_name email avatar_url" },
+    })
     .lean();
 };
 
@@ -232,8 +248,9 @@ const updateReward = async ({
     updateData.image_url = String(image_url).trim();
   }
 
-  if (point_cost !== undefined) {
-    const normalizedPointCost = Number(point_cost);
+  if (point_cost !== undefined || updateData.points_required !== undefined) {
+    const rawCost = point_cost !== undefined ? point_cost : updateData.points_required;
+    const normalizedPointCost = Number(rawCost);
 
     if (
       !Number.isFinite(normalizedPointCost) ||
@@ -245,7 +262,7 @@ const updateReward = async ({
       );
     }
 
-    updateData.point_cost = normalizedPointCost;
+    updateData.points_required = normalizedPointCost;
   }
 
   if (quantity !== undefined) {
@@ -400,7 +417,7 @@ const getRedemptionHistory = async ({
     RewardRedemption.find(filter)
       .populate(
         "reward_id",
-        "name image_url point_cost quantity status"
+        "name image_url points_required quantity status"
       )
       .populate({
         path: "membership_id",
@@ -587,7 +604,7 @@ const approveRewardRedemption = async ({
   );
 
   const resultDoc = await RewardRedemption.findById(updatedRedemption._id)
-    .populate("reward_id", "name image_url point_cost quantity status")
+    .populate("reward_id", "name image_url points_required quantity status")
     .populate({
       path: "membership_id",
       select: "club_id user_id role status joined_at",
@@ -666,7 +683,7 @@ const rejectRewardRedemption = async ({
       runValidators: true,
     }
   )
-    .populate("reward_id", "name image_url point_cost quantity status")
+    .populate("reward_id", "name image_url points_required quantity status")
     .populate({
       path: "membership_id",
       select: "club_id user_id role status joined_at",
