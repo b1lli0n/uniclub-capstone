@@ -1,6 +1,6 @@
 const express = require("express");
 const { verifyToken, authorize } = require("../../middlewares/auth.middleware");
-const { requireClubMember } = require("../../middlewares/club.middleware");
+const { requireClubRole } = require("../../middlewares/club.middleware");
 const {
   getMyClubs,
   leaveClub,
@@ -22,14 +22,14 @@ router.patch(
   "/:clubId/leave",
   verifyToken,
   authorize(["student"]),
-  requireClubMember("clubId"),
+  requireClubRole([], "clubId"),
   leaveClub
 );
 router.get(
   "/:clubId/events",
   verifyToken,
   authorize(["student"]),
-  requireClubMember("clubId"),
+  requireClubRole([], "clubId"),
   getClubEventsForMember
 );
 

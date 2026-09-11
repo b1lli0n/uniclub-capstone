@@ -5,7 +5,7 @@ import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getClubLeaderboard, getMyContributionLogs } from '../../api/pointRule.api'
 import '../../styles/club-ranking.css'
 
-const WEEKDAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
+const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 function startOfMonth(date) {
   return new Date(date.getFullYear(), date.getMonth(), 1)
@@ -47,15 +47,15 @@ function formatPeriodLabel(date) {
 }
 
 function formatCalendarHeading(date) {
-  return new Intl.DateTimeFormat('vi-VN', { month: 'long', year: 'numeric' }).format(date)
+  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(date)
 }
 
 function formatDateLog(dateStr) {
   if (!dateStr) return ''
   const d = new Date(dateStr)
-  return new Intl.DateTimeFormat('vi-VN', {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
     day: '2-digit',
-    month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
@@ -318,7 +318,7 @@ function ClubRankingPage({ clubId }) {
                         setIsCalendarOpen(false)
                       }}
                     >
-                      Hôm nay
+                      Today
                     </button>
                   </div>
                 ) : null}
@@ -381,7 +381,7 @@ function ClubRankingPage({ clubId }) {
                   </p>
                 ) : tableMembers.length === 0 ? (
                   <p style={{ padding: '20px', textAlign: 'center', color: '#888', fontSize: '0.9rem' }}>
-                    {rankedMembers.length > 0 ? 'Tất cả thành viên đang ở Top 3 Bục vinh quang' : 'Chưa có thành viên nào'}
+                    {rankedMembers.length > 0 ? 'All members are currently on the Top 3 Podium' : 'No members ranked yet'}
                   </p>
                 ) : (
                   tableMembers.map((member, index) => (
@@ -410,23 +410,23 @@ function ClubRankingPage({ clubId }) {
           <button type="button" className="club-point-rules-modal__backdrop" onClick={() => setLogsModalOpen(false)} />
           <div className="club-point-rules-modal__panel" style={{ width: 'min(580px, 100%)' }}>
             <div className="club-point-rules-modal__header">
-              <h2>📋 Nhật Ký Tích Điểm Cá Nhân</h2>
+              <h2>📋 My Point History</h2>
               <button type="button" onClick={() => setLogsModalOpen(false)}>Close</button>
             </div>
 
             {loadingLogs ? (
               <p style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
-                Đang tải lịch sử tích điểm...
+                Loading point history...
               </p>
             ) : myLogs.length === 0 ? (
               <div style={{ padding: '30px 15px', textAlign: 'center', color: '#64748b' }}>
-                <p style={{ fontSize: '1.05rem', fontWeight: '700', marginBottom: '4px' }}>Chưa có nhật ký tích điểm nào</p>
-                <p style={{ fontSize: '0.88rem' }}>Bạn chưa tham gia hoạt động tích điểm nào trong câu lạc bộ này.</p>
+                <p style={{ fontSize: '1.05rem', fontWeight: '700', marginBottom: '4px' }}>No point history records yet</p>
+                <p style={{ fontSize: '0.88rem' }}>You have not participated in any point-earning activities in this club yet.</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto' }}>
                 {myLogs.map((log) => {
-                  const actName = log.action_type?.name || log.event?.title || 'Biểu diễn & Đóng góp hoạt động CLB'
+                  const actName = log.action_type?.name || log.event?.title || 'Club Activity & Contribution'
                   const points = log.reward_point || 0
                   return (
                     <div

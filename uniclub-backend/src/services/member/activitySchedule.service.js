@@ -1,6 +1,15 @@
 const Activity = require("../../models/activity.model");
 const { getStatusError } = require("../../utils/error");
 
+const CREATED_BY_POPULATE = {
+  path: "created_by",
+  select: "_id user_id role",
+  populate: {
+    path: "user_id",
+    select: "_id full_name email avatar_url",
+  },
+};
+
 const parsePositiveInt = (value, fallback) => {
   const parsed = parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -10,7 +19,6 @@ const buildActivityQuery = (clubId, filters = {}) => {
   const { start_date: startDate, end_date: endDate, search } = filters;
   const query = {
     club_id: clubId,
-    progress_status: "published",
   };
 
   if (startDate || endDate) {
@@ -39,12 +47,12 @@ const getClubActivitySchedule = async (clubId, filters = {}) => {
 
   const [activities, total] = await Promise.all([
     Activity.find(query)
-      .populate("created_by", "_id full_name avatar_url")
+      .populate(CREATED_BY_POPULATE)
       .sort({ start_time: 1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .select(
-        "_id club_id created_by title description location start_time end_time status progress_status media_urls createdAt updatedAt"
+        "_id club_id created_by title description location start_time end_time status created_at updated_at createdAt updatedAt"
       ),
     Activity.countDocuments(query),
   ]);
@@ -64,12 +72,11 @@ const getActivityScheduleDetail = async (clubId, activityId) => {
   const activity = await Activity.findOne({
     _id: activityId,
     club_id: clubId,
-    progress_status: "published",
   })
-    .populate("created_by", "_id full_name email avatar_url")
+    .populate(CREATED_BY_POPULATE)
     .populate("club_id", "_id name logo_url")
     .select(
-      "_id club_id created_by title description location start_time end_time status progress_status media_urls createdAt updatedAt"
+      "_id club_id created_by title description location start_time end_time status created_at updated_at createdAt updatedAt"
     );
 
   if (!activity) {

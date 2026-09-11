@@ -83,7 +83,7 @@ function MyRequestsPage() {
       await cancelJoinRequest(cancelTarget.id)
       setRequests((items) => items.filter((item) => item.id !== cancelTarget.id))
       setCancelTarget(null)
-      // Hiển thị thông báo cho chức năng hủy yêu cầu tham gia câu lạc bộ.
+      // Display notification when club join request is cancelled.
       showToast({
         type: 'success',
         title: 'Request cancelled',
@@ -426,7 +426,7 @@ function MyRequestsPage() {
                 <strong>
                   {detailTarget.responder && detailTarget.responder !== '-'
                     ? detailTarget.responder
-                    : `Ban chủ nhiệm ${detailTarget.club || ''}`}
+                    : `${detailTarget.club || 'Club'} Board`}
                 </strong>
               </div>
               {detailTarget.responseTime && detailTarget.responseTime !== '-' ? (

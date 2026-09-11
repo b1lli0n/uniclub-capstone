@@ -190,6 +190,8 @@ function MyProfilePage({ currentUser }) {
         phone: cleanPhone,
         campus: editFormData.campus,
       })
+      setIsEditing(false)
+      // Display notification when profile is updated.
 
       // Cập nhật State hồ sơ hiển thị
       setProfile((prev) => ({

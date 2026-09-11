@@ -5,14 +5,14 @@ import { getFeeList, createPaymentUrl } from '../../api/payment.api'
 import '../../styles/club-fees.css'
 
 function formatVND(amount) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0)
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount || 0)
 }
 
 function formatDate(dateStr) {
   if (!dateStr) return 'N/A'
-  return new Date(dateStr).toLocaleDateString('vi-VN', {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
     day: '2-digit',
-    month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
@@ -29,6 +29,7 @@ export default function ClubFeesPage({ clubId: propClubId }) {
   const [feesData, setFeesData] = useState({ items: [], summary: { unpaid: 0, paid: 0, failed: 0, all: 0 } })
   const [activeTab, setActiveTab] = useState('all') // 'all', '0', '1', '2'
   const [selectedPeriod, setSelectedPeriod] = useState('')
+  const [sortBy, setSortBy] = useState('newest')
   const [selectedPayment, setSelectedPayment] = useState(null)
   const [processing, setProcessing] = useState(false)
 
@@ -45,7 +46,7 @@ export default function ClubFeesPage({ clubId: propClubId }) {
       }
     } catch (err) {
       console.error('Failed to load fees:', err)
-      toast.error?.(err.message || 'Không thể tải danh sách khoản phí')
+      toast.error?.(err.message || 'Failed to load membership fees')
     } finally {
       setLoading(false)
     }
@@ -60,6 +61,26 @@ export default function ClubFeesPage({ clubId: propClubId }) {
     return Array.from(new Set(list))
   }, [feesData.items])
 
+  const sortedItems = useMemo(() => {
+    const list = [...feesData.items]
+    switch (sortBy) {
+      case 'newest':
+        return list.sort((a, b) => new Date(b.created_at || b.paid_at || 0) - new Date(a.created_at || a.paid_at || 0))
+      case 'oldest':
+        return list.sort((a, b) => new Date(a.created_at || a.paid_at || 0) - new Date(b.created_at || b.paid_at || 0))
+      case 'amount-desc':
+        return list.sort((a, b) => (b.amount || 0) - (a.amount || 0))
+      case 'amount-asc':
+        return list.sort((a, b) => (a.amount || 0) - (b.amount || 0))
+      case 'period-desc':
+        return list.sort((a, b) => (b.period || '').localeCompare(a.period || ''))
+      case 'period-asc':
+        return list.sort((a, b) => (a.period || '').localeCompare(b.period || ''))
+      default:
+        return list
+    }
+  }, [feesData.items, sortBy])
+
   const handleStartPayment = (payment) => {
     setSelectedPayment(payment)
   }
@@ -71,19 +92,18 @@ export default function ClubFeesPage({ clubId: propClubId }) {
       const res = await createPaymentUrl({
         club_id: selectedPayment.club_id || clubId,
         payment_id: selectedPayment._id,
-        orderInfo: selectedPayment.order_info || `Thanh toan phi ${selectedPayment.period}`
+        orderInfo: selectedPayment.order_info || `Membership fee payment ${selectedPayment.period}`
       })
 
-
       if (res.paymentUrl) {
-        toast.info?.('Đang chuyển hướng sang cổng thanh toán VNPay...')
+        toast.info?.('Redirecting to VNPay payment gateway...')
         window.location.href = res.paymentUrl
       } else {
-        toast.error?.('Không tạo được link thanh toán VNPay')
+        toast.error?.('Failed to generate VNPay payment link')
       }
     } catch (err) {
       console.error('Create payment URL error:', err)
-      toast.error?.(err.message || 'Lỗi khởi tạo thanh toán VNPay')
+      toast.error?.(err.message || 'Error initializing VNPay payment')
     } finally {
       setProcessing(false)
     }
@@ -94,9 +114,9 @@ export default function ClubFeesPage({ clubId: propClubId }) {
       {/* Header */}
       <div className="club-fees-header">
         <div>
-          <h1 className="club-fees-header__title">Danh sách Phí Thành Viên</h1>
+          <h1 className="club-fees-header__title">My Membership Fees</h1>
           <p className="club-fees-header__subtitle">
-            Quản lý và thanh toán các khoản phí sinh hoạt, quỹ câu lạc bộ nhanh chóng qua VNPay
+            Manage and pay your club dues, fund contributions quickly and securely via VNPay
           </p>
         </div>
       </div>
@@ -106,7 +126,7 @@ export default function ClubFeesPage({ clubId: propClubId }) {
         <div className="club-fees-card">
           <div className="club-fees-card__icon club-fees-card__icon--unpaid">⏱</div>
           <div className="club-fees-card__info">
-            <span className="club-fees-card__label">Chưa thanh toán</span>
+            <span className="club-fees-card__label">Unpaid</span>
             <span className="club-fees-card__value">{feesData.summary?.unpaid || 0}</span>
           </div>
         </div>
@@ -114,7 +134,7 @@ export default function ClubFeesPage({ clubId: propClubId }) {
         <div className="club-fees-card">
           <div className="club-fees-card__icon club-fees-card__icon--paid">✓</div>
           <div className="club-fees-card__info">
-            <span className="club-fees-card__label">Đã thanh toán</span>
+            <span className="club-fees-card__label">Paid</span>
             <span className="club-fees-card__value">{feesData.summary?.paid || 0}</span>
           </div>
         </div>
@@ -122,7 +142,7 @@ export default function ClubFeesPage({ clubId: propClubId }) {
         <div className="club-fees-card">
           <div className="club-fees-card__icon club-fees-card__icon--failed">✕</div>
           <div className="club-fees-card__info">
-            <span className="club-fees-card__label">Thanh toán thất bại</span>
+            <span className="club-fees-card__label">Failed</span>
             <span className="club-fees-card__value">{feesData.summary?.failed || 0}</span>
           </div>
         </div>
@@ -130,73 +150,100 @@ export default function ClubFeesPage({ clubId: propClubId }) {
         <div className="club-fees-card">
           <div className="club-fees-card__icon club-fees-card__icon--all">📋</div>
           <div className="club-fees-card__info">
-            <span className="club-fees-card__label">Tổng số khoản</span>
+            <span className="club-fees-card__label">Total Fees</span>
             <span className="club-fees-card__value">{feesData.summary?.all || 0}</span>
           </div>
         </div>
       </div>
 
-      {/* Filter Bar */}
+      {/* Filter and Sort Bar */}
       <div className="club-fees-filter">
-        <div className="club-fees-tabs">
+        <div className="club-fees-tabs" role="tablist" aria-label="Filter fees by status">
           <button
             type="button"
             className={`club-fees-tab ${activeTab === 'all' ? 'is-active' : ''}`}
             onClick={() => setActiveTab('all')}
           >
-            Tất cả ({feesData.summary?.all || 0})
+            All ({feesData.summary?.all || 0})
           </button>
           <button
             type="button"
             className={`club-fees-tab ${activeTab === '0' ? 'is-active' : ''}`}
             onClick={() => setActiveTab('0')}
           >
-            Chưa nộp ({feesData.summary?.unpaid || 0})
+            Unpaid ({feesData.summary?.unpaid || 0})
           </button>
           <button
             type="button"
             className={`club-fees-tab ${activeTab === '1' ? 'is-active' : ''}`}
             onClick={() => setActiveTab('1')}
           >
-            Đã nộp ({feesData.summary?.paid || 0})
+            Paid ({feesData.summary?.paid || 0})
           </button>
           <button
             type="button"
             className={`club-fees-tab ${activeTab === '2' ? 'is-active' : ''}`}
             onClick={() => setActiveTab('2')}
           >
-            Thất bại ({feesData.summary?.failed || 0})
+            Failed ({feesData.summary?.failed || 0})
           </button>
         </div>
 
-        {periods.length > 0 && (
-          <select
-            className="club-fees-period-select"
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-          >
-            <option value="">Tất cả các kỳ</option>
-            {periods.map((p) => (
-              <option key={p} value={p}>Kỳ {p}</option>
-            ))}
-          </select>
-        )}
+        <div className="club-fees-controls">
+          {periods.length > 0 && (
+            <div className="club-fees-control-group">
+              <label htmlFor="period-filter" className="club-fees-control-label">
+                PERIOD
+              </label>
+              <select
+                id="period-filter"
+                className="club-fees-select"
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value)}
+              >
+                <option value="">All Periods</option>
+                {periods.map((p) => (
+                  <option key={p} value={p}>Period {p}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="club-fees-control-group">
+            <label htmlFor="fees-sort" className="club-fees-control-label">
+              SORT BY
+            </label>
+            <select
+              id="fees-sort"
+              className="club-fees-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="amount-desc">Amount: High to Low</option>
+              <option value="amount-asc">Amount: Low to High</option>
+              <option value="period-desc">Period: Z - A</option>
+              <option value="period-asc">Period: A - Z</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Fee List */}
       {loading ? (
         <div className="club-fees-empty">
           <div className="club-fees-empty__icon">⌛</div>
-          <p className="club-fees-empty__text">Đang tải danh sách khoản phí...</p>
+          <p className="club-fees-empty__text">Loading membership fees...</p>
         </div>
-      ) : feesData.items.length === 0 ? (
+      ) : sortedItems.length === 0 ? (
         <div className="club-fees-empty">
           <div className="club-fees-empty__icon">🧧</div>
-          <p className="club-fees-empty__text">Không tìm thấy khoản phí nào</p>
+          <p className="club-fees-empty__text">No membership fees found</p>
         </div>
       ) : (
         <div className="club-fees-list">
-          {feesData.items.map((item) => {
+          {sortedItems.map((item) => {
             const isPending = item.status === 0
             const isSuccess = item.status === 1
             const isFailed = item.status === 2
@@ -211,16 +258,16 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                   )}
                   <div className="club-fee-item__details">
                     <h3 className="club-fee-item__title">
-                      {item.order_info || `Phí thành viên - ${item.period}`}
+                      {item.order_info || `Membership Fee - ${item.period}`}
                     </h3>
                     <div className="club-fee-item__meta">
-                      <span>Kỳ: <strong>{item.period}</strong></span>
+                      <span>Period: <strong>{item.period}</strong></span>
                       <span>•</span>
-                      <span>CLB: <strong>{item.club_name || 'Câu lạc bộ'}</strong></span>
+                      <span>Club: <strong>{item.club_name || 'Club'}</strong></span>
                       {item.paid_at && (
                         <>
                           <span>•</span>
-                          <span>Đã nộp ngày: {formatDate(item.paid_at)}</span>
+                          <span>Paid on: {formatDate(item.paid_at)}</span>
                         </>
                       )}
                     </div>
@@ -231,13 +278,13 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                   <div className="club-fee-item__amount-wrap">
                     <div className="club-fee-item__amount">{formatVND(item.amount)}</div>
                     {isPending && (
-                      <span className="club-fee-badge club-fee-badge--pending">Chưa thanh toán</span>
+                      <span className="club-fee-badge club-fee-badge--pending">Unpaid</span>
                     )}
                     {isSuccess && (
-                      <span className="club-fee-badge club-fee-badge--success">Đã thanh toán</span>
+                      <span className="club-fee-badge club-fee-badge--success">Paid</span>
                     )}
                     {isFailed && (
-                      <span className="club-fee-badge club-fee-badge--failed">Thanh toán thất bại</span>
+                      <span className="club-fee-badge club-fee-badge--failed">Failed</span>
                     )}
                   </div>
 
@@ -248,7 +295,7 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                         className="club-fee-btn club-fee-btn--pay"
                         onClick={() => handleStartPayment(item)}
                       >
-                        ⚡ Thanh toán VNPay
+                        ⚡ Pay with VNPay
                       </button>
                     )}
 
@@ -258,7 +305,7 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                         className="club-fee-btn club-fee-btn--receipt"
                         onClick={() => navigate(`/clubs/${clubId || item.club_id}/receipts/${item._id}`)}
                       >
-                        📄 Xem biên lai
+                        📄 View Receipt
                       </button>
                     )}
                   </div>
@@ -276,11 +323,11 @@ export default function ClubFeesPage({ clubId: propClubId }) {
             type="button"
             className="club-fees-modal__backdrop"
             onClick={() => setSelectedPayment(null)}
-            aria-label="Đóng modal"
+            aria-label="Close modal"
           />
           <div className="club-fees-modal__panel">
             <div className="club-fees-modal__header">
-              <h2 className="club-fees-modal__title">Xác nhận thanh toán</h2>
+              <h2 className="club-fees-modal__title">Payment Confirmation</h2>
               <button
                 type="button"
                 className="club-fees-modal__close"
@@ -292,19 +339,19 @@ export default function ClubFeesPage({ clubId: propClubId }) {
 
             <div className="club-fees-summary-box">
               <div className="club-fees-summary-row">
-                <span>Nội dung đóng:</span>
-                <strong>{selectedPayment.order_info || `Phí thành viên ${selectedPayment.period}`}</strong>
+                <span>Fee Description:</span>
+                <strong>{selectedPayment.order_info || `Membership Fee ${selectedPayment.period}`}</strong>
               </div>
               <div className="club-fees-summary-row">
-                <span>Kỳ đóng phí:</span>
+                <span>Billing Period:</span>
                 <strong>{selectedPayment.period}</strong>
               </div>
               <div className="club-fees-summary-row">
-                <span>Phương thức thanh toán:</span>
-                <strong>VNPay (ATM / QR / Thẻ quốc tế)</strong>
+                <span>Payment Method:</span>
+                <strong>VNPay (ATM / QR / Credit Card)</strong>
               </div>
               <div className="club-fees-summary-row club-fees-summary-row--total">
-                <span>Số tiền thanh toán:</span>
+                <span>Total Amount:</span>
                 <strong style={{ color: '#0071e3' }}>{formatVND(selectedPayment.amount)}</strong>
               </div>
             </div>
@@ -316,7 +363,7 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                 onClick={() => setSelectedPayment(null)}
                 disabled={processing}
               >
-                Hủy bỏ
+                Cancel
               </button>
               <button
                 type="button"
@@ -324,7 +371,7 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                 onClick={handleConfirmVNPay}
                 disabled={processing}
               >
-                {processing ? 'Đang kết nối VNPay...' : 'Xác nhận & Sang VNPay ➔'}
+                {processing ? 'Connecting to VNPay...' : 'Confirm & Proceed to VNPay ➔'}
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { ALL_CLUBS } from '../../data/mockData'
 import { CLUB_POLLS, CLUB_POLL_STATUS_OPTIONS } from '../../data/clubPollsMockData'
+import { getMyClubs } from '../../api/memberClubMembership.api'
 import {
   getClubPolls,
   getPollDetail,
@@ -18,18 +19,40 @@ function formatStatus(status) {
 }
 
 function totalVotes(poll) {
-  if (!poll?.options) return 0
-  return poll.options.reduce((sum, option) => sum + (option.votes || 0), 0)
+  if (!poll?.options || !poll.options.length) return 0
+  return poll.options.reduce((sum, option) => sum + (Number(option.votes) || 0), 0)
 }
 
 function mapApiPollToLocal(apiItem) {
-  const options = (apiItem.options || []).map((opt) => ({
-    id: opt._id || opt.id,
-    label: opt.text || opt.label || '',
-    votes: (apiItem.votes || []).filter((v) => String(v.option_id) === String(opt._id || opt.id)).length,
-  }))
+  const options = (apiItem.options || []).map((opt) => {
+    const count =
+      typeof opt.vote_count === 'number'
+        ? opt.vote_count
+        : typeof opt.votes === 'number'
+        ? opt.votes
+        : (apiItem.votes || []).filter(
+            (v) => String(v.option_id) === String(opt._id || opt.id)
+          ).length
 
-  const voterSet = new Set((apiItem.votes || []).map((v) => String(v.user_id)))
+    return {
+      id: opt._id || opt.id,
+      label: opt.text || opt.label || '',
+      votes: count,
+    }
+  })
+
+  const total =
+    typeof apiItem.total_votes === 'number'
+      ? apiItem.total_votes
+      : options.reduce((sum, opt) => sum + (opt.votes || 0), 0)
+
+  const myVoteOptionId = apiItem.my_vote?.option_id
+    ? String(apiItem.my_vote.option_id)
+    : apiItem.my_vote === null
+    ? null
+    : apiItem.myVote
+    ? String(apiItem.myVote)
+    : null
 
   return {
     id: apiItem._id || apiItem.id,
@@ -45,13 +68,22 @@ function mapApiPollToLocal(apiItem) {
     status: apiItem.status || 'open',
     createdAt: apiItem.createdAt ? new Date(apiItem.createdAt).toLocaleDateString('vi-VN') : 'Recently',
     createdBy: apiItem.created_by?.full_name || apiItem.createdBy || 'Club Leader',
-    voters: voterSet.size,
+    voters: total,
+    myVote: myVoteOptionId,
     rawVotes: apiItem.votes || [],
   }
 }
 
-function ClubPollsPage({ clubId }) {
+function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole }) {
   const club = ALL_CLUBS.find((item) => item.id === clubId) || fallbackClub
+  const [canManagePolls, setCanManagePolls] = useState(() => {
+    if (typeof propCanManagePolls === 'boolean') return propCanManagePolls
+    if (userRole) {
+      const r = String(userRole).toLowerCase()
+      return r === 'secretary' || r === 'president' || r === 'leader'
+    }
+    return false
+  })
   const [polls, setPolls] = useState([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
@@ -62,6 +94,35 @@ function ClubPollsPage({ clubId }) {
   const [closeTarget, setCloseTarget] = useState(null)
   const [toast, setToast] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (typeof propCanManagePolls === 'boolean') {
+      setCanManagePolls(propCanManagePolls)
+    }
+  }, [propCanManagePolls])
+
+  useEffect(() => {
+    let cancelled = false
+    async function checkRole() {
+      if (typeof propCanManagePolls === 'boolean') return
+      try {
+        const myClubsResponse = await getMyClubs()
+        if (cancelled) return
+        const membership = (myClubsResponse.data || []).find((item) => {
+          const id = item.club_id?._id || item.club_id
+          return String(id) === String(clubId)
+        })
+        const role = membership?.role?.toLowerCase()
+        setCanManagePolls(role === 'secretary' || role === 'president' || role === 'leader')
+      } catch (err) {
+        console.error('Failed to resolve club role for polls:', err)
+      }
+    }
+    checkRole()
+    return () => {
+      cancelled = true
+    }
+  }, [clubId, propCanManagePolls])
 
   async function loadPolls() {
     setLoading(true)
@@ -102,11 +163,13 @@ function ClubPollsPage({ clubId }) {
   }
 
   function openCreate() {
+    if (!canManagePolls) return
     setForm(EMPTY_FORM)
     setFormMode('create')
   }
 
   function openEdit(poll) {
+    if (!canManagePolls) return
     setForm({
       title: poll.title,
       description: poll.description,
@@ -119,6 +182,10 @@ function ClubPollsPage({ clubId }) {
 
   async function savePoll(event) {
     event.preventDefault()
+    if (!canManagePolls) {
+      notify('Only the club Secretary or President can manage polls.')
+      return
+    }
     const options = form.options.map((label) => label.trim()).filter(Boolean)
     if (options.length < 2) {
       notify('Poll must have at least 2 options.')
@@ -134,7 +201,7 @@ function ClubPollsPage({ clubId }) {
           options,
         }
         await createPollApi(clubId, payload)
-        notify('Poll created successfully in database.')
+        notify('Poll created successfully.')
         await loadPolls()
       } else {
         notify('Poll updated successfully.')
@@ -149,24 +216,84 @@ function ClubPollsPage({ clubId }) {
   }
 
   async function handleVote(poll, optionId) {
-    setSubmitting(true)
+    if (!poll || poll.status !== 'open') return
+
+    const isMock =
+      String(poll.id).startsWith('poll-') ||
+      !/^[0-9a-fA-F]{24}$/.test(String(clubId))
+
+    const isCancelling = poll.myVote && String(poll.myVote) === String(optionId)
+    const prevOptionId = poll.myVote ? String(poll.myVote) : null
+    const targetOptionId = String(optionId)
+
+    // Snapshot current state for rollback if network request fails
+    const prevPolls = polls
+    const prevSelected = selectedPoll
+
+    const computeOptimisticPoll = (item) => {
+      if (!item || String(item.id) !== String(poll.id)) return item
+
+      const nextOptions = (item.options || []).map((opt) => {
+        const optIdStr = String(opt.id)
+        if (isCancelling) {
+          if (optIdStr === targetOptionId) {
+            return { ...opt, votes: Math.max(0, (Number(opt.votes) || 0) - 1) }
+          }
+          return opt
+        } else {
+          if (prevOptionId && optIdStr === prevOptionId) {
+            return { ...opt, votes: Math.max(0, (Number(opt.votes) || 0) - 1) }
+          }
+          if (optIdStr === targetOptionId) {
+            return { ...opt, votes: (Number(opt.votes) || 0) + 1 }
+          }
+          return opt
+        }
+      })
+
+      const voterDelta = isCancelling ? -1 : prevOptionId ? 0 : 1
+      const nextVoters = Math.max(0, (Number(item.voters) || 0) + voterDelta)
+
+      return {
+        ...item,
+        myVote: isCancelling ? null : targetOptionId,
+        options: nextOptions,
+        voters: nextVoters,
+      }
+    }
+
+    // Instant optimistic update (0ms latency for a silky smooth experience)
+    setPolls((prev) => prev.map(computeOptimisticPoll))
+    setSelectedPoll((prev) => computeOptimisticPoll(prev))
+
+    if (isCancelling) {
+      notify('Vote cancelled successfully!')
+    } else if (prevOptionId) {
+      notify('Vote switched successfully!')
+    } else {
+      notify('Vote recorded successfully!')
+    }
+
+    if (isMock) return
+
     try {
-      await votePollApi(clubId, poll.id, optionId)
-      notify('Your vote has been recorded!')
-      await loadPolls()
-      // Refresh selected poll detail if open
-      const res = await getPollDetail(clubId, poll.id)
-      if (res?.data) setSelectedPoll(mapApiPollToLocal(res.data))
+      const res = await votePollApi(clubId, poll.id, optionId)
+      if (res?.data) {
+        const mapped = mapApiPollToLocal(res.data)
+        setSelectedPoll(mapped)
+        setPolls((prev) => prev.map((p) => (String(p.id) === String(mapped.id) ? mapped : p)))
+      }
     } catch (err) {
-      console.error('Error voting:', err)
-      notify(err.message || 'Could not record vote.')
-    } finally {
-      setSubmitting(false)
+      console.error('Error updating vote:', err)
+      // Rollback on error
+      setPolls(prevPolls)
+      setSelectedPoll(prevSelected)
+      notify(err.message || 'Could not update vote.')
     }
   }
 
   async function handleClosePoll() {
-    if (!closeTarget) return
+    if (!closeTarget || !canManagePolls) return
     setSubmitting(true)
     try {
       await closePollApi(clubId, closeTarget.id)
@@ -189,15 +316,21 @@ function ClubPollsPage({ clubId }) {
       <section className="club-polls-hero">
         <div>
           <span>{club.name}</span>
-          <h1>Poll Management</h1>
-          <p>Create quick polls, collect members’ opinions, and close results when a decision is made.</p>
+          <h1>{canManagePolls ? 'Poll Management' : 'Club Polls & Voting'}</h1>
+          <p>
+            {canManagePolls
+              ? 'Create quick polls, collect members’ opinions, and close results when a decision is made.'
+              : 'Participate in club decision-making by voting on open topics.'}
+          </p>
         </div>
         <div className="club-polls-hero__summary">
           <span>Open polls</span>
           <strong>{polls.filter((poll) => poll.status === 'open').length}</strong>
-          <button type="button" onClick={openCreate}>
-            + Create poll
-          </button>
+          {canManagePolls && (
+            <button type="button" onClick={openCreate}>
+              + Create poll
+            </button>
+          )}
         </div>
       </section>
 
@@ -228,12 +361,13 @@ function ClubPollsPage({ clubId }) {
 
       <section className="club-polls-list">
         {loading ? (
-          <div className="club-polls-empty">Đang tải danh sách cuộc bình chọn...</div>
+          <div className="club-polls-empty">Loading polls...</div>
         ) : (
           visiblePolls.map((poll) => (
             <PollCard
               key={poll.id}
               poll={poll}
+              canManagePolls={canManagePolls}
               onDetails={() => setSelectedPoll(poll)}
               onEdit={() => openEdit(poll)}
               onClose={() => setCloseTarget(poll)}
@@ -243,7 +377,11 @@ function ClubPollsPage({ clubId }) {
         {!loading && !visiblePolls.length && (
           <div className="club-polls-empty">
             <strong>No polls found</strong>
-            <span>Try another search or create a new poll.</span>
+            <span>
+              {canManagePolls
+                ? 'Try another search or create a new poll.'
+                : 'There are no polls matching your criteria.'}
+            </span>
           </div>
         )}
       </section>
@@ -251,7 +389,7 @@ function ClubPollsPage({ clubId }) {
       {selectedPoll && (
         <PollDetail
           poll={selectedPoll}
-          submitting={submitting}
+          canManagePolls={canManagePolls}
           onVote={(optId) => handleVote(selectedPoll, optId)}
           onDismiss={() => setSelectedPoll(null)}
           onEdit={() => openEdit(selectedPoll)}
@@ -285,15 +423,32 @@ function ClubPollsPage({ clubId }) {
   )
 }
 
-function PollCard({ poll, onDetails, onEdit, onClose }) {
+function PollCard({ poll, canManagePolls, onDetails, onEdit, onClose }) {
   const votes = totalVotes(poll)
   return (
     <article className="club-poll-card">
       <div className="club-poll-card__copy">
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <span className={`club-poll-status club-poll-status--${poll.status}`}>
             {formatStatus(poll.status)}
           </span>
+          {poll.myVote && (
+            <span
+              style={{
+                background: '#dcfce7',
+                color: '#15803d',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                padding: '0.2rem 0.55rem',
+                borderRadius: '6px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+              }}
+            >
+              ✓ You voted
+            </span>
+          )}
           <small>Closes: {poll.closesAt}</small>
         </div>
         <h2>{poll.title}</h2>
@@ -308,9 +463,13 @@ function PollCard({ poll, onDetails, onEdit, onClose }) {
       </div>
       <div className="club-poll-card__actions">
         <button type="button" onClick={onDetails}>
-          View & Vote
+          {poll.myVote && poll.status === 'open'
+            ? 'View & Manage Vote'
+            : poll.status === 'open'
+            ? 'View & Vote'
+            : 'View Results'}
         </button>
-        {poll.status === 'open' && (
+        {canManagePolls && poll.status === 'open' && (
           <>
             <button type="button" onClick={onEdit}>
               Edit
@@ -325,10 +484,11 @@ function PollCard({ poll, onDetails, onEdit, onClose }) {
   )
 }
 
-function PollDetail({ poll, submitting, onVote, onDismiss, onEdit, onClose }) {
+function PollDetail({ poll, canManagePolls, onVote, onDismiss, onEdit, onClose }) {
   const votes = totalVotes(poll)
+
   return (
-    <Modal title="Poll details & Voting" onDismiss={onDismiss}>
+    <Modal title={poll.status === 'open' ? 'Poll Details & Voting' : 'Poll Results'} onDismiss={onDismiss}>
       <div className="club-poll-detail">
         <h3>{poll.title}</h3>
         <p>{poll.description}</p>
@@ -348,60 +508,85 @@ function PollDetail({ poll, submitting, onVote, onDismiss, onEdit, onClose }) {
         </div>
 
         <div className="club-poll-results" style={{ marginTop: '1.25rem' }}>
-          <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', fontWeight: 'bold', color: '#0f172a' }}>
-            🗳️ Options & Interactive Voting:
-          </h4>
-          {poll.options.map((option) => {
-            const percent = votes ? Math.round(((option.votes || 0) / votes) * 100) : 0
-            return (
-              <div
-                key={option.id}
-                style={{
-                  background: '#f8fafc',
-                  padding: '0.85rem',
-                  borderRadius: '10px',
-                  marginBottom: '0.75rem',
-                  border: '1px solid #e2e8f0',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                  <strong style={{ color: '#0f172a', fontSize: '0.9rem' }}>{option.label}</strong>
-                  <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: '600' }}>
-                    {option.votes || 0} votes ({percent}%)
-                  </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#2b2521' }}>
+              🗳️ Options ({poll.options.length})
+            </h4>
+            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#786659' }}>
+              {votes} {votes === 1 ? 'total vote' : 'total votes'}
+            </span>
+          </div>
+
+          <div className="club-poll-options-container">
+            {poll.options.map((option) => {
+              const isMyVote = poll.myVote && String(poll.myVote) === String(option.id)
+              const percent = votes > 0 ? Math.round(((Number(option.votes) || 0) / votes) * 100) : 0
+              const isOpen = poll.status === 'open'
+
+              return (
+                <div
+                  key={option.id}
+                  className={`club-poll-option-card ${isMyVote ? 'is-selected' : ''} ${isOpen ? 'is-interactive' : ''}`}
+                  role={isOpen ? 'button' : undefined}
+                  tabIndex={isOpen ? 0 : undefined}
+                  aria-pressed={isMyVote}
+                  onClick={() => {
+                    if (isOpen) onVote(option.id)
+                  }}
+                  onKeyDown={(e) => {
+                    if (isOpen && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault()
+                      onVote(option.id)
+                    }
+                  }}
+                >
+                  <div className="club-poll-option-header">
+                    <div className="club-poll-option-title-group">
+                      <div className="club-poll-radio-indicator">
+                        {isMyVote && <span>✓</span>}
+                      </div>
+                      <span className="club-poll-option-label">{option.label}</span>
+                    </div>
+                    <div className="club-poll-option-stats">
+                      <span className="club-poll-option-votes-count">
+                        {option.votes || 0} votes ({percent}%)
+                      </span>
+                      {isOpen && (
+                        <span
+                          className={`club-poll-action-pill ${
+                            isMyVote ? 'is-cancel' : 'is-vote'
+                          }`}
+                        >
+                          {isMyVote ? 'Cancel' : 'Vote'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="club-poll-progress-track">
+                    <div
+                      className="club-poll-progress-fill"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
                 </div>
-                <div style={{ background: '#e2e8f0', borderRadius: '6px', height: '8px', overflow: 'hidden', marginBottom: '0.65rem' }}>
-                  <div style={{ width: `${percent}%`, height: '100%', background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)', transition: 'width 0.4s ease' }} />
-                </div>
-                {poll.status === 'open' && (
-                  <button
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => onVote(option.id)}
-                    style={{
-                      padding: '0.35rem 0.85rem',
-                      fontSize: '0.8rem',
-                      fontWeight: 'bold',
-                      borderRadius: '6px',
-                      background: '#2563eb',
-                      color: '#ffffff',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {submitting ? 'Voting...' : '👉 Vote for this option'}
-                  </button>
-                )}
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
+
+          {poll.status === 'open' && (
+            <div className="club-poll-helper-tip">
+              <span>💡</span>
+              <span>Click to vote or switch · Click selected option again to cancel</span>
+            </div>
+          )}
         </div>
       </div>
       <footer>
         <button type="button" onClick={onDismiss}>
           Close
         </button>
-        {poll.status === 'open' && (
+        {canManagePolls && poll.status === 'open' && (
           <>
             <button type="button" onClick={onEdit}>
               Edit poll

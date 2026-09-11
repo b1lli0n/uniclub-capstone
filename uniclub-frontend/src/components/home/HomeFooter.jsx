@@ -25,7 +25,7 @@ function HomeFooter({ onCreateClub, onViewAll }) {
           <p>Discover clubs, events, and student connections</p>
         </div>
 
-        <nav className="home-footer__nav" aria-label="Liên kết chân trang">
+        <nav className="home-footer__nav" aria-label="Footer navigation">
           {footerLinks.map((link) => (
             <a
               key={link.href}

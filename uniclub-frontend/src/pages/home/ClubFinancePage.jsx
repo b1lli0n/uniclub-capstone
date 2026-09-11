@@ -28,15 +28,15 @@ const mapTypeToText = (typeNum) => {
 function mapTransactionFromApi(item) {
   return {
     id: item._id || item.id,
-    title: item.title || item.description || 'Giao dịch mới',
+    title: item.title || item.description || 'New Transaction',
     type: mapTypeToText(item.type),
-    category: item.category || 'Hội phí',
+    category: item.category || 'Membership Fee',
     period: item.period || 'Q1/2026',
     amount: item.amount || 0,
-    date: item.transaction_date ? new Date(item.transaction_date).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
+    date: item.transaction_date ? new Date(item.transaction_date).toLocaleDateString('en-US') : new Date().toLocaleDateString('en-US'),
     dateInput: item.transaction_date ? String(item.transaction_date).slice(0, 10) : new Date().toISOString().slice(0, 10),
     status: mapStatusToText(item.status),
-    createdBy: item.created_by?.full_name || 'Ban điều hành',
+    createdBy: item.created_by?.full_name || 'Club Board',
     referenceCode: `TR-${String(item._id || '000000').slice(-6).toUpperCase()}`,
     description: item.description || '',
   }
@@ -115,35 +115,35 @@ function ClubFinancePage({ clubId, userRole }) {
     try {
       if (formTarget === 'create') {
         await createTransactionRequest(clubId, payload)
-        notify('🎉 Đã khởi tạo yêu cầu giao dịch mới thành công!')
+        notify('🎉 New transaction request created successfully!')
       } else {
         await updateTransactionRequest(clubId, formTarget.id, payload)
-        notify('🎉 Đã cập nhật thông tin giao dịch thành công!')
+        notify('🎉 Transaction request updated successfully!')
       }
       setFormTarget(null)
       loadData()
     } catch (err) {
-      notify(`❌ Lỗi khi lưu giao dịch: ${err.message || 'Thao tác thất bại'}`)
+      notify(`❌ Failed to save transaction: ${err.message || 'Operation failed'}`)
     }
   }
 
   async function handleApprove(item) {
     try {
       await updateTransactionRequest(clubId, item.id, { status: 1 })
-      notify(`🎉 Chủ tịch đã duyệt yêu cầu "${item.title}" thành công!`)
+      notify(`🎉 President approved request "${item.title}" successfully!`)
       loadData()
     } catch (err) {
-      notify(`❌ Lỗi duyệt giao dịch: ${err.message}`)
+      notify(`❌ Error approving transaction: ${err.message}`)
     }
   }
 
   async function handleReject(item) {
     try {
       await updateTransactionRequest(clubId, item.id, { status: 2 })
-      notify(`❌ Chủ tịch đã từ chối yêu cầu "${item.title}".`)
+      notify(`❌ President rejected request "${item.title}".`)
       loadData()
     } catch (err) {
-      notify(`❌ Lỗi từ chối giao dịch: ${err.message}`)
+      notify(`❌ Error rejecting transaction: ${err.message}`)
     }
   }
 
@@ -158,7 +158,7 @@ function ClubFinancePage({ clubId, userRole }) {
   return <main className="club-finance-page">
     <section className="club-finance-hero"><div><span>{club.name} · {isPresident ? 'President' : 'Treasurer'} workspace</span><h1>Financial Dashboard</h1><p>Track approved funds, manage transaction requests, and keep every club expense transparent.</p></div><div className="club-finance-hero__actions"><button type="button" onClick={exportReport}>⇩ Export report</button><button type="button" onClick={openCreate}>+ New request</button></div></section>
     <section className="club-finance-summary" aria-label="Financial overview"><SummaryCard label="Current balance" value={income - expense} accent="balance" /><SummaryCard label="Approved income" value={income} accent="income" /><SummaryCard label="Approved expenses" value={expense} accent="expense" /><div className="club-finance-summary__card club-finance-summary__card--pending"><span>Pending requests</span><strong>{transactions.filter((item) => item.status === 'pending').length}</strong><small>Awaiting review</small></div></section>
-    <section className="club-finance-transactions"><header><div><span>Transaction requests</span><h2>All transactions</h2></div><label className="club-finance-search">⌕<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, category or reference..." /></label></header><div className="club-finance-filters">{[['all', 'All'], ['income', 'Income'], ['expense', 'Expenses'], ['pending', 'Pending'], ['approved', 'Approved']].map(([value, label]) => <button key={value} type="button" className={filter === value ? 'is-active' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div><div className="club-finance-table" role="table"><div className="club-finance-table__head" role="row"><span>Transaction</span><span>Type</span><span>Amount</span><span>Status</span><span /></div>{loading ? <div className="club-finance-empty">Đang tải danh sách giao dịch...</div> : displayed.map((item) => <div className="club-finance-table__row" role="row" key={item.id}><div><strong>{item.title}</strong><small>{item.referenceCode} · {item.period || item.date}</small></div><span className={`club-finance-type club-finance-type--${item.type}`}>{item.type === 'income' ? 'Income' : 'Expense'}</span><strong className={item.type === 'income' ? 'is-income' : 'is-expense'}>{item.type === 'income' ? '+' : '-'}{currency.format(item.amount)}</strong><span className={`club-finance-status club-finance-status--${item.status}`}>{statusLabel[item.status]}</span><div className="club-finance-table__actions"><button type="button" onClick={() => setSelected(item)}>View</button>{item.status === 'pending' && (<>{isPresident ? (<><button type="button" style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.25rem 0.55rem', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => handleApprove(item)}>✓ Approve</button><button type="button" style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.25rem 0.55rem', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => handleReject(item)}>× Reject</button></>) : (<button type="button" onClick={() => openEdit(item)}>Edit</button>)}</>)}</div></div>)}{!loading && !displayed.length && <div className="club-finance-empty">No transaction requests match this filter.</div>}</div></section>
+    <section className="club-finance-transactions"><header><div><span>Transaction requests</span><h2>All transactions</h2></div><label className="club-finance-search">⌕<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, category or reference..." /></label></header><div className="club-finance-filters">{[['all', 'All'], ['income', 'Income'], ['expense', 'Expenses'], ['pending', 'Pending'], ['approved', 'Approved']].map(([value, label]) => <button key={value} type="button" className={filter === value ? 'is-active' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div><div className="club-finance-table" role="table"><div className="club-finance-table__head" role="row"><span>Transaction</span><span>Type</span><span>Amount</span><span>Status</span><span /></div>{loading ? <div className="club-finance-empty">Loading transaction records...</div> : displayed.map((item) => <div className="club-finance-table__row" role="row" key={item.id}><div><strong>{item.title}</strong><small>{item.referenceCode} · {item.period || item.date}</small></div><span className={`club-finance-type club-finance-type--${item.type}`}>{item.type === 'income' ? 'Income' : 'Expense'}</span><strong className={item.type === 'income' ? 'is-income' : 'is-expense'}>{item.type === 'income' ? '+' : '-'}{currency.format(item.amount)}</strong><span className={`club-finance-status club-finance-status--${item.status}`}>{statusLabel[item.status]}</span><div className="club-finance-table__actions"><button type="button" onClick={() => setSelected(item)}>View</button>{item.status === 'pending' && (<>{isPresident ? (<><button type="button" style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.25rem 0.55rem', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => handleApprove(item)}>✓ Approve</button><button type="button" style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.25rem 0.55rem', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => handleReject(item)}>× Reject</button></>) : (<button type="button" onClick={() => openEdit(item)}>Edit</button>)}</>)}</div></div>)}{!loading && !displayed.length && <div className="club-finance-empty">No transaction requests match this filter.</div>}</div></section>
     {selected && <TransactionDetail item={selected} clubId={clubId} onClose={() => setSelected(null)} onEdit={() => openEdit(selected)} />}
     {formTarget && <TransactionForm item={formTarget === 'create' ? null : formTarget} form={form} setForm={setForm} onClose={() => setFormTarget(null)} onSubmit={saveRequest} />}
     {toast && <div className="club-finance-toast" role="status">{toast}</div>}
@@ -220,10 +220,10 @@ function TransactionDetail({ item, clubId, onClose, onEdit }) {
           <div style={{ marginTop: '1.25rem', background: '#f8fafc', padding: '1.15rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <h4 style={{ margin: 0, color: '#0f172a', fontSize: '0.95rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                📋 Danh Sách Đóng Tiền Thành Viên
+                📋 Member Fee Collection List
               </h4>
               <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.55rem', borderRadius: '20px' }}>
-                Đã thu: {paidCount}/{totalCount} ({percentage}%)
+                Collected: {paidCount}/{totalCount} ({percentage}%)
               </span>
             </div>
 
@@ -233,15 +233,15 @@ function TransactionDetail({ item, clubId, onClose, onEdit }) {
             </div>
 
             <div style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '0.85rem' }}>
-              Tổng thu dự kiến: <strong style={{ color: '#0f172a' }}>{currency.format(totalExpected)}</strong> | Thực thu: <strong style={{ color: '#059669' }}>{currency.format(totalCollected)}</strong>
+              Expected Total: <strong style={{ color: '#0f172a' }}>{currency.format(totalExpected)}</strong> | Actual Collected: <strong style={{ color: '#059669' }}>{currency.format(totalCollected)}</strong>
             </div>
 
             {/* Member List */}
             {loading ? (
-              <div style={{ padding: '0.75rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>Đang tải danh sách đóng tiền...</div>
+              <div style={{ padding: '0.75rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>Loading member fee records...</div>
             ) : payments.length === 0 ? (
               <div style={{ padding: '0.75rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem', fontStyle: 'italic' }}>
-                Giao dịch chưa được Duyệt (Approved) nên chưa phát hành đơn đóng tiền cho thành viên.
+                Transaction has not been approved yet, so member fee requests have not been issued.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: '220px', overflowY: 'auto' }}>
@@ -260,11 +260,11 @@ function TransactionDetail({ item, clubId, onClose, onEdit }) {
                     <div>
                       {p.status === 1 ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                          ✅ Đã thanh toán {p.paid_at ? `(${new Date(p.paid_at).toLocaleDateString('vi-VN')})` : ''}
+                          ✅ Paid {p.paid_at ? `(${new Date(p.paid_at).toLocaleDateString('en-US')})` : ''}
                         </span>
                       ) : (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: '#fef3c7', color: '#b45309', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                          ⏳ Chưa thanh toán
+                          ⏳ Unpaid
                         </span>
                       )}
                     </div>
@@ -284,7 +284,7 @@ function TransactionDetail({ item, clubId, onClose, onEdit }) {
   )
 }
 
-function TransactionForm({ item, form, setForm, onClose, onSubmit }) { const change = (key, value) => setForm((current) => ({ ...current, [key]: value })); const openDatePicker = (event) => event.currentTarget.showPicker?.(); return <FinanceModal title={item ? 'Update transaction request' : 'Create transaction request'} onClose={onClose}><form className="club-finance-form" onSubmit={onSubmit}><label>Transaction title<input required value={form.title} onChange={(event) => change('title', event.target.value)} placeholder="e.g. Buy event supplies" /></label><div><label>Type<select value={form.type} onChange={(event) => change('type', event.target.value)}><option value="expense">Expense</option><option value="income">Income</option></select></label><label>Amount (VND)<input required min="1" type="number" value={form.amount} onChange={(event) => change('amount', event.target.value)} placeholder="0" /></label></div><div><label>Category<input required value={form.category} onChange={(event) => change('category', event.target.value)} placeholder="e.g. Membership Fee" /></label><label>Period (Kỳ hạn)<input required value={form.period} onChange={(event) => change('period', event.target.value)} placeholder="e.g. Q1/2026, Tháng 08/2026" /></label></div><div><label>Date<input required type="date" value={form.dateInput} onClick={openDatePicker} onChange={(event) => change('dateInput', event.target.value)} /></label></div><label>Description<textarea value={form.description} rows="3" onChange={(event) => change('description', event.target.value)} placeholder="Add context for this transaction request..." /></label><footer><button type="button" onClick={onClose}>Cancel</button><button type="submit" className="is-primary">{item ? 'Save changes' : 'Create request'}</button></footer></form></FinanceModal> }
+function TransactionForm({ item, form, setForm, onClose, onSubmit }) { const change = (key, value) => setForm((current) => ({ ...current, [key]: value })); const openDatePicker = (event) => event.currentTarget.showPicker?.(); return <FinanceModal title={item ? 'Update transaction request' : 'Create transaction request'} onClose={onClose}><form className="club-finance-form" onSubmit={onSubmit}><label>Transaction title<input required value={form.title} onChange={(event) => change('title', event.target.value)} placeholder="e.g. Buy event supplies" /></label><div><label>Type<select value={form.type} onChange={(event) => change('type', event.target.value)}><option value="expense">Expense</option><option value="income">Income</option></select></label><label>Amount (VND)<input required min="1" type="number" value={form.amount} onChange={(event) => change('amount', event.target.value)} placeholder="0" /></label></div><div><label>Category<input required value={form.category} onChange={(event) => change('category', event.target.value)} placeholder="e.g. Membership Fee" /></label><label>Period<input required value={form.period} onChange={(event) => change('period', event.target.value)} placeholder="e.g. Q1/2026, Aug 2026" /></label></div><div><label>Date<input required type="date" value={form.dateInput} onClick={openDatePicker} onChange={(event) => change('dateInput', event.target.value)} /></label></div><label>Description<textarea value={form.description} rows="3" onChange={(event) => change('description', event.target.value)} placeholder="Add context for this transaction request..." /></label><footer><button type="button" onClick={onClose}>Cancel</button><button type="submit" className="is-primary">{item ? 'Save changes' : 'Create request'}</button></footer></form></FinanceModal> }
 function FinanceModal({ title, children, onClose }) { return <div className="club-finance-modal" role="dialog" aria-modal="true"><button className="club-finance-modal__backdrop" aria-label="Close dialog" onClick={onClose} /><section className="club-finance-modal__panel"><header><h2>{title}</h2><button type="button" aria-label="Close" onClick={onClose}>×</button></header>{children}</section></div> }
 
 export default ClubFinancePage

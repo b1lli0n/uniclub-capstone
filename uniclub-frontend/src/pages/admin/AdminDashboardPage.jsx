@@ -373,7 +373,7 @@ function AdminDashboardPage({ onLogout }) {
       setSelectedActiveClub(null)
       setIsManagingMembers(false)
     }
-    // Hiển thị thông báo cho chức năng xóa câu lạc bộ ở trang admin.
+    // Display notification when club is deleted in admin page.
     showToast({
       type: 'success',
       title: 'Club deleted',
@@ -472,6 +472,18 @@ function AdminDashboardPage({ onLogout }) {
         })
       )
 
+    setSelectedActiveClub((club) => ({
+      ...club,
+      memberList: club.memberList.map((member) =>
+        member.id === memberId ? { ...member, role: nextRole } : member
+      ),
+    }))
+    // Display notification when member role is updated in admin page.
+    showToast({
+      type: 'success',
+      title: 'Role updated',
+      message: `${targetMember.name}'s role has been changed to ${nextRole}.`,
+    })
       setSelectedActiveClub((club) => ({
         ...club,
         leader: isNewLeader ? targetMember.name : club.leader,

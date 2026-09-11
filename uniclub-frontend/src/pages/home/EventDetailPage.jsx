@@ -91,7 +91,7 @@ function isEventRegistrationOpen(event) {
   if (event.status === 'closed' || event.status === 'cancelled') return false
   if (event.start_time) {
     const notEnded = event.end_time ? new Date() <= new Date(event.end_time) : true
-    return (event.status === 'opening' || event.status === 'coming soon' || !event.status) && notEnded
+    return (event.status === 'opening' || event.status === 'coming_soon' || event.status === 'coming soon' || !event.status) && notEnded
   }
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -130,7 +130,7 @@ function getTicketStatusText(status) {
 function getEventStatus(event) {
   if (!event) return ''
   if (event.status === 'opening') return 'Opening'
-  if (event.status === 'coming soon') return 'Coming soon'
+  if (event.status === 'coming_soon' || event.status === 'coming soon') return 'Coming soon'
   if (event.status === 'closed') return 'Closed'
   if (event.status === 'cancelled') return 'Cancelled'
   if (event.status) return event.status
@@ -184,7 +184,7 @@ function mapEventFromApi(apiEvent) {
     location: apiEvent.location || 'Campus',
     visibility: apiEvent.is_public ? 'public' : 'private',
     checkinOpen: apiEvent.check_in_status === 'open',
-    status: apiEvent.status || 'coming soon',
+    status: apiEvent.status === 'coming soon' ? 'coming_soon' : (apiEvent.status || 'coming_soon'),
     categoryLabel: (apiEvent.category || 'ACADEMIC').toUpperCase(),
     clubId: apiEvent.club_id?._id || apiEvent.club_id,
     organizerName: apiEvent.club_id?.name || 'UniClub',
@@ -395,8 +395,8 @@ function EventDetailPage() {
           })
           showToast({
             type: 'success',
-            title: 'Check-in thành công',
-            message: 'Chúc mừng! Bạn đã check-in thành công và được cộng điểm thưởng.',
+            title: 'Check-in successful',
+            message: 'Congratulations! You have checked in successfully and earned reward points.',
           })
           clearInterval(interval)
         }
@@ -449,7 +449,7 @@ function EventDetailPage() {
       showToast({
         type: 'success',
         title: 'Registration successful!',
-        message: 'Đăng ký thành công! Vé điện tử QR đã được khởi tạo và bạn nhận ngay điểm thưởng thành tích.',
+        message: 'Registration successful! Your electronic QR ticket is ready and you have earned achievement points.',
       })
       await loadEventData()
       setTicketOpen(true)
@@ -475,7 +475,7 @@ function EventDetailPage() {
 
     try {
       const res = await cancelEventRegistrationApi(eventId)
-      // Hiển thị thông báo cho chức năng hủy đăng ký sự kiện.
+      // Display notification when event registration is cancelled.
       showToast({
         type: 'success',
         title: 'Registration cancelled',
@@ -515,7 +515,7 @@ function EventDetailPage() {
     try {
       if (editingFeedback) {
         const res = await updateEventFeedbackApi(eventId, { rating: feedbackRating, comment })
-        // Hiển thị thông báo cho chức năng cập nhật feedback sự kiện.
+        // Display notification when event feedback is updated.
         showToast({
           type: 'success',
           title: 'Feedback updated',
@@ -523,7 +523,7 @@ function EventDetailPage() {
         })
       } else {
         const res = await submitEventFeedbackApi(eventId, { rating: feedbackRating, comment })
-        // Hiển thị thông báo cho chức năng gửi feedback sự kiện.
+        // Display notification when event feedback is submitted.
         showToast({
           type: 'success',
           title: 'Feedback submitted',
@@ -554,7 +554,7 @@ function EventDetailPage() {
 
     try {
       const res = await deleteEventFeedbackApi(eventId)
-      // Hiển thị thông báo cho chức năng xóa feedback sự kiện.
+      // Display notification when event feedback is deleted.
       showToast({
         type: 'success',
         title: 'Feedback deleted',
@@ -1094,8 +1094,8 @@ function EventDetailPage() {
               <div className="event-ticket__checkin" style={{ backgroundColor: '#e8f5e9', borderRadius: '8px', padding: '1.2rem', border: '1px solid #c8e6c9', margin: '1rem auto', maxWidth: '320px' }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '2.5rem', color: '#2e7d32', marginBottom: '0.3rem' }}>✓</div>
-                  <strong style={{ color: '#2e7d32', display: 'block', fontSize: '1.1rem', marginBottom: '0.2rem' }}>Đã check-in thành công!</strong>
-                  <span style={{ fontSize: '0.85rem', color: '#558b2f' }}>Chúc bạn có một buổi trải nghiệm vui vẻ!</span>
+                  <strong style={{ color: '#2e7d32', display: 'block', fontSize: '1.1rem', marginBottom: '0.2rem' }}>Checked in successfully!</strong>
+                  <span style={{ fontSize: '0.85rem', color: '#558b2f' }}>We hope you have an awesome experience!</span>
                 </div>
               </div>
             ) : (

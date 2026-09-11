@@ -1,6 +1,6 @@
 const express = require("express");
 const { verifyToken, authorize } = require("../../middlewares/auth.middleware");
-const { requireClubMember } = require("../../middlewares/club.middleware");
+const { requireClubRole } = require("../../middlewares/club.middleware");
 const {
   getRewards,
   getRewardDetail,
@@ -14,7 +14,7 @@ const router = express.Router();
 const memberGuard = [
   verifyToken,
   authorize(["student"]),
-  requireClubMember("clubId"),
+  requireClubRole([], "clubId"),
 ];
 
 // Club member rewards

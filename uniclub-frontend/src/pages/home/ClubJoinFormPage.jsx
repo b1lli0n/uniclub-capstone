@@ -194,7 +194,7 @@ function ClubJoinFormPage({ clubId }) {
       
       setDetailForm((form) => (form?.id === mapped.id ? mapped : form))
       closeEditor()
-      // Hiển thị thông báo cho chức năng tạo hoặc cập nhật form tham gia.
+      // Display notification when join form is created or updated.
       showToast({
         type: 'success',
         title: editorMode === 'edit' ? 'Form updated' : 'Form created',
@@ -250,7 +250,7 @@ function ClubJoinFormPage({ clubId }) {
           ? { ...form, status: nextStatus }
           : form
       )
-      // Hiển thị thông báo cho chức năng bật hoặc tắt form tham gia.
+      // Display notification when join form is activated or deactivated.
       showToast({
         type: 'success',
         title: nextStatus === 'active' ? 'Form activated' : 'Form deactivated',

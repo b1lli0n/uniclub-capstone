@@ -36,9 +36,9 @@ const logoutIcon = (
 
 function HomeSidebar({ activeItem, onNavigate, onLogout }) {
   return (
-    <aside className="home-sidebar" aria-label="Điều hướng chính">
+    <aside className="home-sidebar" aria-label="Main navigation">
       <div className="home-sidebar__top">
-        <button type="button" className="home-sidebar__menu" aria-label="Mở menu">
+        <button type="button" className="home-sidebar__menu" aria-label="Open menu">
           <span className="home-sidebar__icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />

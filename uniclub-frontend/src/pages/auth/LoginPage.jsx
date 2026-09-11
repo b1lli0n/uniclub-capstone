@@ -29,18 +29,18 @@ export default function LoginPage() {
   useEffect(() => {
     const errorParam = searchParams.get('error')
     if (errorParam) {
-      let msg = 'Đăng nhập không thành công.'
+      let msg = 'Login failed.'
       if (errorParam === 'Only FPT email is allowed') {
-        msg = 'Tài khoản đăng nhập không hợp lệ! Vui lòng sử dụng email FPT (@fpt.edu.vn).'
+        msg = 'Invalid login account! Please use an approved school email address (@fpt.edu.vn).'
       } else if (errorParam === 'Account is inactive') {
-        msg = 'Tài khoản của bạn đã bị khóa hoặc chưa kích hoạt.'
+        msg = 'Your account has been locked or has not been activated.'
       } else {
         msg = errorParam
       }
 
       showToast({
         type: 'error',
-        title: 'Đăng nhập thất bại',
+        title: 'Login failed',
         message: msg,
       })
 
@@ -115,7 +115,7 @@ export default function LoginPage() {
                   list="mock-emails"
                   value={selectedEmail}
                   onChange={(e) => setSelectedEmail(e.target.value)}
-                  placeholder="Nhập email để đăng nhập nhanh..."
+                  placeholder="Enter email to quick login..."
                   style={{
                     flex: 1,
                     padding: '0.6rem 0.8rem',

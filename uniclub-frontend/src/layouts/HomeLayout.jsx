@@ -93,8 +93,8 @@ function HomeLayout({
                   </span>
                   <input
                     type="search"
-                    placeholder="Tìm kiếm tại đây"
-                    aria-label="Tìm kiếm"
+                    placeholder="Search here..."
+                    aria-label="Search"
                   />
                 </div>
               ) : null}
@@ -120,7 +120,7 @@ function HomeLayout({
                   <button
                     type="button"
                     className="home-user-menu__caret-btn"
-                    aria-label="Mở menu tài khoản"
+                    aria-label="Open account menu"
                     aria-expanded={userMenuOpen}
                     aria-haspopup="menu"
                     onClick={(event) => {
@@ -192,7 +192,7 @@ function HomeLayout({
             type="button"
             className="scroll-to-top-btn"
             onClick={handleScrollTop}
-            aria-label="Cuộn lên đầu trang"
+            aria-label="Scroll to top"
           >
             <svg
               viewBox="0 0 24 24"

@@ -16,7 +16,7 @@ const EVENT_STATUSES = [
 ]
 const OPERATIONAL_STATUS_OPTIONS = [
   { value: 'opening', label: 'Opening' },
-  { value: 'coming soon', label: 'Coming Soon' },
+  { value: 'coming_soon', label: 'Coming Soon' },
   { value: 'closed', label: 'Closed' },
   { value: 'cancelled', label: 'Cancelled' },
 ]
@@ -561,7 +561,7 @@ function ClubEventManagementPage({ clubId }) {
       description: draft.details.trim() || draft.name.trim(),
       content: draft.details.trim() || draft.name.trim(),
       category: draft.category.trim().toLowerCase() || 'community',
-      location: draft.location.trim() || 'Hội trường A101',
+      location: draft.location.trim() || 'Hall A101',
       start_time: draft.startAt || new Date().toISOString(),
       end_time: draft.endAt || new Date(Date.now() + 7200000).toISOString(),
       capacity: Number(draft.participants) || 150,
@@ -582,7 +582,7 @@ function ClubEventManagementPage({ clubId }) {
         showToast({
           type: 'success',
           title: 'Event Request Submitted!',
-          message: 'Đã gửi Yêu cầu Tạo Sự Kiện kèm Link Hợp đồng lên Admin phê duyệt!',
+          message: 'Event creation request with contract link has been submitted for Admin approval!',
         })
       } else {
         await updateManagedEvent(targetClubId, draft.id, payload).catch((err) => {
@@ -922,7 +922,7 @@ function ClubEventManagementPage({ clubId }) {
               {detailEvent.approvalDocumentUrl ? (
                 <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed #e2e8f0' }}>
                   <strong style={{ display: 'block', fontSize: '0.85rem', color: '#0f172a', marginBottom: '4px' }}>
-                    📄 Link Hợp đồng / Giấy phép (Google Drive PDF):
+                    📄 School Approval / Contract Document (Google Drive PDF):
                   </strong>
                   <a
                     href={detailEvent.approvalDocumentUrl}
@@ -1120,15 +1120,15 @@ function ClubEventManagementPage({ clubId }) {
               />
 
               <label className="club-event-management-field club-event-management-field--full" style={{ marginTop: '14px' }}>
-                <span style={{ fontWeight: '800', color: '#1e293b' }}>📄 Link Hợp đồng / Giấy phép Trường (Google Drive PDF) *</span>
+                <span style={{ fontWeight: '800', color: '#1e293b' }}>📄 School Approval / Contract Document (Google Drive PDF) *</span>
                 <input
                   type="url"
                   value={draft.approvalDocumentUrl || 'https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I/view?usp=sharing'}
                   onChange={(event) => updateDraft('approvalDocumentUrl', event.target.value)}
-                  placeholder="https://drive.google.com/file/d/... (Link Drive Hợp đồng đã ký)"
+                  placeholder="https://drive.google.com/file/d/... (Signed Contract Document Link)"
                 />
                 <small style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  * Nhập link Google Drive lưu trữ Hợp đồng/Giấy phép tổ chức sự kiện đã ký duyệt với Nhà trường.
+                  * Enter the Google Drive link to the signed school event contract or permit document.
                 </small>
               </label>
             </div>

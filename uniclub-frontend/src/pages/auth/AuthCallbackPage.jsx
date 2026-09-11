@@ -4,14 +4,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 function AuthCallbackPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [loadingText, setLoadingText] = useState('Đang kết nối với Google...')
+  const [loadingText, setLoadingText] = useState('Connecting to Google...')
 
   useEffect(() => {
     const texts = [
-      'Đang xác thực tài khoản...',
-      'Đang thiết lập phiên đăng nhập...',
-      'Đang đồng bộ dữ liệu thành viên...',
-      'Đang chuyển hướng về trang chủ...'
+      'Authenticating your account...',
+      'Setting up your session...',
+      'Syncing membership profile...',
+      'Redirecting to home page...'
     ]
     let index = 0
     const interval = setInterval(() => {
@@ -216,8 +216,8 @@ function AuthCallbackPage() {
           <div className="logo-center">UC</div>
         </div>
 
-        <h2 className="title">Đang xử lý đăng nhập</h2>
-        <p className="subtitle">Vui lòng chờ trong giây lát để thiết lập tài khoản của bạn.</p>
+        <h2 className="title">Logging In</h2>
+        <p className="subtitle">Please wait a moment while we set up your account session.</p>
 
         <div className="progress-bar-container">
           <div className="progress-bar-fill"></div>

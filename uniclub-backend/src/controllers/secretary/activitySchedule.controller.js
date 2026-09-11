@@ -10,7 +10,6 @@ const getClubActivitySchedule = async (req, res, next) => {
       end_date: endDate,
       search,
       status,
-      progress_status: progressStatus,
       page,
       limit,
     } = req.query;
@@ -32,7 +31,6 @@ const getClubActivitySchedule = async (req, res, next) => {
       end_date: endDate,
       search,
       status,
-      progress_status: progressStatus,
       page,
       limit,
     });
@@ -81,8 +79,6 @@ const createActivity = async (req, res, next) => {
       start_time: startTime,
       end_time: endTime,
       status,
-      progress_status: progressStatus,
-      media_urls: mediaUrls,
     } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(clubId)) {
@@ -109,12 +105,6 @@ const createActivity = async (req, res, next) => {
       return next(getStatusError("Valid end_time is required", 400));
     }
 
-    if (mediaUrls !== undefined) {
-      if (!Array.isArray(mediaUrls) || mediaUrls.some((url) => typeof url !== "string")) {
-        return next(getStatusError("media_urls must be an array of strings", 400));
-      }
-    }
-
     const data = await activityScheduleService.createActivity(clubId, req.user.id, {
       title,
       description,
@@ -122,8 +112,6 @@ const createActivity = async (req, res, next) => {
       start_time: startTime,
       end_time: endTime,
       status,
-      progress_status: progressStatus,
-      media_urls: mediaUrls,
     });
 
     return res.status(201).json({
@@ -146,8 +134,6 @@ const updateActivity = async (req, res, next) => {
       start_time: startTime,
       end_time: endTime,
       status,
-      progress_status: progressStatus,
-      media_urls: mediaUrls,
     } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(clubId)) {
@@ -181,12 +167,6 @@ const updateActivity = async (req, res, next) => {
       return next(getStatusError("Invalid end_time", 400));
     }
 
-    if (mediaUrls !== undefined) {
-      if (!Array.isArray(mediaUrls) || mediaUrls.some((url) => typeof url !== "string")) {
-        return next(getStatusError("media_urls must be an array of strings", 400));
-      }
-    }
-
     const data = await activityScheduleService.updateActivity(clubId, activityId, {
       title,
       description,
@@ -194,8 +174,6 @@ const updateActivity = async (req, res, next) => {
       start_time: startTime,
       end_time: endTime,
       status,
-      progress_status: progressStatus,
-      media_urls: mediaUrls,
     });
 
     return res.status(200).json({

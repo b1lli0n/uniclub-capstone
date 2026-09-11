@@ -111,11 +111,18 @@ const votePoll = async (clubId, pollId, userId, optionId) => {
     throw getStatusError("Invalid option_id", 400);
   }
 
-  const existingVote = poll.votes.find((vote) => String(vote.user_id) === String(userId));
+  const existingVoteIndex = poll.votes.findIndex((vote) => String(vote.user_id) === String(userId));
 
-  if (existingVote) {
-    existingVote.option_id = optionId;
-    existingVote.voted_at = now;
+  if (existingVoteIndex !== -1) {
+    const existingVote = poll.votes[existingVoteIndex];
+    if (String(existingVote.option_id) === String(optionId)) {
+      // User clicked their currently voted option -> cancel/unvote
+      poll.votes.splice(existingVoteIndex, 1);
+    } else {
+      // User switched their vote to another option
+      existingVote.option_id = optionId;
+      existingVote.voted_at = now;
+    }
   } else {
     poll.votes.push({
       user_id: userId,

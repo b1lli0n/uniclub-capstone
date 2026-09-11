@@ -30,7 +30,7 @@ export default function QrScannerModal({ isOpen, onClose, onScanSuccess }) {
       }
     ).catch((err) => {
       console.error('Failed to start QR scanner:', err)
-      setErrorMsg('Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập camera của trình duyệt.')
+      setErrorMsg('Unable to access camera. Please check your browser camera permissions.')
     })
 
     function cleanup() {
@@ -77,9 +77,9 @@ export default function QrScannerModal({ isOpen, onClose, onScanSuccess }) {
           alignItems: 'center',
         }}
       >
-        <h3 style={{ margin: '0 0 0.5rem 0', color: '#111', fontSize: '1.25rem', fontWeight: 600 }}>Quét QR Check-in</h3>
+        <h3 style={{ margin: '0 0 0.5rem 0', color: '#111', fontSize: '1.25rem', fontWeight: 600 }}>Scan Check-in QR Code</h3>
         <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1.5rem', textAlign: 'center' }}>
-          Hướng camera điện thoại vào mã QR vé của sinh viên để đón tiếp
+          Point your camera at the attendee's ticket QR code to check in
         </p>
 
         {errorMsg ? (
@@ -131,7 +131,7 @@ export default function QrScannerModal({ isOpen, onClose, onScanSuccess }) {
           onMouseOver={(e) => (e.target.style.background = '#e0e0e0')}
           onMouseOut={(e) => (e.target.style.background = '#f5f5f5')}
         >
-          Đóng Camera
+          Close Camera
         </button>
 
         {/* Injecting CSS Keyframe animation dynamically */}

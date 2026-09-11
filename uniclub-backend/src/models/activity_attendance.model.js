@@ -18,28 +18,19 @@ const activityAttendanceSchema = Schema(
       ref: "ClubMember",
       required: true,
     },
-    user_id: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
     status: {
       type: String,
       required: true,
       enum: ["attended", "absent", "pending"],
       default: "pending",
     },
-    points_awarded: {
-      type: Number,
-      default: 0,
-    },
     check_in_time: {
       type: Date,
-      default: Date.now,
+      default: null,
     },
     checked_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       default: null,
     },
   },
@@ -50,5 +41,6 @@ const activityAttendanceSchema = Schema(
 
 activityAttendanceSchema.index({ activity_id: 1, membership_id: 1 }, { unique: true });
 activityAttendanceSchema.index({ club_id: 1, activity_id: 1 });
+activityAttendanceSchema.index({ status: 1 });
 
 module.exports = mongoose.model("ActivityAttendance", activityAttendanceSchema);
