@@ -68,6 +68,7 @@ const updateMyProfile = async (userId, { avatar, student_code, phone, campus }) 
 
   if (avatar !== undefined) {
     updateData.avatar = avatar;
+    await User.findByIdAndUpdate(userId, { avatar_url: avatar });
   }
 
   if (student_code && (!existingProfile || !existingProfile.student_code)) {

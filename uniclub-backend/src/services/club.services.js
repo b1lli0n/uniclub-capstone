@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const Club = require("../models/club.model");
+const ClubMember = require("../models/club_member.model");
+const Event = require("../models/event.model");
 const ClubCreationRequest = require("../models/club_creation_requests.model");
 const User = require("../models/user.model");
 
@@ -42,7 +44,36 @@ const getAllClubs = async ({ category, sortBy, search }) => {
   const sortOptions = buildSortOptions(sortBy);
 
   const clubs = await Club.find(filter).sort(sortOptions).lean();
-  return clubs;
+
+  if (!clubs || clubs.length === 0) {
+    return [];
+  }
+
+  const clubIds = clubs.map((c) => c._id);
+
+  const [memberCounts, eventCounts] = await Promise.all([
+    ClubMember.aggregate([
+      { $match: { club_id: { $in: clubIds }, status: "active" } },
+      { $group: { _id: "$club_id", count: { $sum: 1 } } },
+    ]),
+    Event.aggregate([
+      { $match: { club_id: { $in: clubIds } } },
+      { $group: { _id: "$club_id", count: { $sum: 1 } } },
+    ]),
+  ]);
+
+  const memberCountMap = new Map(
+    memberCounts.map((item) => [String(item._id), item.count])
+  );
+  const eventCountMap = new Map(
+    eventCounts.map((item) => [String(item._id), item.count])
+  );
+
+  return clubs.map((club) => ({
+    ...club,
+    member_count: memberCountMap.get(String(club._id)) || 0,
+    event_count: eventCountMap.get(String(club._id)) || 0,
+  }));
 };
 
 
@@ -62,7 +93,16 @@ const getClubById = async (id) => {
     throw error;
   }
 
-  return club;
+  const [memberCount, eventCount] = await Promise.all([
+    ClubMember.countDocuments({ club_id: id, status: "active" }),
+    Event.countDocuments({ club_id: id }),
+  ]);
+
+  return {
+    ...club,
+    member_count: memberCount,
+    event_count: eventCount,
+  };
 };
 
 // UC - Request to Create a New Club

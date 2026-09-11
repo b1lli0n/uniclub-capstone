@@ -41,11 +41,13 @@ function HomeShellScreen({ onLogout }) {
         const res = await getMyProfile()
         if (active) {
           const user = res.data.user
+          const profileData = res.data.profile
+          const localAvatar = user._id ? localStorage.getItem(`uniclub_custom_avatar_${user._id}`) : ''
           setCurrentUser({
             id: user._id,
             fullName: user.full_name || '',
             email: user.email || '',
-            avatarUrl: user.avatar_url || '',
+            avatarUrl: profileData?.avatar || user.avatar_url || localAvatar || '',
             avatarInitial: user.full_name?.slice(0, 1).toUpperCase() || 'U',
           })
         }
