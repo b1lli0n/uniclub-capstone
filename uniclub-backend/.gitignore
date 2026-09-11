@@ -1,4 +1,4 @@
-node_modules/
+node_modules
 .env
 .env.*
 !.env.example
@@ -11,3 +11,11 @@ coverage/
 *.log
 uploads/*
 !uploads/.gitkeep
+*.pem
+
+# Local dev scripts (seed data, migrations, debug tools)
+scripts/
+
+# Unit Test files
+src/utils/test/
+
