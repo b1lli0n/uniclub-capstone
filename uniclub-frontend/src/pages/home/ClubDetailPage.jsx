@@ -12,6 +12,7 @@ import {
   getPublicEvents,
   getClubEventsForMember,
 } from '../../api/event.api'
+import { getUserProfileById } from '../../api/profile.api'
 import { formatRoleLabel, mapClubFromApi, mapMemberFromApi } from '../../api/clubMappers'
 import { CLUB_DETAIL_COPY } from '../../data/mockData'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
@@ -32,7 +33,7 @@ function mapEventFromApi(apiEvent) {
   const startDate = apiEvent.start_time ? new Date(apiEvent.start_time) : null
   const formattedDate = startDate ? startDate.toLocaleDateString('vi-VN') : ''
   const formattedTime = startDate ? startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''
-  
+
   return {
     id: apiEvent._id || apiEvent.id,
     name: apiEvent.title || '',
@@ -52,6 +53,9 @@ function ClubDetailPage({ clubId, onBack }) {
   const [joinModalOpen, setJoinModalOpen] = useState(false)
   const [leaveModalOpen, setLeaveModalOpen] = useState(false)
   const [membersModalOpen, setMembersModalOpen] = useState(false)
+  const [profileModalOpen, setProfileModalOpen] = useState(false)
+  const [selectedMemberProfile, setSelectedMemberProfile] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(false)
   const [club, setClub] = useState(null)
   const [memberRows, setMemberRows] = useState([])
   const [currentMembership, setCurrentMembership] = useState(null)
@@ -60,6 +64,52 @@ function ClubDetailPage({ clubId, onBack }) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+
+  async function handleViewMemberProfile(member) {
+    if (!member) return
+    setSelectedMemberProfile({
+      id: member.id,
+      userId: member.userId,
+      name: member.name,
+      email: member.email || '',
+      role: member.role,
+      rawRole: member.rawRole,
+      avatarUrl: member.avatarUrl || '',
+      tone: member.tone || '#f5b87a',
+      joinedDate: member.joinedDate || '',
+      rewardPoint: member.rewardPoint || 0,
+      rankingPoint: member.rankingPoint || 0,
+      studentCode: '',
+      phone: '',
+      campus: '',
+    })
+    setProfileModalOpen(true)
+
+    const targetUserId = member.userId || member.id
+    if (targetUserId) {
+      setProfileLoading(true)
+      try {
+        const res = await getUserProfileById(targetUserId)
+        if (res?.data) {
+          const u = res.data.user || {}
+          const p = res.data.profile || {}
+          setSelectedMemberProfile((prev) => ({
+            ...prev,
+            name: u.full_name || prev.name,
+            email: u.email || prev.email,
+            avatarUrl: p.avatar || u.avatar_url || prev.avatarUrl,
+            studentCode: p.student_code || '',
+            phone: p.phone || '',
+            campus: p.campus || '',
+          }))
+        }
+      } catch (err) {
+        console.warn('Could not fetch full user profile:', err)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -100,10 +150,10 @@ function ClubDetailPage({ clubId, onBack }) {
         setCurrentMembership(
           membership
             ? {
-                clubId,
-                role: formatRoleLabel(membership.role),
-                rawRole: membership.role,
-              }
+              clubId,
+              role: formatRoleLabel(membership.role),
+              rawRole: membership.role,
+            }
             : null,
         )
       } catch (error) {
@@ -364,15 +414,31 @@ function ClubDetailPage({ clubId, onBack }) {
         <div className="club-detail-section__header">
           <div>
             <h2>Members</h2>
-            <p>Core members of the club</p>
+            <p>Core members of the club (click to view profile)</p>
           </div>
           <button type="button" onClick={() => setMembersModalOpen(true)}>View all members</button>
         </div>
 
         <div className="club-detail-members">
           {previewMembers.map((member) => (
-            <article key={member.id} className="club-detail-member" style={{ '--member-tone': member.tone }}>
-              <div className="club-detail-member__avatar">{member.name.slice(0, 1)}</div>
+            <article
+              key={member.id}
+              className="club-detail-member club-detail-member--clickable"
+              style={{ '--member-tone': member.tone, cursor: 'pointer' }}
+              onClick={() => handleViewMemberProfile(member)}
+              title="Click to view profile"
+            >
+              <div className="club-detail-member__avatar">
+                {member.avatarUrl ? (
+                  <img
+                    src={member.avatarUrl}
+                    alt={member.name}
+                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  member.name.slice(0, 1).toUpperCase()
+                )}
+              </div>
               <strong>{member.name}</strong>
               <span>{member.role}</span>
             </article>
@@ -465,26 +531,147 @@ function ClubDetailPage({ clubId, onBack }) {
             <div className="club-members-modal__list">
               {memberRows.map((member) => (
                 <article key={member.id} className="club-members-modal__item" style={{ '--member-tone': member.tone }}>
-                  <div className="club-members-modal__member-info">
+                  <div
+                    className="club-members-modal__member-info"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleViewMemberProfile(member)}
+                    title="Click to view member profile"
+                  >
                     <div className="club-members-modal__avatar">
-                      {member.name.slice(0, 1)}
+                      {member.avatarUrl ? (
+                        <img
+                          src={member.avatarUrl}
+                          alt={member.name}
+                          style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        member.name.slice(0, 1).toUpperCase()
+                      )}
                     </div>
                     <div>
                       <strong>{member.name}</strong>
                       <span>{member.role}</span>
                     </div>
                   </div>
-                  {canManageMembers && member.rawRole !== 'president' ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <button
                       type="button"
-                      className="club-members-modal__remove"
-                      onClick={() => handleRemoveMember(member.id)}
+                      className="club-members-modal__view-btn"
+                      onClick={() => handleViewMemberProfile(member)}
                     >
-                      Remove
+                      View Profile
                     </button>
-                  ) : null}
+                    {canManageMembers && member.rawRole !== 'president' ? (
+                      <button
+                        type="button"
+                        className="club-members-modal__remove"
+                        onClick={() => handleRemoveMember(member.id)}
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
                 </article>
               ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {profileModalOpen && selectedMemberProfile ? (
+        <div className="club-profile-modal" role="dialog" aria-modal="true" aria-labelledby="member-profile-modal-title">
+          <button
+            type="button"
+            className="club-profile-modal__backdrop"
+            aria-label="Close profile"
+            onClick={() => setProfileModalOpen(false)}
+          />
+          <div className="club-profile-modal__panel">
+            <div className="club-profile-modal__header">
+              <h2 id="member-profile-modal-title">Member Profile</h2>
+              <button type="button" onClick={() => setProfileModalOpen(false)} aria-label="Close">✕</button>
+            </div>
+
+            <div className="club-profile-modal__body">
+              <div className="club-profile-modal__user-card">
+                <div
+                  className="club-profile-modal__avatar"
+                  style={{ background: selectedMemberProfile.tone || '#f5b87a' }}
+                >
+                  {selectedMemberProfile.avatarUrl ? (
+                    <img src={selectedMemberProfile.avatarUrl} alt={selectedMemberProfile.name} />
+                  ) : (
+                    selectedMemberProfile.name?.slice(0, 1).toUpperCase() || 'U'
+                  )}
+                </div>
+                <div className="club-profile-modal__user-text">
+                  <h3>{selectedMemberProfile.name}</h3>
+                  <div className="club-profile-modal__tags">
+                    <span className="club-profile-modal__role-tag">{selectedMemberProfile.role}</span>
+                    {selectedMemberProfile.rawRole === 'president' && (
+                      <span className="club-profile-modal__leader-tag">Club Leader</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {profileLoading ? (
+                <div className="club-profile-modal__loading">
+                  <p>Loading member details...</p>
+                </div>
+              ) : (
+                <div className="club-profile-modal__info-grid">
+                  <div className="club-profile-modal__field">
+                    <span className="club-profile-modal__label">Email</span>
+                    <strong className="club-profile-modal__val">{selectedMemberProfile.email || 'N/A'}</strong>
+                  </div>
+
+                  <div className="club-profile-modal__field">
+                    <span className="club-profile-modal__label">Student Code (MSSV)</span>
+                    <strong className="club-profile-modal__val">
+                      {selectedMemberProfile.studentCode || 'Not provided'}
+                    </strong>
+                  </div>
+
+                  <div className="club-profile-modal__field">
+                    <span className="club-profile-modal__label">Phone Number</span>
+                    <strong className="club-profile-modal__val">
+                      {selectedMemberProfile.phone || 'Not provided'}
+                    </strong>
+                  </div>
+
+                  <div className="club-profile-modal__field">
+                    <span className="club-profile-modal__label">Campus</span>
+                    <strong className="club-profile-modal__val">
+                      {selectedMemberProfile.campus || 'Can Tho Campus'}
+                    </strong>
+                  </div>
+
+                  <div className="club-profile-modal__field">
+                    <span className="club-profile-modal__label">Joined Date</span>
+                    <strong className="club-profile-modal__val">
+                      {selectedMemberProfile.joinedDate || 'Member'}
+                    </strong>
+                  </div>
+
+                  <div className="club-profile-modal__field">
+                    <span className="club-profile-modal__label">Achievement Points</span>
+                    <strong className="club-profile-modal__val" style={{ color: '#eb6c18' }}>
+                      ⭐ {selectedMemberProfile.rankingPoint || 0} pts
+                    </strong>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="club-profile-modal__footer">
+              <button
+                type="button"
+                className="club-profile-modal__btn-close"
+                onClick={() => setProfileModalOpen(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

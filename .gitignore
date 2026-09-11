@@ -15,3 +15,21 @@ build/
 Thumbs.db
 uniclub-backend/seed-club.js
 uniclub-backend/seed.js
+
+# Document files & Generated Docs
+*.docx
+~$*.docx
+docs.md
+docs_screen.md
+usecasedes/
+usecasedescription.md
+sequence/
+test/
+
+# Doc generation and helper scripts
+build_*_docs.js
+docx_*.js
+inject_modules_*.js
+rebuild_*.js
+scratch_*.js
+

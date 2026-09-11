@@ -5,8 +5,8 @@ import { ADMIN_NAV_ITEMS } from '../../data/mockData'
 import fptUniversityLogo from '../../assets/Logo-Dai-hoc-FPT.webp'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 import AdminEventRequestsTab from './AdminEventRequestsTab'
-import { getAdminClubList, getClubCreationRequestList, reviewClubCreationRequest } from '../../api/clubManagement.api'
-import { mapAdminClubFromApi, mapCreationRequestFromApi } from '../../api/clubMappers'
+import { getAdminClubList, getClubCreationRequestList, reviewClubCreationRequest, assignManagementRole } from '../../api/clubManagement.api'
+import { mapAdminClubFromApi, mapCreationRequestFromApi, mapAdminRoleToApi } from '../../api/clubMappers'
 
 const ADMIN_SORT_OPTIONS = [
   { value: 'pending', label: 'Status: Pending' },
@@ -441,18 +441,36 @@ function AdminDashboardPage({ onLogout }) {
 
     if (!accepted) return
 
-    setActiveClubs((clubs) =>
-      clubs.map((club) => {
-        if (club.id !== selectedActiveClub.id) return club
+    try {
+      if (selectedActiveClub?.id) {
+        await assignManagementRole(
+          selectedActiveClub.id,
+          memberId,
+          mapAdminRoleToApi(nextRole)
+        )
+      }
 
-        return {
-          ...club,
-          memberList: club.memberList.map((member) =>
-            member.id === memberId ? { ...member, role: nextRole } : member
-          ),
-        }
-      })
-    )
+      const isNewLeader = nextRole === 'Leader'
+
+      setActiveClubs((clubs) =>
+        clubs.map((club) => {
+          if (club.id !== selectedActiveClub.id) return club
+
+          return {
+            ...club,
+            leader: isNewLeader ? targetMember.name : club.leader,
+            memberList: club.memberList.map((member) => {
+              if (member.id === memberId) {
+                return { ...member, role: nextRole }
+              }
+              if (isNewLeader && (member.role === 'Leader' || member.role === 'president')) {
+                return { ...member, role: 'Member' }
+              }
+              return member
+            }),
+          }
+        })
+      )
 
     setSelectedActiveClub((club) => ({
       ...club,
@@ -466,6 +484,33 @@ function AdminDashboardPage({ onLogout }) {
       title: 'Role updated',
       message: `${targetMember.name}'s role has been changed to ${nextRole}.`,
     })
+      setSelectedActiveClub((club) => ({
+        ...club,
+        leader: isNewLeader ? targetMember.name : club.leader,
+        memberList: club.memberList.map((member) => {
+          if (member.id === memberId) {
+            return { ...member, role: nextRole }
+          }
+          if (isNewLeader && (member.role === 'Leader' || member.role === 'president')) {
+            return { ...member, role: 'Member' }
+          }
+          return member
+        }),
+      }))
+
+      showToast({
+        type: 'success',
+        title: 'Role updated',
+        message: `${targetMember.name}'s role has been changed to ${nextRole}.`,
+      })
+    } catch (err) {
+      console.error(err)
+      showToast({
+        type: 'error',
+        title: 'Update failed',
+        message: err.message || 'Failed to update member role',
+      })
+    }
   }
 
   async function updateRegistrationRequestStatus(request, nextStatus) {

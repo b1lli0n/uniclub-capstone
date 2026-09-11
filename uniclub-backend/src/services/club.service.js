@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Club = require("../models/club.model");
 const ClubMember = require("../models/club_member.model");
+const Event = require("../models/event.model");
 const Profile = require("../models/profile.model");
 const ClubCreationRequest = require("../models/club_creation_requests.model");
 
@@ -79,8 +80,36 @@ const getClubList = async ({ query, currentUser }) => {
     Club.countDocuments(filter),
   ]);
 
+  let clubsWithCounts = clubs;
+  if (clubs.length > 0) {
+    const clubIds = clubs.map((c) => c._id);
+    const [memberCounts, eventCounts] = await Promise.all([
+      ClubMember.aggregate([
+        { $match: { club_id: { $in: clubIds }, status: "active" } },
+        { $group: { _id: "$club_id", count: { $sum: 1 } } },
+      ]),
+      Event.aggregate([
+        { $match: { club_id: { $in: clubIds } } },
+        { $group: { _id: "$club_id", count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    const memberCountMap = new Map(
+      memberCounts.map((item) => [String(item._id), item.count])
+    );
+    const eventCountMap = new Map(
+      eventCounts.map((item) => [String(item._id), item.count])
+    );
+
+    clubsWithCounts = clubs.map((club) => ({
+      ...club,
+      member_count: memberCountMap.get(String(club._id)) || 0,
+      event_count: eventCountMap.get(String(club._id)) || 0,
+    }));
+  }
+
   return {
-    clubs,
+    clubs: clubsWithCounts,
     pagination: {
       page: pageNumber,
       limit: limitNumber,
@@ -114,14 +143,20 @@ const getClubDetail = async ({ clubId, currentUser }) => {
     throw error;
   }
 
-  const memberCount = await ClubMember.countDocuments({
-    club_id: clubId,
-    status: "active",
-  });
+  const [memberCount, eventCount] = await Promise.all([
+    ClubMember.countDocuments({
+      club_id: clubId,
+      status: "active",
+    }),
+    Event.countDocuments({
+      club_id: clubId,
+    }),
+  ]);
 
   return {
     ...club,
     member_count: memberCount,
+    event_count: eventCount,
   };
 };
 
@@ -303,6 +338,15 @@ const assignManagementRole = async ({ clubId, memberId, role }) => {
   //Chỉ set role cho member có status là "active"
   if (member.status !== "active") {
     const error = new Error("Only active members can be assigned roles");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // BR-72: Không thể trực tiếp hạ Chủ tịch hiện tại xuống vai trò khác. Muốn thay đổi cần bổ nhiệm một Chủ tịch mới thay thế.
+  if (member.role === "president" && role !== "president") {
+    const error = new Error(
+      "BR-72: Cannot demote the current President directly. Please appoint a new President to replace."
+    );
     error.statusCode = 400;
     throw error;
   }

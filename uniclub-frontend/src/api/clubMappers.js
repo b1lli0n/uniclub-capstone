@@ -56,15 +56,20 @@ export function mapMyClubFromApi(membership) {
 export function mapMemberFromApi(member, index = 0) {
   const user = member.user_id || member.user || {}
   const tones = ['#f5b87a', '#7eb8f0', '#e88fc4', '#9ed87e', '#c9a0f5']
+  const userId = user._id || member.user_id?._id || (typeof member.user_id === 'string' ? member.user_id : null) || member._id
 
   return {
     id: member._id || user._id,
+    userId: userId,
     name: user.full_name || user.name || 'Unknown',
     role: formatRoleLabel(member.role),
     rawRole: member.role,
     tone: tones[index % tones.length],
     email: user.email || '',
     avatarUrl: user.avatar_url || '',
+    joinedDate: member.joined_at ? formatDate(member.joined_at) : '',
+    rewardPoint: member.reward_point || 0,
+    rankingPoint: member.ranking_point || 0,
   }
 }
 

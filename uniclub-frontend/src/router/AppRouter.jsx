@@ -32,11 +32,13 @@ import ClubFeesPage from '../pages/home/ClubFeesPage'
 import ClubReceiptDetailPage from '../pages/home/ClubReceiptDetailPage'
 import PaymentReturnPage from '../pages/auth/PaymentReturnPage'
 import ApiTestPage from '../pages/ApiTestPage'
+import LogoutConfirmModal from '../components/common/LogoutConfirmModal'
 
 
 import { CURRENT_USER, MY_CLUB_MEMBERSHIPS } from '../data/mockData'
 import { getMyProfile } from '../api/profile.api'
 import { getMyClubs } from '../api/memberClubMembership.api'
+import { apiRequest } from '../api/api'
 
 
 function getMembership(clubId) {
@@ -95,6 +97,8 @@ function ProtectedLayout({
   const navigate = useNavigate()
   const isAuthenticated = Boolean(localStorage.getItem('token'))
   const [currentUser, setCurrentUser] = useState(CURRENT_USER)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -103,17 +107,23 @@ function ProtectedLayout({
         const res = await getMyProfile()
         if (active) {
           const user = res.data.user
+          const profileData = res.data.profile
+          const localAvatar = user._id ? localStorage.getItem(`uniclub_custom_avatar_${user._id}`) : ''
           setCurrentUser({
             id: user._id,
             fullName: user.full_name || '',
             email: user.email || '',
-            avatarUrl: user.avatar_url || '',
+            avatarUrl: profileData?.avatar || user.avatar_url || localAvatar || '',
             avatarInitial: user.full_name?.slice(0, 1).toUpperCase() || 'U',
             role: user.role || 'UniClub member',
           })
         }
       } catch (err) {
         console.error("Failed to load user profile in ProtectedLayout:", err)
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          localStorage.removeItem('token')
+          window.location.href = '/login'
+        }
       }
     }
     if (isAuthenticated) {
@@ -124,8 +134,23 @@ function ProtectedLayout({
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to log out of UniClub?')) {
+    setShowLogoutModal(true)
+  }
+
+  const doConfirmLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      // Gọi API logout lên backend
+      await apiRequest('/auth/logout', {
+        method: 'POST',
+      })
+    } catch (error) {
+      // Xử lý ngoại lệ A2: Nếu mất mạng / lỗi server, client vẫn dọn dẹp local token
+      console.warn('Network error during logout, fallback to local cleanup:', error)
+    } finally {
+      // Đảm bảo luôn xóa token và làm mới trang Login sạch sẽ
       localStorage.removeItem('token')
-      navigate('/login', { replace: true })
+      window.location.href = '/login'
     }
   }
 
@@ -163,22 +188,31 @@ function ProtectedLayout({
   }
 
   return (
-    <HomeLayout
-      activeItem={activeItem}
-      pageId={pageId}
-      currentUser={currentUser}
-      onNavigate={handleNavigate}
-      onLogout={handleLogout}
-      canManageMembers={canManageMembers}
-      canManageInvitations={canManageInvitations}
-      canManageEvents={canManageEvents}
-      canManageSchedule={canManageSchedule}
-      canViewFees={canViewFees}
-      canManagePolls={canManagePolls}
-      canManageFinance={canManageFinance}
-    >
-      {children}
-    </HomeLayout>
+    <>
+      <HomeLayout
+        activeItem={activeItem}
+        pageId={pageId}
+        currentUser={currentUser}
+        onNavigate={handleNavigate}
+        onLogout={handleLogout}
+        canManageMembers={canManageMembers}
+        canManageInvitations={canManageInvitations}
+        canManageEvents={canManageEvents}
+        canManageSchedule={canManageSchedule}
+        canViewFees={canViewFees}
+        canManagePolls={canManagePolls}
+        canManageFinance={canManageFinance}
+      >
+        {children}
+      </HomeLayout>
+
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={doConfirmLogout}
+        isLoggingOut={isLoggingOut}
+      />
+    </>
   )
 }
 
@@ -447,11 +481,46 @@ function ClubReceiptRoute() {
 
 
 function AppRouter() {
-  const isAuthenticated = Boolean(localStorage.getItem('token'))
   const navigate = useNavigate()
+  const isAuthenticated = Boolean(localStorage.getItem('token'))
+  const [showAdminLogout, setShowAdminLogout] = useState(false)
+  const [adminLoggingOut, setAdminLoggingOut] = useState(false)
+
+  const handleAdminLogout = async () => {
+    setAdminLoggingOut(true)
+    try {
+      await apiRequest('/auth/logout', { method: 'POST' })
+    } catch (e) {
+      console.warn('Network error during admin logout:', e)
+    } finally {
+      localStorage.removeItem('token')
+      window.location.href = '/login'
+    }
+  }
+
+  useEffect(() => {
+    const handleOffline = () => {
+      if (localStorage.getItem('token')) {
+        console.warn('Network lost! Auto clearing token and redirecting to login...')
+        localStorage.removeItem('token')
+        window.location.href = '/login'
+      }
+    }
+
+    // Nếu lúc mount/F5 mà đang offline
+    if (typeof navigator !== 'undefined' && !navigator.onLine && localStorage.getItem('token')) {
+      handleOffline()
+    }
+
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   return (
-    <Routes>
+    <>
+      <Routes>
       <Route
         path="/login"
         element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
@@ -611,6 +680,7 @@ function AppRouter() {
                   navigate('/login', { replace: true })
                 }
               }}
+              onLogout={() => setShowAdminLogout(true)}
             />
           </AdminRoute>
         }
@@ -620,6 +690,16 @@ function AppRouter() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+
+      <LogoutConfirmModal
+        isOpen={showAdminLogout}
+        onClose={() => setShowAdminLogout(false)}
+        onConfirm={handleAdminLogout}
+        isLoggingOut={adminLoggingOut}
+        title="Confirm Admin Logout"
+        message="Are you sure you want to log out of the UniClub Admin system?"
+      />
+    </>
   )
 }
 
@@ -646,6 +726,11 @@ function AdminRoute({ children }) {
         setIsAllowed(allowed)
       } catch (err) {
         console.error("Admin access check error:", err)
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          localStorage.removeItem('token')
+          window.location.href = '/login'
+          return
+        }
         if (active) setIsAllowed(false)
       } finally {
         if (active) setLoading(false)

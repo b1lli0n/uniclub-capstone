@@ -10,3 +10,7 @@ export function updateMyProfile(payload) {
     body: JSON.stringify(payload),
   })
 }
+
+export function getUserProfileById(userId) {
+  return apiRequest(`/profile/user/${userId}`)
+}

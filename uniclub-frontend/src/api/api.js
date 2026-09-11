@@ -11,21 +11,43 @@ export function toQueryString(params) {
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem('token')
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    },
-  })
-
-  const data = await response.json()
-
-  if (!response.ok) {
-    throw new Error(data.message || 'API request failed')
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    if (token) {
+      localStorage.removeItem('token')
+      window.location.href = '/login'
+    }
+    throw new Error('Mạng đã bị ngắt kết nối')
   }
 
-  return data
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers,
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem('token')
+        window.location.href = '/login'
+      }
+      throw new Error(data.message || 'API request failed')
+    }
+
+    return data
+  } catch (error) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (localStorage.getItem('token')) {
+        localStorage.removeItem('token')
+        window.location.href = '/login'
+      }
+    }
+    throw error
+  }
 }
