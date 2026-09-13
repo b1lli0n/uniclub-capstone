@@ -1,0 +1,530 @@
+.club-fees-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem 1rem;
+  font-family: inherit;
+  color: #1d1d1f;
+}
+
+/* Header */
+.club-fees-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.club-fees-header__title {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #1d1d1f;
+  margin: 0 0 0.4rem 0;
+  letter-spacing: -0.02em;
+}
+
+.club-fees-header__subtitle {
+  font-size: 0.95rem;
+  color: #86868b;
+  margin: 0;
+}
+
+/* Summary Grid */
+.club-fees-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.club-fees-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid #e5e5ea;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.club-fees-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.club-fees-card__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.club-fees-card__icon--unpaid {
+  background: #fff4e5;
+  color: #ff9500;
+}
+
+.club-fees-card__icon--paid {
+  background: #e6f9f0;
+  color: #34c759;
+}
+
+.club-fees-card__icon--failed {
+  background: #ffebeb;
+  color: #ff3b30;
+}
+
+.club-fees-card__icon--all {
+  background: #f0f3ff;
+  color: #0071e3;
+}
+
+.club-fees-card__info {
+  display: flex;
+  flex-direction: column;
+}
+
+.club-fees-card__label {
+  font-size: 0.85rem;
+  color: #86868b;
+  font-weight: 500;
+  margin-bottom: 0.2rem;
+}
+
+.club-fees-card__value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1d1d1f;
+}
+
+/* Filter & Sort Toolbar */
+.club-fees-filter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.club-fees-tabs {
+  display: flex;
+  gap: 0.35rem;
+  background: #f2f2f7;
+  padding: 5px;
+  border-radius: 12px;
+  flex-wrap: wrap;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.club-fees-tab {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #636366;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.club-fees-tab:hover {
+  color: #1d1d1f;
+}
+
+.club-fees-tab.is-active {
+  background: #ffffff;
+  color: #1d1d1f;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.club-fees-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.club-fees-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.club-fees-control-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #86868b;
+  text-transform: uppercase;
+  padding-left: 2px;
+}
+
+.club-fees-select,
+.club-fees-period-select {
+  min-width: 145px;
+  padding: 0.55rem 0.95rem;
+  border-radius: 10px;
+  border: 1px solid #d1d1d6;
+  background: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #1d1d1f;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.club-fees-select:hover,
+.club-fees-period-select:hover {
+  border-color: #86868b;
+}
+
+.club-fees-select:focus,
+.club-fees-period-select:focus {
+  border-color: #0071e3;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18);
+}
+
+/* Fee List */
+.club-fees-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.club-fee-item {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid #e5e5ea;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  transition: border-color 0.2s ease;
+}
+
+.club-fee-item:hover {
+  border-color: #0071e3;
+}
+
+.club-fee-item__left {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.club-fee-item__club-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  object-fit: cover;
+  background: #f2f2f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0071e3;
+  flex-shrink: 0;
+}
+
+.club-fee-item__details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.club-fee-item__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin: 0;
+}
+
+.club-fee-item__meta {
+  font-size: 0.85rem;
+  color: #86868b;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.club-fee-item__right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.club-fee-item__amount-wrap {
+  text-align: right;
+}
+
+.club-fee-item__amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1d1d1f;
+}
+
+/* Badges */
+.club-fee-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.club-fee-badge--pending {
+  background: #fff4e5;
+  color: #b25900;
+}
+
+.club-fee-badge--success {
+  background: #e6f9f0;
+  color: #1b8a43;
+}
+
+.club-fee-badge--failed {
+  background: #ffebeb;
+  color: #c92a2a;
+}
+
+/* Action Buttons */
+.club-fee-btn {
+  padding: 0.65rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.club-fee-btn--pay {
+  background: linear-gradient(135deg, #0071e3 0%, #005bb5 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 113, 227, 0.25);
+}
+
+.club-fee-btn--pay:hover {
+  background: linear-gradient(135deg, #0077ed 0%, #0066cb 100%);
+  box-shadow: 0 6px 16px rgba(0, 113, 227, 0.35);
+  transform: translateY(-1px);
+}
+
+.club-fee-btn--receipt {
+  background: #f2f2f7;
+  color: #1d1d1f;
+  border: 1px solid #d1d1d6;
+}
+
+.club-fee-btn--receipt:hover {
+  background: #e5e5ea;
+}
+
+/* Empty State */
+.club-fees-empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px dashed #d1d1d6;
+}
+
+.club-fees-empty__icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.club-fees-empty__text {
+  font-size: 1rem;
+  color: #86868b;
+  margin: 0;
+}
+
+/* Modal */
+.club-fees-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.club-fees-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  border: none;
+}
+
+.club-fees-modal__panel {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.club-fees-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.club-fees-modal__title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.club-fees-modal__close {
+  background: #f2f2f7;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.club-fees-summary-box {
+  background: #f9f9fb;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e5e5ea;
+}
+
+.club-fees-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  font-size: 0.9rem;
+  color: #636366;
+}
+
+.club-fees-summary-row--total {
+  border-top: 1px solid #e5e5ea;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #1d1d1f;
+}
+
+/* Digital Receipt Styling */
+.club-receipt-paper {
+  max-width: 640px;
+  margin: 2rem auto;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e5ea;
+}
+
+.club-receipt-header {
+  text-align: center;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px dashed #e5e5ea;
+  margin-bottom: 1.5rem;
+}
+
+.club-receipt-header__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  background: #e6f9f0;
+  color: #1b8a43;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.club-receipt-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 2rem;
+  margin-bottom: 2rem;
+}
+
+.club-receipt-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.club-receipt-field__label {
+  font-size: 0.8rem;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.club-receipt-field__value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .club-receipt-paper, .club-receipt-paper * {
+    visibility: visible;
+  }
+  .club-receipt-paper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none;
+    border: none;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

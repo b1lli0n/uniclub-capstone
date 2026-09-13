@@ -1,0 +1,340 @@
+/* UniClub Login — palette: #FFE6C9 (page), #FFCE96 (card) */
+
+body:has(.login-page) #root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  border: none;
+  text-align: initial;
+  min-height: 100svh;
+}
+
+.login-page {
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  overflow: hidden;
+  background-color: #f7f8fc;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+.login-page::before {
+  content: '';
+  position: absolute;
+  inset: -18px;
+  z-index: -2;
+  background: url('../assets/nen-login.jpg') center / cover no-repeat;
+  filter: blur(3px);
+  transform: scale(1.03);
+}
+
+.login-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(255, 230, 201, 0.22), rgba(247, 248, 252, 0.28)),
+    rgba(255, 255, 255, 0.06);
+}
+
+.login-card {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(420px, 0.9fr) minmax(420px, 1.1fr);
+  width: min(1180px, 100%);
+  min-height: min(620px, calc(100svh - 3rem));
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 5px),
+    linear-gradient(135deg, rgba(255, 246, 235, 0.16), rgba(255, 255, 255, 0.12));
+  border: 2.5px solid #ff7900;
+  border-radius: 32px;
+  overflow: hidden;
+  backdrop-filter: blur(16px) saturate(122%);
+  -webkit-backdrop-filter: blur(16px) saturate(122%);
+  box-shadow:
+    0 0 0 1px rgba(255, 230, 201, 0.72),
+    0 0 12px rgba(255, 121, 0, 0.72),
+    0 0 28px rgba(255, 121, 0, 0.38),
+    0 34px 82px rgba(24, 36, 64, 0.26),
+    0 16px 32px rgba(24, 36, 64, 0.16),
+    0 0 46px rgba(255, 121, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    inset 0 0 54px rgba(255, 206, 150, 0.06);
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.12), transparent 34%, rgba(255, 206, 150, 0.08) 72%, transparent),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, rgba(255, 255, 255, 0) 1px 5px);
+  opacity: 0.42;
+}
+
+.login-card__left {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  padding: 2.5rem;
+  background:
+    linear-gradient(135deg, rgba(255, 206, 150, 0.3) 0%, rgba(255, 230, 201, 0.18) 100%),
+    rgba(255, 248, 242, 0.04);
+  background-size: cover;
+  border-radius: 0;
+  color: #ffffff;
+}
+
+.login-card__wave {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 48px);
+  width: 80px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.login-card__wave svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.login-card__right {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(247, 248, 252, 0.16)),
+    rgba(255, 248, 242, 0.035);
+  color: #3d2e24;
+}
+
+.login-brand-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding-top: 5.25rem;
+  box-sizing: border-box;
+  text-align: center;
+  transform: translateY(-0.75rem);
+}
+
+.login-fpt-logo {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.55rem;
+  width: min(150px, 34%);
+  height: auto;
+  object-fit: contain;
+}
+
+.login-brand-panel h2 {
+  margin: 0;
+  color: #ff8e0b;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.login-brand-panel p {
+  margin: 0;
+  color: #000000;
+  font-size: clamp(0.9rem, 1.6vw, 1.1rem);
+  font-weight: 600;
+}
+
+.login-hero-group {
+  width: min(430px, 96%);
+  max-height: 310px;
+  margin-top: 0.85rem;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+.login-card__copyright {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #000000;
+  text-align: center;
+}
+
+.login-form__title {
+  margin: 0 0 2rem;
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: #000000;
+  letter-spacing: -0.03em;
+  text-align: center;
+}
+
+.login-options {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 0;
+  margin: 0;
+}
+
+.login-card__right .login-form__title {
+  color: #000000;
+}
+
+.login-card__right .login-provider {
+  color: #ffffff;
+}
+
+.login-provider {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: minmax(24px, 1fr) auto minmax(24px, 1fr);
+  align-items: center;
+  justify-content: center;
+  column-gap: 0.75rem;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.15s;
+  box-sizing: border-box;
+}
+
+.login-provider--google {
+  background: #d95d4f;
+}
+
+.login-provider--google:hover {
+  background: #c94d41;
+}
+
+.login-provider--feid {
+  background: #3f73df;
+}
+
+.login-provider--feid:hover {
+  background: #3465c7;
+}
+
+.login-provider:active {
+  transform: scale(0.98);
+}
+
+.login-provider__icon {
+  justify-self: end;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.login-provider > span:last-child {
+  justify-self: start;
+}
+
+.login-provider__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.login-options__hint {
+  margin: -0.25rem 0 0;
+  color: #3d2e24;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: underline;
+}
+
+.login-form__contact {
+  align-self: stretch;
+  margin-top: 3rem;
+  margin-bottom: 0;
+  text-align: right;
+  font-size: 0.7rem;
+  color: #6b5a4a;
+  line-height: 1.4;
+}
+
+.login-form__contact a {
+  color: #3d2e24;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .login-card {
+    grid-template-columns: 1fr;
+    border-radius: 32px;
+    min-height: auto;
+  }
+
+  .login-card__left {
+    border-radius: 32px 32px 0 0;
+    clip-path: none;
+    padding: 1.75rem 1.5rem 1rem;
+  }
+
+  .login-card__wave {
+    display: none;
+  }
+
+  .login-brand-panel {
+    min-height: 260px;
+    padding-top: 4.5rem;
+    transform: translateY(-0.35rem);
+  }
+
+  .login-fpt-logo {
+    top: 0.5rem;
+    left: 0.5rem;
+    width: min(130px, 42%);
+  }
+
+  .login-hero-group {
+    width: min(360px, 100%);
+    max-height: 220px;
+    margin-top: 0.65rem;
+  }
+
+  .login-card__right {
+    padding: 1.5rem 1.75rem 2rem;
+    border-radius: 0 0 32px 32px;
+  }
+
+  .login-form__title {
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .login-form__contact {
+    text-align: center;
+  }
+}
