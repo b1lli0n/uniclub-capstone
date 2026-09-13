@@ -133,7 +133,6 @@ function ProtectedLayout({
   }, [isAuthenticated])
 
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to log out of UniClub?')) {
     setShowLogoutModal(true)
   }
 
@@ -674,12 +673,6 @@ function AppRouter() {
         element={
           <AdminRoute>
             <AdminDashboardPage
-              onLogout={() => {
-                if (window.confirm('Are you sure you want to log out of the Admin panel?')) {
-                  localStorage.removeItem('token')
-                  navigate('/login', { replace: true })
-                }
-              }}
               onLogout={() => setShowAdminLogout(true)}
             />
           </AdminRoute>

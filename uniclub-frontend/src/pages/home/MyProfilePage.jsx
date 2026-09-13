@@ -40,7 +40,7 @@ function MyProfilePage({ currentUser }) {
   const [editFormData, setEditFormData] = useState({
     studentCode: '',
     phone: '',
-    campus: 'Can Tho',
+    campus: 'CT',
   })
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [phoneError, setPhoneError] = useState('')
@@ -110,7 +110,7 @@ function MyProfilePage({ currentUser }) {
           avatarInitial: user.full_name?.slice(0, 1).toUpperCase() || 'U',
           role: user.role || 'student',
           studentCode: profileData.student_code || '',
-          campus: profileData.campus || 'Can Tho',
+          campus: profileData.campus || 'CT',
         })
       } catch (err) {
         console.error("Error fetching profile data:", err)
@@ -126,7 +126,7 @@ function MyProfilePage({ currentUser }) {
     setEditFormData({
       studentCode: profile.studentCode || '',
       phone: profile.phone || '',
-      campus: profile.campus || 'Can Tho',
+      campus: profile.campus || 'CT',
     })
     setPhoneError('')
     setIsEditModalOpen(true)
@@ -186,17 +186,13 @@ function MyProfilePage({ currentUser }) {
 
     try {
       await updateMyProfile({
-        student_code: editFormData.studentCode,
         phone: cleanPhone,
         campus: editFormData.campus,
       })
-      setIsEditing(false)
-      // Display notification when profile is updated.
 
       // Cập nhật State hồ sơ hiển thị
       setProfile((prev) => ({
         ...prev,
-        studentCode: editFormData.studentCode,
         phone: cleanPhone,
         campus: editFormData.campus,
       }))
@@ -800,7 +796,7 @@ function MyProfilePage({ currentUser }) {
 
             <div className="my-profile-detail-item my-profile-detail-item--full">
               <span className="my-profile-detail-item__label">Campus</span>
-              <span className="my-profile-detail-item__value">{profile.campus || 'Can Tho'}</span>
+              <span className="my-profile-detail-item__value">{profile.campus || 'CT'}</span>
             </div>
           </div>
         </div>
@@ -843,9 +839,9 @@ function MyProfilePage({ currentUser }) {
                     <span>Student Code (MSSV)</span>
                     <input
                       type="text"
-                      value={editFormData.studentCode}
-                      placeholder="e.g. CE123456"
-                      onChange={(e) => handleEditFieldChange('studentCode', e.target.value)}
+                      value={profile.studentCode || 'Not updated'}
+                      disabled
+                      title="Student code cannot be changed"
                     />
                   </label>
 
@@ -865,7 +861,7 @@ function MyProfilePage({ currentUser }) {
                     <input
                       type="text"
                       value={editFormData.campus}
-                      placeholder="e.g. Can Tho"
+                      placeholder="e.g. CT"
                       onChange={(e) => handleEditFieldChange('campus', e.target.value)}
                     />
                   </label>

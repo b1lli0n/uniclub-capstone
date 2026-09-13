@@ -66,6 +66,7 @@ function ClubDetailPage({ clubId, onBack }) {
   const [submitting, setSubmitting] = useState(false)
 
   async function handleViewMemberProfile(member) {
+    if (!canManageMembers) return
     if (!member) return
     setSelectedMemberProfile({
       id: member.id,
@@ -175,7 +176,9 @@ function ClubDetailPage({ clubId, onBack }) {
   }, [clubId])
 
   const isClubMember = Boolean(currentMembership)
-  const canManageMembers = currentMembership?.rawRole === 'president'
+  const canManageMembers =
+    currentMembership?.rawRole?.toLowerCase() === 'president' ||
+    currentMembership?.rawRole?.toLowerCase() === 'leader'
   const detailDescription = club
     ? `${club.description}. ${CLUB_DETAIL_COPY.descriptionSuffix}`
     : ''
@@ -360,7 +363,7 @@ function ClubDetailPage({ clubId, onBack }) {
       <section className="club-detail-section">
         <div className="club-detail-section__header">
           <div>
-            <h2>Ongoing Events</h2>
+            <h2>Events</h2>
             <p>
               {isClubMember
                 ? 'Public and member-only activities inside this club'
@@ -414,7 +417,11 @@ function ClubDetailPage({ clubId, onBack }) {
         <div className="club-detail-section__header">
           <div>
             <h2>Members</h2>
-            <p>Core members of the club (click to view profile)</p>
+            <p>
+              {canManageMembers
+                ? 'Core members of the club (click to view profile)'
+                : 'Core members of the club'}
+            </p>
           </div>
           <button type="button" onClick={() => setMembersModalOpen(true)}>View all members</button>
         </div>
@@ -423,10 +430,13 @@ function ClubDetailPage({ clubId, onBack }) {
           {previewMembers.map((member) => (
             <article
               key={member.id}
-              className="club-detail-member club-detail-member--clickable"
-              style={{ '--member-tone': member.tone, cursor: 'pointer' }}
-              onClick={() => handleViewMemberProfile(member)}
-              title="Click to view profile"
+              className={`club-detail-member ${canManageMembers ? 'club-detail-member--clickable' : ''}`}
+              style={{
+                '--member-tone': member.tone,
+                cursor: canManageMembers ? 'pointer' : 'default',
+              }}
+              onClick={canManageMembers ? () => handleViewMemberProfile(member) : undefined}
+              title={canManageMembers ? 'Click to view profile' : undefined}
             >
               <div className="club-detail-member__avatar">
                 {member.avatarUrl ? (
@@ -533,9 +543,9 @@ function ClubDetailPage({ clubId, onBack }) {
                 <article key={member.id} className="club-members-modal__item" style={{ '--member-tone': member.tone }}>
                   <div
                     className="club-members-modal__member-info"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleViewMemberProfile(member)}
-                    title="Click to view member profile"
+                    style={{ cursor: canManageMembers ? 'pointer' : 'default' }}
+                    onClick={canManageMembers ? () => handleViewMemberProfile(member) : undefined}
+                    title={canManageMembers ? 'Click to view member profile' : undefined}
                   >
                     <div className="club-members-modal__avatar">
                       {member.avatarUrl ? (
@@ -554,13 +564,15 @@ function ClubDetailPage({ clubId, onBack }) {
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <button
-                      type="button"
-                      className="club-members-modal__view-btn"
-                      onClick={() => handleViewMemberProfile(member)}
-                    >
-                      View Profile
-                    </button>
+                    {canManageMembers ? (
+                      <button
+                        type="button"
+                        className="club-members-modal__view-btn"
+                        onClick={() => handleViewMemberProfile(member)}
+                      >
+                        View Profile
+                      </button>
+                    ) : null}
                     {canManageMembers && member.rawRole !== 'president' ? (
                       <button
                         type="button"
@@ -643,7 +655,7 @@ function ClubDetailPage({ clubId, onBack }) {
                   <div className="club-profile-modal__field">
                     <span className="club-profile-modal__label">Campus</span>
                     <strong className="club-profile-modal__val">
-                      {selectedMemberProfile.campus || 'Can Tho Campus'}
+                      {selectedMemberProfile.campus || 'CT'}
                     </strong>
                   </div>
 

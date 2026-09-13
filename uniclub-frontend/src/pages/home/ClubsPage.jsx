@@ -228,7 +228,9 @@ function ClubsPage({ onSelectClub }) {
       )
     }
 
-    if (sort === 'members-desc') {
+    if (sort === 'name-asc') {
+      result.sort((a, b) => a.name.localeCompare(b.name))
+    } else if (sort === 'members-desc') {
       result.sort((a, b) => b.members - a.members)
     } else if (sort === 'events-desc') {
       result.sort((a, b) => b.events - a.events)

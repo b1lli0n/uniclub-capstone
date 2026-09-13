@@ -472,18 +472,6 @@ function AdminDashboardPage({ onLogout }) {
         })
       )
 
-    setSelectedActiveClub((club) => ({
-      ...club,
-      memberList: club.memberList.map((member) =>
-        member.id === memberId ? { ...member, role: nextRole } : member
-      ),
-    }))
-    // Display notification when member role is updated in admin page.
-    showToast({
-      type: 'success',
-      title: 'Role updated',
-      message: `${targetMember.name}'s role has been changed to ${nextRole}.`,
-    })
       setSelectedActiveClub((club) => ({
         ...club,
         leader: isNewLeader ? targetMember.name : club.leader,
