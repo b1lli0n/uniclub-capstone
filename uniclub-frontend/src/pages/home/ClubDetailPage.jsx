@@ -31,8 +31,33 @@ function EventIcon() {
 function mapEventFromApi(apiEvent) {
   if (!apiEvent) return null
   const startDate = apiEvent.start_time ? new Date(apiEvent.start_time) : null
+  const endDate = apiEvent.end_time ? new Date(apiEvent.end_time) : startDate
+  const now = new Date()
+
+  // Kiểm tra xem sự kiện đã qua ngày / kết thúc hay chưa
+  const isPast = endDate ? endDate < now : false
+  const isOngoing = startDate && endDate ? (startDate <= now && now <= endDate) : false
+  const isUpcoming = startDate ? startDate > now : false
+
   const formattedDate = startDate ? startDate.toLocaleDateString('vi-VN') : ''
   const formattedTime = startDate ? startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''
+
+  let statusLabel = 'Upcoming'
+  let statusTone = 'upcoming'
+
+  if (apiEvent.check_in_status === 'open') {
+    statusLabel = 'Check-in Open'
+    statusTone = 'open'
+  } else if (isOngoing) {
+    statusLabel = 'Ongoing'
+    statusTone = 'ongoing'
+  } else if (isPast) {
+    statusLabel = 'Ended'
+    statusTone = 'ended'
+  } else {
+    statusLabel = 'Upcoming'
+    statusTone = 'upcoming'
+  }
 
   return {
     id: apiEvent._id || apiEvent.id,
@@ -43,6 +68,13 @@ function mapEventFromApi(apiEvent) {
     location: apiEvent.location || 'Campus',
     visibility: apiEvent.is_public ? 'public' : 'private',
     checkinOpen: apiEvent.check_in_status === 'open',
+    rawStartTime: startDate ? startDate.getTime() : 0,
+    rawEndTime: endDate ? endDate.getTime() : 0,
+    isPast,
+    isOngoing,
+    isUpcoming,
+    statusLabel,
+    statusTone,
   }
 }
 
@@ -183,7 +215,11 @@ function ClubDetailPage({ clubId, onBack }) {
     ? `${club.description}. ${CLUB_DETAIL_COPY.descriptionSuffix}`
     : ''
   const previewMembers = memberRows.slice(0, 4)
-  const previewClubEvents = events.slice(0, 3)
+  // Lọc chỉ các sự kiện chưa qua ngày (sắp diễn ra hoặc đang diễn ra), sắp xếp gần nhất lên trước
+  const upcomingEvents = events
+    .filter((event) => !event.isPast)
+    .sort((a, b) => a.rawStartTime - b.rawStartTime)
+  const previewClubEvents = upcomingEvents.slice(0, 3)
   const hiddenPrivateEventsCount = 0
 
   async function openJoinModal() {
@@ -375,36 +411,44 @@ function ClubDetailPage({ clubId, onBack }) {
           </button>
         </div>
 
-        <div className="club-event-grid">
-          {previewClubEvents.map((event) => (
-            <article
-              key={event.id}
-              className="club-event-card club-event-card--clickable"
-              role="button"
-              tabIndex={0}
-              onClick={() => navigate(`/clubs/${club.id}/events/${event.id}`)}
-              onKeyDown={(keyEvent) => {
-                if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
-                  keyEvent.preventDefault()
-                  navigate(`/clubs/${club.id}/events/${event.id}`)
-                }
-              }}
-            >
-              <div className="club-event-card__icon">
-                <EventIcon />
-              </div>
-              <div className="club-event-card__badges">
-                <span className="club-event-card__tag">{event.checkinOpen ? 'Open' : 'Upcoming'}</span>
-                <span className={`club-event-card__visibility club-event-card__visibility--${event.visibility || 'public'}`}>
-                  {event.visibility === 'private' ? 'Private' : 'Public'}
-                </span>
-              </div>
-              <h3>{event.name}</h3>
-              <p>{event.description}</p>
-              <small>{event.date} - {event.location || 'Campus'}</small>
-            </article>
-          ))}
-        </div>
+        {previewClubEvents.length > 0 ? (
+          <div className="club-event-grid">
+            {previewClubEvents.map((event) => (
+              <article
+                key={event.id}
+                className="club-event-card club-event-card--clickable"
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/clubs/${club.id}/events/${event.id}`)}
+                onKeyDown={(keyEvent) => {
+                  if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+                    keyEvent.preventDefault()
+                    navigate(`/clubs/${club.id}/events/${event.id}`)
+                  }
+                }}
+              >
+                <div className="club-event-card__icon">
+                  <EventIcon />
+                </div>
+                <div className="club-event-card__badges">
+                  <span className={`club-event-card__tag club-event-card__tag--${event.statusTone}`}>
+                    {event.statusLabel}
+                  </span>
+                  <span className={`club-event-card__visibility club-event-card__visibility--${event.visibility || 'public'}`}>
+                    {event.visibility === 'private' ? 'Private' : 'Public'}
+                  </span>
+                </div>
+                <h3>{event.name}</h3>
+                <p>{event.description}</p>
+                <small>{event.date} - {event.location || 'Campus'}</small>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="club-events-empty-state">
+            <p>No upcoming events scheduled at this moment.</p>
+          </div>
+        )}
 
         {hiddenPrivateEventsCount > 0 ? (
           <p className="club-event-private-note">

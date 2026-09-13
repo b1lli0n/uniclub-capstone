@@ -369,6 +369,37 @@
   color: #ffffff;
 }
 
+.club-event-card__tag--open {
+  background: #059669;
+  color: #ffffff;
+}
+
+.club-event-card__tag--ongoing {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.club-event-card__tag--upcoming {
+  background: #d97706;
+  color: #ffffff;
+}
+
+.club-event-card__tag--ended {
+  background: #9ca3af;
+  color: #ffffff;
+}
+
+.club-events-empty-state {
+  padding: 2.2rem 1rem;
+  text-align: center;
+  border-radius: 16px;
+  background: #fffaf5;
+  border: 1px dashed #e8d7c8;
+  color: #8c7362;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
 .club-event-card__visibility--public {
   background: #e4f7e8;
   color: #287a3e;
