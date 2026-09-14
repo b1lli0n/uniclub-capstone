@@ -367,10 +367,7 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
             <PollCard
               key={poll.id}
               poll={poll}
-              canManagePolls={canManagePolls}
               onDetails={() => setSelectedPoll(poll)}
-              onEdit={() => openEdit(poll)}
-              onClose={() => setCloseTarget(poll)}
             />
           ))
         )}
@@ -423,7 +420,7 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
   )
 }
 
-function PollCard({ poll, canManagePolls, onDetails, onEdit, onClose }) {
+function PollCard({ poll, onDetails }) {
   const votes = totalVotes(poll)
   return (
     <article className="club-poll-card">
@@ -462,23 +459,28 @@ function PollCard({ poll, canManagePolls, onDetails, onEdit, onClose }) {
         </small>
       </div>
       <div className="club-poll-card__actions">
-        <button type="button" onClick={onDetails}>
+        <button
+          type="button"
+          onClick={onDetails}
+          style={{
+            minHeight: '38px',
+            padding: '0 1.15rem',
+            background: '#eb6c18',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '10px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(235, 108, 24, 0.18)',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {poll.myVote && poll.status === 'open'
             ? 'View & Manage Vote'
             : poll.status === 'open'
             ? 'View & Vote'
             : 'View Results'}
         </button>
-        {canManagePolls && poll.status === 'open' && (
-          <>
-            <button type="button" onClick={onEdit}>
-              Edit
-            </button>
-            <button type="button" className="is-danger" onClick={onClose}>
-              Close poll
-            </button>
-          </>
-        )}
       </div>
     </article>
   )
@@ -588,11 +590,33 @@ function PollDetail({ poll, canManagePolls, onVote, onDismiss, onEdit, onClose }
         </button>
         {canManagePolls && poll.status === 'open' && (
           <>
-            <button type="button" onClick={onEdit}>
-              Edit poll
+            <button
+              type="button"
+              style={{
+                background: '#fd7e14',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 800,
+                borderRadius: '8px',
+                padding: '0.45rem 0.9rem',
+                cursor: 'pointer',
+              }}
+              onClick={onEdit}
+            >
+              ✏️ Edit poll
             </button>
-            <button type="button" className="is-danger" onClick={onClose}>
-              Close poll
+            <button
+              type="button"
+              className="is-danger"
+              style={{
+                borderRadius: '8px',
+                padding: '0.45rem 0.9rem',
+                cursor: 'pointer',
+                fontWeight: 800,
+              }}
+              onClick={onClose}
+            >
+              🔒 Close poll
             </button>
           </>
         )}

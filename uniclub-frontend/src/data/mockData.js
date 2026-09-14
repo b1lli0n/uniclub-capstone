@@ -4,7 +4,7 @@
 // Current user data
 export const CURRENT_USER = {
   id: 'user-001',
-  fullName: 'Hà Văn Sơn',
+  fullName: 'Ha Van Son',
   email: 'sonhv@fpt.edu.vn',
   phone: '0901234567',
   gender: 'other',
@@ -897,14 +897,14 @@ export const AVAILABLE_MEMBERS = [
 
 // My requests screen data
 export const MY_REQUEST_TABS = [
-  { id: 'sent', label: 'Sent Requests', count: 3 },
+  { id: 'sent', label: 'Sent Requests', count: 0 },
   { id: 'received', label: 'Received Invitations', count: 0 },
 ]
 
 export const REQUEST_STATUS_OPTIONS = [
-  { value: 'all', label: 'All' },
+  { value: 'all', label: 'All Statuses' },
   { value: 'pending', label: 'Pending' },
-  { value: 'approved', label: 'Approved' },
+  { value: 'approved', label: 'Approved / Accepted' },
   { value: 'rejected', label: 'Rejected' },
 ]
 
@@ -1117,7 +1117,7 @@ export const POINT_RULES = [
 export const ADMIN_NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
   { id: 'registrations', label: 'Registrations', icon: 'registrations' },
-  { id: 'event-requests', label: 'Event Requests', icon: 'notifications' },
+  { id: 'event-requests', label: 'Event Requests', icon: 'event-requests' },
   { id: 'clubs', label: 'Club Management', icon: 'clubs' },
 ]
 

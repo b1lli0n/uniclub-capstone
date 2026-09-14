@@ -260,26 +260,7 @@ function ClubJoinRequestsPage({ clubId }) {
               <span className={`club-join-request-status club-join-request-status--${request.status}`}>
                 {getStatusLabel(request.status)}
               </span>
-              {request.status === 'pending' ? (
-                <>
-                  <button
-                    type="button"
-                    className="club-join-request-card__approve"
-                    onClick={() => updateRequestStatus(request.id, 'approved')}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    type="button"
-                    className="club-join-request-card__reject"
-                    onClick={() => updateRequestStatus(request.id, 'rejected')}
-                  >
-                    Reject
-                  </button>
-                </>
-              ) : (
-                <strong>{request.requestedRole}</strong>
-              )}
+              <strong>{request.requestedRole}</strong>
             </div>
           </article>
         ))}

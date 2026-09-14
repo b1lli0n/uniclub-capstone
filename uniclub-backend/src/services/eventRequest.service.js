@@ -87,8 +87,8 @@ const createEventRequest = async ({ clubId, userId, userEmail, body }) => {
     const userDoc = await User.findById(userId);
 
     sendEventRequestSubmittedEmailToAdmin({
-      clubName: clubDoc?.name || "Guitar Club",
-      requesterName: userDoc?.full_name || userEmail || "Ban Sự Kiện",
+      clubName: clubDoc?.name || "Club",
+      requesterName: userDoc?.full_name || userEmail || "Event Organizer",
       eventTitle: title,
       documentUrl: approval_document_url,
     });
@@ -210,8 +210,8 @@ const reviewEventRequest = async ({ requestId, status, reviewNote, reviewerId })
     if (userDoc?.email) {
       sendEventRequestResultEmailToRequester({
         toEmail: userDoc.email,
-        userName: userDoc.full_name || "Thành viên Ban Sự Kiện",
-        clubName: clubDoc?.name || "Guitar Club",
+        userName: userDoc.full_name || "Event Organizer",
+        clubName: clubDoc?.name || "Club",
         eventTitle: request.title,
         isApproved: status === "approved",
         reviewNote: note,

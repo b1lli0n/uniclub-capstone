@@ -76,7 +76,7 @@ const requestCreateClub = async (req, res) => {
   try {
     const requestedBy = req.user.id || req.user._id;
 
-    const { club_name, category, description, reason, logo_url, member_ids } = req.body;
+    const { club_name, slogan, category, description, reason, logo_url, member_ids } = req.body;
 
     if (!club_name || !reason || !logo_url) {
       return res.status(400).json({
@@ -94,6 +94,7 @@ const requestCreateClub = async (req, res) => {
 
     const data = await clubService.requestCreateClub({
       club_name,
+      slogan,
       category,
       description,
       reason,
@@ -124,8 +125,26 @@ const requestCreateClub = async (req, res) => {
   }
 };
 
+const getMyClubCreationRequests = async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    const data = await clubService.getMyClubCreationRequests(userId);
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("Get my club creation requests error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching my club creation requests",
+    });
+  }
+};
+
 module.exports = {
   getAllClubs,
   getClubById,
   requestCreateClub,
+  getMyClubCreationRequests,
 };

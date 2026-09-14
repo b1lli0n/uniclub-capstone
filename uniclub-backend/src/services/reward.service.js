@@ -623,9 +623,9 @@ const approveRewardRedemption = async ({
       const pickupCode = `REDEEM-${resultDoc._id.toString().substring(18).toUpperCase()}`;
       sendRedemptionApprovedEmailToStudent({
         toEmail: studentEmail,
-        userName: resultDoc?.membership_id?.user_id?.full_name || "Sinh viên",
-        clubName: resultDoc?.membership_id?.club_id?.name || "Guitar Club",
-        rewardTitle: resultDoc?.reward_id?.name || "Phần thưởng",
+        userName: resultDoc?.membership_id?.user_id?.full_name || "Member",
+        clubName: resultDoc?.membership_id?.club_id?.name || "Club",
+        rewardTitle: resultDoc?.reward_id?.name || "Reward",
         pointCost: resultDoc?.total_point || resultDoc?.point_cost,
         pickupCode,
       });

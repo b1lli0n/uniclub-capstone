@@ -180,11 +180,21 @@ const redeemReward = async ({ clubId, rewardId, userId }) => {
     const User = require("../../models/user.model");
     const userDoc = await User.findById(userId);
 
+    const ClubMember = require("../../models/club_member.model");
+    let leaderEmail = process.env.EMAIL_USER || "uniclub2402@gmail.com";
+    if (club?.president_id) {
+      const leaderUser = await User.findById(club.president_id);
+      if (leaderUser?.email) leaderEmail = leaderUser.email;
+    } else if (club?._id) {
+      const currentPresident = await ClubMember.findOne({ club_id: club._id, role: "president", status: "active" }).populate("user_id");
+      if (currentPresident?.user_id?.email) leaderEmail = currentPresident.user_id.email;
+    }
+
     sendRedemptionRequestEmailToLeader({
-      leaderEmail: process.env.EMAIL_USER || "uniclub2402@gmail.com",
-      userName: userDoc?.full_name || "Sinh viên UniClub",
-      clubName: club?.name || "Guitar Club",
-      rewardTitle: reward?.name || "Phần thưởng",
+      leaderEmail,
+      userName: userDoc?.full_name || "UniClub Student",
+      clubName: club?.name || "Club",
+      rewardTitle: reward?.name || "Reward",
       pointCost: cost,
     });
   } catch (emailErr) {

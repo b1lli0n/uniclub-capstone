@@ -6,6 +6,7 @@ import { getClubEventsForMember, getPublicEvents } from '../../api/event.api'
 import '../../styles/club-detail.css'
 
 import { resolveEventUploadImage } from '../../utils/imageUtils'
+import { formatDateVN, formatTimeRange24 } from '../../utils/dateTimeUtils'
 
 const VISIBILITY_FILTERS = [
   { id: 'all', label: 'All' },
@@ -14,9 +15,10 @@ const VISIBILITY_FILTERS = [
 ]
 
 const CATEGORY_GRADIENTS = {
-  sport: 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)',
-  academic: 'linear-gradient(135deg, #a8d8ff 0%, #7eb8f0 100%)',
-  art: 'linear-gradient(135deg, #f5b0d8 0%, #e88fc4 100%)',
+  academic: 'linear-gradient(135deg, #ffd7a8 0%, #ffb36b 100%)',
+  culture: 'linear-gradient(135deg, #ffd1dc 0%, #ff9ebb 100%)',
+  sports: 'linear-gradient(135deg, #c2e9fb 0%, #81d4fa 100%)',
+  community: 'linear-gradient(135deg, #d1f2d9 0%, #a3e9b5 100%)',
   event: 'linear-gradient(135deg, #c4f0a8 0%, #9ed87e 100%)',
 }
 
@@ -31,8 +33,8 @@ function mapEventFromApi(apiEvent) {
   const isOngoing = startDate && endDate ? (startDate <= now && now <= endDate) : false
   const isUpcoming = startDate ? startDate > now : false
 
-  const formattedDate = startDate ? startDate.toLocaleDateString('vi-VN') : ''
-  const formattedTime = startDate ? startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''
+  const formattedDate = formatDateVN(apiEvent.start_time)
+  const formattedTime = formatTimeRange24(apiEvent.start_time, apiEvent.end_time)
   const category = (apiEvent.category || 'academic').toLowerCase()
 
   let statusLabel = 'Upcoming'

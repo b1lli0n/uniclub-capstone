@@ -302,27 +302,8 @@ function ClubInvitationsPage({ clubId }) {
                     className="club-invitation-card__details"
                     onClick={() => handleViewDetails(invitation)}
                   >
-                    View details
+                    View Details
                   </button>
-                  {invitation.status === 'pending' && canManageInvitations ? (
-                    <button
-                      type="button"
-                      className="club-invitation-card__cancel"
-                      onClick={() => setCancelTarget(invitation)}
-                    >
-                      Cancel
-                    </button>
-                  ) : null}
-                  {(invitation.status === 'declined' || invitation.status === 'cancelled') &&
-                  canManageInvitations ? (
-                    <button
-                      type="button"
-                      className="club-invitation-card__resend"
-                      onClick={() => handleResendInvitation(invitation)}
-                    >
-                      Resend
-                    </button>
-                  ) : null}
                 </div>
               </article>
             ))
@@ -372,13 +353,13 @@ function InvitationDetail({ invitation, canManage, onClose, onCancel, onResend }
       <button
         type="button"
         className="club-invitation-modal__backdrop"
-        aria-label="Close invitation detail"
+        aria-label="Close invitation details"
         onClick={onClose}
       />
       <section className="club-invitation-modal__panel">
         <header>
           <div>
-            <span>Invitation details</span>
+            <span>Invitation Details</span>
             <h2 id="invitation-detail-title">{invitation.recipientName}</h2>
           </div>
           <button type="button" className="club-invitation-modal__close" onClick={onClose}>

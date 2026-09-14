@@ -1,5 +1,5 @@
 const express = require("express");
-const { verifyToken } = require("../../middlewares/auth.middleware");
+const { verifyToken, authorize } = require("../../middlewares/auth.middleware");
 const { requireClubRole } = require("../../middlewares/club.middleware");
 const {
   getEvents,
@@ -13,34 +13,35 @@ const router = express.Router();
 
 const ALLOWED_EVENT_ROLES = ["president", "leader", "event_manager"];
 
-router.get(
-  "/:clubId/events/:eventId",
+const eventManagerGuard = [
   verifyToken,
+  authorize(["student"]),
   requireClubRole(ALLOWED_EVENT_ROLES, "clubId"),
-  getEventDetail
-);
+];
+
 router.get(
   "/:clubId/events",
-  verifyToken,
-  requireClubRole(ALLOWED_EVENT_ROLES, "clubId"),
+  ...eventManagerGuard,
   getEvents
+);
+router.get(
+  "/:clubId/events/:eventId",
+  ...eventManagerGuard,
+  getEventDetail
 );
 router.post(
   "/:clubId/events",
-  verifyToken,
-  requireClubRole(ALLOWED_EVENT_ROLES, "clubId"),
+  ...eventManagerGuard,
   createEvent
 );
 router.patch(
   "/:clubId/events/:eventId",
-  verifyToken,
-  requireClubRole(ALLOWED_EVENT_ROLES, "clubId"),
+  ...eventManagerGuard,
   updateEvent
 );
 router.patch(
   "/:clubId/events/:eventId/cancel",
-  verifyToken,
-  requireClubRole(ALLOWED_EVENT_ROLES, "clubId"),
+  ...eventManagerGuard,
   cancelEvent
 );
 

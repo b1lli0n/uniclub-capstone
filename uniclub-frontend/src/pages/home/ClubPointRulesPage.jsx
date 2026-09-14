@@ -554,17 +554,7 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
             <label className="club-point-rules-field">
               <span>Select Member *</span>
               <select
-                style={{
-                  width: '100%',
-                  height: '46px',
-                  borderRadius: '12px',
-                  border: '1px solid #e0d6cd',
-                  padding: '0 12px',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  color: '#2c2520',
-                  background: '#fff',
-                }}
+                className="club-point-rules-modal-select"
                 value={awardDraft.memberId}
                 onChange={(e) => setAwardDraft({ ...awardDraft, memberId: e.target.value })}
               >
@@ -584,17 +574,7 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
             <label className="club-point-rules-field">
               <span>Select Point Rule (Optional)</span>
               <select
-                style={{
-                  width: '100%',
-                  height: '46px',
-                  borderRadius: '12px',
-                  border: '1px solid #e0d6cd',
-                  padding: '0 12px',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  color: '#2c2520',
-                  background: '#fff',
-                }}
+                className="club-point-rules-modal-select"
                 value={awardDraft.ruleId}
                 onChange={(e) => {
                   const rId = e.target.value

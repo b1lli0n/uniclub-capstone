@@ -105,9 +105,9 @@ const createFeedbackEvent = async (userId, eventId, { rating, comment }) => {
       const { sendEventFeedbackSubmittedEmail } = require("../email.service");
       sendEventFeedbackSubmittedEmail({
         toEmail: userDoc.email,
-        userName: userDoc.full_name || "Sinh viên",
-        clubName: event?.club_id?.name || "Guitar Club",
-        eventTitle: event?.title || "Sự kiện",
+        userName: userDoc.full_name || "Student",
+        clubName: event?.club_id?.name || "Club",
+        eventTitle: event?.title || "Event",
         rating,
         comment,
         pointsAwarded: awardedLog?.reward_point || 10,

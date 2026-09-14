@@ -24,10 +24,18 @@ export function assignManagementRole(clubId, memberId, role) {
 }
 
 /** Activate/Deactivate Club */
-export function updateClubStatus(clubId, status) {
+export function updateClubStatus(clubId, status, reason = '') {
   return apiRequest(`/club-management/${clubId}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, reason }),
+  })
+}
+
+/** Update Club Information */
+export function updateClub(clubId, data) {
+  return apiRequest(`/club-management/${clubId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
   })
 }
 

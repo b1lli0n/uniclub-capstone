@@ -11,7 +11,7 @@ import {
   getReceivedInvitations,
   rejectClubInvitation,
 } from '../../api/clubInvitation.api'
-import { mapMemberInvitationFromApi, mapJoinRequestFromApi } from '../../api/clubMappers'
+import { mapMemberInvitationFromApi, mapJoinRequestFromApi, formatStatusLabel } from '../../api/clubMappers'
 import { MY_REQUEST_TABS, REQUEST_STATUS_OPTIONS } from '../../data/mockData'
 import { useToast } from '../../components/common/notificationContext'
 
@@ -83,17 +83,16 @@ function MyRequestsPage() {
       await cancelJoinRequest(cancelTarget.id)
       setRequests((items) => items.filter((item) => item.id !== cancelTarget.id))
       setCancelTarget(null)
-      // Display notification when club join request is cancelled.
       showToast({
         type: 'success',
-        title: 'Request cancelled',
-        message: `Your request for ${cancelTarget.club} has been cancelled.`,
+        title: 'Request Cancelled',
+        message: `Your join request for ${cancelTarget.club} has been successfully cancelled.`,
       })
     } catch (error) {
       console.error(error)
       showToast({
         type: 'error',
-        title: 'Cancel failed',
+        title: 'Cancellation Failed',
         message: error.message || 'Could not cancel this request.',
       })
     }
@@ -132,7 +131,7 @@ function MyRequestsPage() {
             ? {
                 ...item,
                 status: inviteActionTarget.action === 'accept' ? 'accepted' : 'rejected',
-                responseTime: new Date().toLocaleDateString('vi-VN'),
+                responseTime: new Date().toLocaleDateString('en-GB'),
               }
             : item,
         ),
@@ -140,14 +139,14 @@ function MyRequestsPage() {
       setInviteActionTarget(null)
       showToast({
         type: 'success',
-        title: inviteActionTarget.action === 'accept' ? 'Invitation accepted' : 'Invitation rejected',
-        message: `${inviteActionTarget.item.club} invitation has been ${inviteActionTarget.action === 'accept' ? 'accepted' : 'rejected'}.`,
+        title: inviteActionTarget.action === 'accept' ? 'Invitation Accepted' : 'Invitation Declined',
+        message: `Invitation from ${inviteActionTarget.item.club} has been ${inviteActionTarget.action === 'accept' ? 'accepted' : 'declined'}.`,
       })
     } catch (error) {
       console.error(error)
       showToast({
         type: 'error',
-        title: 'Action failed',
+        title: 'Action Failed',
         message: error.message || 'Could not update this invitation.',
       })
     } finally {
@@ -179,7 +178,7 @@ function MyRequestsPage() {
     <main className="my-requests-page">
       <section className="my-requests-hero">
         <h1>My Requests & Invitations</h1>
-        <p>Switch tabs to view join requests you sent or invitations received from clubs.</p>
+        <p>Track your submitted club applications or respond to invitations received from clubs.</p>
 
         <div className="my-requests-toolbar">
           <div className="my-requests-tabs" aria-label="Request type">
@@ -263,17 +262,36 @@ function MyRequestsPage() {
             <div className="my-request-card__header">
               <div>
                 <h2>{item.club}</h2>
-                <span className="my-request-card__category">{item.category}</span>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', marginTop: '4px' }}>
+                  <span className="my-request-card__category">{item.category}</span>
+                  {item.isCreationInvite ? (
+                    <span style={{ fontSize: '0.72rem', background: '#dbeafe', color: '#1d4ed8', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                      Founding Member
+                    </span>
+                  ) : null}
+                </div>
               </div>
-              <span className="my-request-card__status">{item.status}</span>
+              <span className="my-request-card__status">{formatStatusLabel(item.status)}</span>
             </div>
+
+            {item.content ? (
+              <p style={{ fontSize: '0.86rem', color: '#475569', margin: '0.5rem 0 0.75rem 0', lineHeight: 1.4 }}>
+                {item.content}
+              </p>
+            ) : null}
 
             <dl className="my-request-card__meta">
               <div>
                 <dt>{activeTab === 'received' ? 'Received Date' : 'Sent Date'}</dt>
                 <dd>{item.sentDate}</dd>
               </div>
-              {activeTab === 'received' ? (
+              {activeTab === 'received' && item.sender && item.sender !== '-' ? (
+                <div>
+                  <dt>Invited By</dt>
+                  <dd>{item.sender}</dd>
+                </div>
+              ) : null}
+              {activeTab === 'received' && !item.isCreationInvite ? (
                 <div>
                   <dt>Role</dt>
                   <dd>{item.role || 'Member'}</dd>
@@ -296,7 +314,7 @@ function MyRequestsPage() {
                     className="my-request-card__cancel"
                     onClick={() => setInviteActionTarget({ action: 'reject', item })}
                   >
-                    Reject
+                    Decline
                   </button>
                 </>
               ) : activeTab === 'sent' && isPendingStatus(item.status) ? (
@@ -333,14 +351,14 @@ function MyRequestsPage() {
             onClick={closeCancelModal}
           />
           <section className="request-cancel-modal__panel">
-            <h2 id="request-cancel-title">Confirm Request Cancellation</h2>
-            <p>Are you sure you want to cancel your request for {cancelTarget.club}?</p>
+            <h2 id="request-cancel-title">Cancel Request Confirmation</h2>
+            <p>Are you sure you want to cancel your join request for {cancelTarget.club}?</p>
             <div className="request-cancel-modal__actions">
               <button type="button" className="request-cancel-modal__confirm" onClick={handleConfirmCancel}>
-                Confirm
+                Confirm Cancel
               </button>
               <button type="button" className="request-cancel-modal__dismiss" onClick={closeCancelModal}>
-                Cancel
+                Close
               </button>
             </div>
           </section>
@@ -357,10 +375,10 @@ function MyRequestsPage() {
           />
           <section className="request-cancel-modal__panel">
             <h2 id="invitation-action-title">
-              {inviteActionTarget.action === 'accept' ? 'Accept Invitation' : 'Reject Invitation'}
+              {inviteActionTarget.action === 'accept' ? 'Accept Invitation' : 'Decline Invitation'}
             </h2>
             <p>
-              Are you sure you want to {inviteActionTarget.action} the invitation from {inviteActionTarget.item.club}?
+              Are you sure you want to {inviteActionTarget.action === 'accept' ? 'accept' : 'decline'} the invitation from {inviteActionTarget.item.club}?
             </p>
             <div className="request-cancel-modal__actions">
               <button
@@ -389,23 +407,27 @@ function MyRequestsPage() {
           <button
             type="button"
             className="request-detail-modal__backdrop"
-            aria-label="Close request details"
+            aria-label="Close details"
             onClick={closeDetailModal}
           />
           <section className="request-detail-modal__panel">
             <div className="request-detail-modal__header">
-              <h2 id="request-detail-title">Request Details</h2>
+              <h2 id="request-detail-title">
+                {detailTarget.type === 'invitation' || activeTab === 'received'
+                  ? 'Invitation Details'
+                  : 'Request Details'}
+              </h2>
               <button type="button" onClick={closeDetailModal}>Close</button>
             </div>
 
             <div className="request-detail-modal__grid">
               <div className="request-detail-modal__item">
-                <span>Type</span>
+                <span>Request Type</span>
                 <strong>{detailTarget.type}</strong>
               </div>
               <div className="request-detail-modal__item">
                 <span>Status</span>
-                <strong className="request-detail-modal__status">{detailTarget.status}</strong>
+                <strong className="request-detail-modal__status">{formatStatusLabel(detailTarget.status)}</strong>
               </div>
               <div className="request-detail-modal__item">
                 <span>Club</span>
@@ -418,15 +440,15 @@ function MyRequestsPage() {
                 </div>
               ) : null}
               <div className="request-detail-modal__item">
-                <span>Content</span>
+                <span>{activeTab === 'received' ? 'Message' : 'Content'}</span>
                 <strong>{detailTarget.content}</strong>
               </div>
               <div className="request-detail-modal__item">
-                <span>Reviewer</span>
+                <span>{activeTab === 'received' ? 'Invited By' : 'Reviewed By'}</span>
                 <strong>
                   {detailTarget.responder && detailTarget.responder !== '-'
                     ? detailTarget.responder
-                    : `${detailTarget.club || 'Club'} Board`}
+                    : (detailTarget.sender && detailTarget.sender !== '-' ? detailTarget.sender : `${detailTarget.club || 'Club'} Board`)}
                 </strong>
               </div>
               {detailTarget.responseTime && detailTarget.responseTime !== '-' ? (
@@ -436,7 +458,7 @@ function MyRequestsPage() {
                 </div>
               ) : null}
               <div className="request-detail-modal__item">
-                <span>Sent Date</span>
+                <span>{activeTab === 'received' ? 'Received Date' : 'Sent Date'}</span>
                 <strong>{detailTarget.sentTime} {detailTarget.sentDate}</strong>
               </div>
             </div>

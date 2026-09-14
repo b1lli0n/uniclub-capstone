@@ -1,21 +1,25 @@
 const express = require("express");
 const router = express.Router();
 
-const { verifyToken } = require("../middlewares/auth.middleware");
+const { verifyToken, authorize } = require("../middlewares/auth.middleware");
 const { requireClubRole } = require("../middlewares/club.middleware");
 const clubMemberController = require("../controllers/clubMember.controller");
 
+const presidentGuard = [
+  verifyToken,
+  authorize(["student"]),
+  requireClubRole(["president", "leader"], "clubId"),
+];
+
 router.get(
   "/:clubId/members/manage",
-  verifyToken,
-  requireClubRole(["president"]),
+  ...presidentGuard,
   clubMemberController.getClubMembersForManagement
 );
 
 router.patch(
   "/:clubId/members/:memberId/remove",
-  verifyToken,
-  requireClubRole(["president"]),
+  ...presidentGuard,
   clubMemberController.removeMember
 );
 

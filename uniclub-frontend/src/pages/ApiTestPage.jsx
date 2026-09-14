@@ -3,7 +3,7 @@ import { TEST_SUITES, runApiTest, runAllApiTests } from '../api/apiTestRunner'
 
 const DEMO_TOKENS = {
   admin: {
-    label: '👑 Admin Trường (SA)',
+    label: '👑 School Admin (SA)',
     token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNmM4ZWRkNGI0MjI4ZWVkNmQ5NzE4NCIsImVtYWlsIjoiYWRtaW5AZnB0LmVkdS52biIsInJvbGUiOiJzdHVkZW50X2FmZmFpcnMiLCJpYXQiOjE3ODU0OTk5OTkyLCJleHAiOjE3ODYxMDQ3OTJ9.lIsYHadVEed5b7noMt16pnzbnEL-9dgGQv2i4NW4Eco'
   },
   president: {
@@ -28,7 +28,7 @@ export default function ApiTestPage() {
   const [expandedIndex, setExpandedIndex] = useState(null)
 
   useEffect(() => {
-    // Luôn đồng bộ Token mới nhất của vai trò được chọn vào localStorage
+    // Always synchronize the latest Token of selected role to localStorage
     if (DEMO_TOKENS[selectedRole]) {
       localStorage.setItem('token', DEMO_TOKENS[selectedRole].token)
     }
@@ -76,14 +76,14 @@ export default function ApiTestPage() {
           ⚡ UniClub Frontend API Connection Test Suite
         </h1>
         <p style={{ color: '#64748b' }}>
-          Kiểm tra kết nối toàn bộ 7 Nhóm chức năng API giữa Frontend và Backend.
+          Test and verify end-to-end API connectivity across all 7 feature modules.
         </p>
       </header>
 
       {/* Role Switcher & Controls */}
       <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '25px', flexWrap: 'wrap' }}>
         <div>
-          <label style={{ fontWeight: '600', marginRight: '8px', color: '#334155' }}>Chọn Vai Trò Giả Lập:</label>
+          <label style={{ fontWeight: '600', marginRight: '8px', color: '#334155' }}>Select Role Simulation:</label>
           <select
             value={selectedRole}
             onChange={(e) => handleRoleChange(e.target.value)}
@@ -156,7 +156,7 @@ export default function ApiTestPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {filteredResults.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-            <p style={{ color: '#64748b' }}>Nhấn <b>"Run All API Tests"</b> để kiểm tra kết nối API.</p>
+            <p style={{ color: '#64748b' }}>Click <b>"Run All API Tests"</b> to test API connectivity.</p>
           </div>
         ) : (
           filteredResults.map((r, idx) => (

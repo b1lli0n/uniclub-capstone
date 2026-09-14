@@ -31,21 +31,7 @@ const validateRequiredText = (value, fieldName) => {
   return value.trim();
 };
 
-const validateTimeFormat = (time) => {
-  if (!time || !time.trim()) {
-    throw createError("Time is required", 400);
-  }
-
-  const normalizedTime = time.trim();
-
-  const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
-
-  if (!timeRegex.test(normalizedTime)) {
-    throw createError("Time must be in HH:mm format", 400);
-  }
-
-  return normalizedTime;
-};
+const { normalizeTimeString, buildTimelineDate } = require("../utils/time.helper");
 
 const getEventById = async (eventId) => {
   validateObjectId(eventId, "event ID");
@@ -57,38 +43,6 @@ const getEventById = async (eventId) => {
   }
 
   return event;
-};
-
-const buildTimelineDate = ({ event, time }) => {
-  const normalizedTime = validateTimeFormat(time);
-  const [hour, minute] = normalizedTime.split(":").map(Number);
-
-  const eventStart = new Date(event.start_time);
-  const eventEnd = new Date(event.end_time);
-
-  const candidates = [];
-
-  const sameDayCandidate = new Date(eventStart);
-  sameDayCandidate.setHours(hour, minute, 0, 0);
-  candidates.push(sameDayCandidate);
-
-  const nextDayCandidate = new Date(eventStart);
-  nextDayCandidate.setDate(nextDayCandidate.getDate() + 1);
-  nextDayCandidate.setHours(hour, minute, 0, 0);
-  candidates.push(nextDayCandidate);
-
-  const timelineAt = candidates.find(
-    (candidate) => candidate >= eventStart && candidate <= eventEnd
-  );
-
-  if (!timelineAt) {
-    throw createError("Timeline time must be within event time range", 400);
-  }
-
-  return {
-    time: normalizedTime,
-    timeline_at: timelineAt,
-  };
 };
 
 const validateEventCanManageTimeline = (event) => {
@@ -159,6 +113,7 @@ const createEventTimeline = async ({
   eventId,
   userId,
   time,
+  timeline_at,
   title,
   description,
   location,
@@ -175,6 +130,7 @@ const createEventTimeline = async ({
   const timelineDate = buildTimelineDate({
     event,
     time,
+    timeline_at,
   });
 
   const timeline = await EventTimeline.create({
@@ -195,6 +151,7 @@ const updateEventTimeline = async ({
   timelineId,
   userId,
   time,
+  timeline_at,
   title,
   description,
   location,
@@ -213,10 +170,11 @@ const updateEventTimeline = async ({
     timelineId,
   });
 
-  if (time !== undefined) {
+  if (time !== undefined || timeline_at !== undefined) {
     const timelineDate = buildTimelineDate({
       event,
-      time,
+      time: time !== undefined ? time : timeline.time,
+      timeline_at: timeline_at !== undefined ? timeline_at : timeline.timeline_at,
     });
 
     timeline.time = timelineDate.time;

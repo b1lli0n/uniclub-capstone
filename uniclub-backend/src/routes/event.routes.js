@@ -33,10 +33,10 @@ const verifyTokenOptional = (req, res, next) => {
 router.get("/public", verifyTokenOptional, getPublicEvents);
 
 // 2. View My Registrations
-router.get("/my-registrations", verifyToken, getMyRegistrations);
+router.get("/my-registrations", verifyToken, authorize(["student"]), getMyRegistrations);
 
-// 3. View Event Detail
-router.get("/:eventId", verifyTokenOptional, getEventDetail);
+// 3. View Event Detail – requires login (student only)
+router.get("/:eventId", verifyToken, authorize(["student"]), getEventDetail);
 
 // 4. Register for Event
 router.post("/:eventId/register", verifyToken, authorize(["student"]), registerForEvent);

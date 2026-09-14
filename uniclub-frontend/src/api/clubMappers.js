@@ -7,10 +7,30 @@ const CATEGORY_GRADIENTS = {
 
 const ROLE_LABELS = {
   president: 'Leader',
+  leader: 'Leader',
   member: 'Member',
   secretary: 'Secretary',
   treasurer: 'Treasurer',
-  event_manager: 'Event manager',
+  event_manager: 'Event Manager',
+}
+
+export const STATUS_LABELS = {
+  pending: 'Pending',
+  waiting_member_approval: 'Waiting Member Approval',
+  approved: 'Approved',
+  accepted: 'Accepted',
+  rejected: 'Rejected',
+  declined: 'Declined',
+  cancelled: 'Cancelled',
+  active: 'Active',
+  coming_soon: 'Coming Soon',
+  opening: 'Opening',
+  closed: 'Closed',
+}
+
+export function formatStatusLabel(status = '') {
+  const key = String(status).toLowerCase().trim()
+  return STATUS_LABELS[key] || status
 }
 
 export function formatRoleLabel(role = '') {
@@ -21,18 +41,28 @@ export function formatDate(value) {
   if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return String(value)
-  return date.toLocaleDateString('vi-VN')
+  return date.toLocaleDateString('en-GB')
 }
 
 export function mapClubFromApi(club, extras = {}) {
   const category = (club.category || 'academic').toLowerCase()
+  const leader = club.president_id || extras.leader || {}
+  const leaderName =
+    (typeof leader === 'object' && leader?.full_name) ||
+    (typeof leader === 'string' && leader ? leader : '') ||
+    (typeof club.leader === 'string' && club.leader ? club.leader : '') ||
+    (typeof extras.leader === 'string' ? extras.leader : '') ||
+    ''
 
   return {
     id: club._id || club.id,
     name: club.name || '',
+    slogan: club.slogan || '',
     description: club.description || '',
     category,
     categoryLabel: (club.category || 'ACADEMIC').toUpperCase(),
+    leader: leaderName,
+    leaderId: leader._id || null,
     members: extras.memberCount ?? club.member_count ?? club.members ?? 0,
     events: extras.eventCount ?? club.event_count ?? club.events ?? 0,
     logoUrl: club.logo_url || '',
@@ -76,6 +106,19 @@ export function mapMemberFromApi(member, index = 0) {
 export function mapJoinRequestFromApi(request) {
   const club = request.club_id || {}
   const form = request.form_id || {}
+  const formQuestions = form.questions || []
+
+  const formattedAnswers = (request.answers || []).map((ans, idx) => {
+    const qId = ans?.question_id || ans?.questionId
+    const matchedQ = formQuestions.find((q) => String(q._id || q.id) === String(qId)) || formQuestions[idx]
+    const qText = typeof matchedQ === 'string' ? matchedQ : (matchedQ?.content || matchedQ?.label || `Question ${idx + 1}`)
+    const valText = typeof ans === 'string' ? ans : (ans?.value || '')
+    return {
+      question: qText,
+      answer: valText,
+      value: valText,
+    }
+  })
 
   return {
     id: request._id,
@@ -86,14 +129,15 @@ export function mapJoinRequestFromApi(request) {
     status: request.status || 'pending',
     sentDate: formatDate(request.create_at || request.created_at),
     type: 'Join Request',
-    content: form.title || 'Club join request',
+    content: form.title || 'Club Membership Application',
     responder: request.reviewed_by?.full_name || '-',
     sender: request.user_id?.full_name || '-',
     responseTime: formatDate(request.reviewed_at),
     sentTime: '',
-    answers: request.answers || [],
+    answers: formattedAnswers,
+    rawAnswers: request.answers || [],
     reviewNote: request.review_note || '',
-    questions: form.questions || [],
+    questions: formQuestions,
   }
 }
 
@@ -110,22 +154,34 @@ export function mapMemberInvitationFromApi(invitation) {
     status: invitation.status || 'pending',
     sentDate: formatDate(invitation.create_at || invitation.created_at || invitation.createdAt),
     sentTime: '',
-    type: 'Club Invitation',
-    content: invitation.message || invitation.content || 'You have been invited to join this club.',
+    type: invitation.is_creation_invite ? 'Founding Member Invitation' : 'Club Invitation',
+    content: invitation.message || invitation.content || (invitation.is_creation_invite ? 'You received an invitation to be a founding member of this club.' : 'You received an invitation to join this club.'),
     responder: invitation.responded_by?.full_name || '-',
     sender: sender.full_name || sender.name || '-',
     responseTime: formatDate(invitation.responded_at || invitation.reviewed_at),
     role: formatRoleLabel(invitation.role || invitation.invited_role || 'member'),
     reviewNote: invitation.review_note || invitation.response_note || '',
+    isCreationInvite: Boolean(invitation.is_creation_invite),
   }
 }
 
 export function mapPresidentJoinRequestFromApi(request, formQuestions = []) {
   const user = request.user_id || {}
-  const answers = (request.answers || []).map((answer, index) => ({
-    question: formQuestions[index] || `Question ${index + 1}`,
-    answer,
-  }))
+  const questionsList = request.form_id?.questions || formQuestions || []
+
+  const answers = (request.answers || []).map((answer, index) => {
+    const qId = answer?.question_id || answer?.questionId
+    const matchedQ = questionsList.find((q) => String(q._id || q.id) === String(qId)) || questionsList[index]
+    const questionText = typeof matchedQ === 'string' ? matchedQ : (matchedQ?.content || matchedQ?.label || `Question ${index + 1}`)
+    const answerText = typeof answer === 'string' ? answer : (answer?.value || '')
+
+    return {
+      question: questionText,
+      answer: answerText,
+    }
+  })
+
+  const firstReason = answers[0]?.answer || ''
 
   return {
     id: request._id,
@@ -135,7 +191,7 @@ export function mapPresidentJoinRequestFromApi(request, formQuestions = []) {
     status: request.status || 'pending',
     submittedAt: formatDate(request.create_at || request.created_at),
     requestedRole: 'Member',
-    reason: request.answers?.[0] || '',
+    reason: firstReason,
     answers,
     reviewNote: request.review_note || '',
     avatarUrl: user.avatar_url || '',
@@ -218,7 +274,7 @@ export function mapReceivedInvitationFromApi(invitation) {
     rawStatus,
     sentDate: formatDate(invitation.created_at),
     type: 'Club Invitation',
-    content: invitation.message || 'You are invited to join this club.',
+    content: invitation.message || 'You received an invitation to join this club.',
     responder: '-',
     sender: sender.full_name || '-',
     responseTime:
@@ -243,6 +299,9 @@ export function mapAdminRoleToApi(role) {
 }
 
 export function mapCreationRequestFromApi(request) {
+  const members = Array.isArray(request.members) ? request.members : []
+  const acceptedCount = members.filter((m) => m.status === 'accepted').length
+
   return {
     id: request._id,
     clubName: request.club_name || '',
@@ -251,28 +310,56 @@ export function mapCreationRequestFromApi(request) {
     sentDate: formatDate(request.created_at),
     status: request.status || 'pending',
     category: request.category || 'Not specified',
-    memberCount: request.member_ids?.length || 0,
+    memberCount: members.length || request.member_ids?.length || 0,
+    acceptedCount,
+    members,
     description: request.description || request.reason || '',
+    slogan: request.slogan || '',
     logoText: (request.club_name || 'CL').slice(0, 2).toUpperCase(),
     logoUrl: request.logo_url || '',
   }
 }
 
 export function mapAdminClubFromApi(club) {
-  const createdBy = club.created_by || {}
-  const memberCount = club.member_count ?? (Array.isArray(club.members) ? club.members.length : 0)
+  const isObjectId = (val) => typeof val === 'string' && /^[0-9a-fA-F]{24}$/.test(val)
+  const leaderObj =
+    (typeof club.president_id === 'object' && club.president_id !== null)
+      ? club.president_id
+      : (typeof club.created_by === 'object' && club.created_by !== null ? club.created_by : null)
+
+  let leaderName = leaderObj?.full_name || leaderObj?.name || ''
+  if (!leaderName && typeof club.leader === 'string' && !isObjectId(club.leader)) {
+    leaderName = club.leader
+  }
+  if (!leaderName && typeof club.leader_name === 'string' && !isObjectId(club.leader_name)) {
+    leaderName = club.leader_name
+  }
+  if (!leaderName && Array.isArray(club.members)) {
+    const pres = club.members.find(
+      (m) => m.role === 'president' || m.role === 'leader' || m.rawRole === 'president'
+    )
+    if (pres) {
+      leaderName = pres.user_id?.full_name || pres.user?.full_name || pres.name || ''
+    }
+  }
+  if (!leaderName) {
+    leaderName = 'Unknown'
+  }
+  const memberCount = club.member_count ?? (Array.isArray(club.members) ? club.members.length : (club.members || 0))
 
   return {
-    id: club._id,
-    clubName: club.name || '',
-    leader: createdBy.full_name || 'Unknown',
+    id: club._id || club.id,
+    clubName: club.name || club.clubName || '',
+    slogan: club.slogan || '',
+    leader: leaderName,
+    leaderId: leaderObj?._id || club.leaderId || null,
     members: memberCount,
     status: club.status || 'active',
     category: club.category || '',
-    createdAt: new Date(club.created_at || Date.now()).getTime(),
-    createdDate: formatDate(club.created_at),
+    createdAt: new Date(club.created_at || club.createdAt || Date.now()).getTime(),
+    createdDate: formatDate(club.created_at || club.createdAt),
     description: club.description || '',
-    logoUrl: club.logo_url || '',
+    logoUrl: club.logo_url || club.logoUrl || '',
     memberList: Array.isArray(club.members)
       ? club.members.map((member, index) => mapMemberFromApi(member, index))
       : [],

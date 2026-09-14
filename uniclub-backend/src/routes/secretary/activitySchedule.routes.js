@@ -23,6 +23,7 @@ router.get("/", ...secretaryAuth, getClubActivitySchedule);
 router.get("/:activityId", ...secretaryAuth, getActivityScheduleDetail);
 router.get("/:activityId/attendance", ...secretaryAuth, getActivityAttendance);
 router.post("/:activityId/attendance", ...secretaryAuth, saveActivityAttendance);
+router.put("/:activityId/attendance", ...secretaryAuth, saveActivityAttendance);
 router.post("/", ...secretaryAuth, createActivity);
 router.put("/:activityId", ...secretaryAuth, updateActivity);
 router.delete("/:activityId", ...secretaryAuth, deleteActivity);
