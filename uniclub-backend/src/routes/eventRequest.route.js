@@ -9,6 +9,7 @@ const router = express.Router();
 router.post(
   "/:clubId",
   verifyToken,
+  authorize(["student"]),
   requireClubRole(["event_manager", "president", "leader", "club_president", "club_vice_president"], "clubId"),
   eventRequestController.createEventRequest
 );
@@ -25,6 +26,7 @@ router.get(
 router.get(
   "/my-requests",
   verifyToken,
+  authorize(["student"]),
   eventRequestController.getMyEventRequests
 );
 

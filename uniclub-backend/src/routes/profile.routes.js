@@ -1,5 +1,5 @@
 const express = require("express");
-const { verifyToken } = require("../middlewares/auth.middleware");
+const { verifyToken, authorize } = require("../middlewares/auth.middleware");
 const {
   getMyProfile,
   getUserProfileById,
@@ -9,9 +9,9 @@ const {
 
 const router = express.Router();
 
-router.get("/me", verifyToken, getMyProfile);
-router.patch("/me", verifyToken, updateMyProfile);
-router.get("/search", verifyToken, searchUsers);
-router.get("/user/:userId", verifyToken, getUserProfileById);
+router.get("/me", verifyToken, authorize(["student"]), getMyProfile);
+router.patch("/me", verifyToken, authorize(["student"]), updateMyProfile);
+router.get("/search", verifyToken, authorize(["student"]), searchUsers);
+router.get("/user/:userId", verifyToken, authorize(["student"]), getUserProfileById);
 
-module.exports = router;
+module.exports = router;

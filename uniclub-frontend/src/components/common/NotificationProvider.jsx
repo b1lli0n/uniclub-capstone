@@ -11,7 +11,19 @@ function ToastIcon({ type }) {
 function ConfirmDialog({ config, onCancel, onConfirm }) {
   if (!config) return null
 
+  const [inputValue, setInputValue] = useState(config.defaultValue || '')
   const tone = config.tone || 'warning'
+
+  const handleConfirmClick = () => {
+    if (config.hasInput) {
+      if (config.inputRequired && !inputValue.trim()) {
+        return
+      }
+      onConfirm({ confirmed: true, value: inputValue.trim() })
+    } else {
+      onConfirm(true)
+    }
+  }
 
   return (
     <div className="app-confirm" role="dialog" aria-modal="true" aria-labelledby="app-confirm-title">
@@ -29,11 +41,31 @@ function ConfirmDialog({ config, onCancel, onConfirm }) {
           <h2 id="app-confirm-title">{config.title || 'Confirm action'}</h2>
           <p>{config.message || 'Are you sure you want to continue?'}</p>
         </div>
+        {config.hasInput && (
+          <div className="app-confirm__input-group">
+            {config.inputLabel && <label htmlFor="app-confirm-input">{config.inputLabel}</label>}
+            <textarea
+              id="app-confirm-input"
+              className="app-confirm__textarea"
+              rows={config.inputRows || 3}
+              placeholder={config.inputPlaceholder || 'Enter reason...'}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              required={config.inputRequired}
+              autoFocus
+            />
+          </div>
+        )}
         <div className="app-confirm__actions">
           <button type="button" className="app-confirm__cancel" onClick={onCancel}>
             {config.cancelText || 'Cancel'}
           </button>
-          <button type="button" className="app-confirm__confirm" onClick={onConfirm}>
+          <button
+            type="button"
+            className="app-confirm__confirm"
+            onClick={handleConfirmClick}
+            disabled={config.hasInput && config.inputRequired && !inputValue.trim()}
+          >
             {config.confirmText || 'Confirm'}
           </button>
         </div>
@@ -72,9 +104,9 @@ export function NotificationProvider({ children }) {
     })
   }, [])
 
-  const handleConfirmAccept = useCallback(() => {
+  const handleConfirmAccept = useCallback((payload = true) => {
     setConfirmState((state) => {
-      state?.resolve(true)
+      state?.resolve(payload)
       return null
     })
   }, [])

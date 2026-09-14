@@ -14,7 +14,7 @@ const getJoinRequestList = async (clubId, { status } = {}) => {
   return JoinRequest.find(query)
     .sort({ created_at: -1 })
     .populate("user_id", "_id full_name email avatar_url")
-    .populate("form_id", "_id title")
+    .populate("form_id", "_id title questions")
     .select("_id user_id form_id answers status review_note reviewed_at created_at updated_at");
 };
 
@@ -112,8 +112,8 @@ const reviewJoinRequest = async (presidentId, clubId, requestId, { status, revie
 
     sendApprovedEmail({
       toEmail: populated.user_id?.email,
-      userName: populated.user_id?.full_name || "Bạn",
-      clubName: club?.name || "Câu lạc bộ",
+      userName: populated.user_id?.full_name || "Member",
+      clubName: club?.name || "Club",
     }).catch((err) => console.error("Email send error:", err));
 
     return populated;
@@ -132,8 +132,8 @@ const reviewJoinRequest = async (presidentId, clubId, requestId, { status, revie
 
     sendRejectedEmail({
       toEmail: populated.user_id?.email,
-      userName: populated.user_id?.full_name || "Bạn",
-      clubName: club?.name || "Câu lạc bộ",
+      userName: populated.user_id?.full_name || "Member",
+      clubName: club?.name || "Club",
       reviewNote: (review_note || "").trim(),
     }).catch((err) => console.error("Email send error:", err));
 

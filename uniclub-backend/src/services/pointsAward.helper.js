@@ -110,10 +110,10 @@ const awardRewardPoints = async ({ clubId, userId, actionTypeCode, eventId, pres
       if (populated && populated.user_id && populated.user_id.email) {
         sendPointsAwardedEmail({
           toEmail: populated.user_id.email,
-          userName: populated.user_id.full_name || "Thành viên",
-          clubName: populated.club_id?.name || "Câu lạc bộ",
+          userName: populated.user_id.full_name || "Member",
+          clubName: populated.club_id?.name || "Club",
           points: pointsToAward,
-          reason: actionType.name || "Tích lũy điểm rèn luyện sự kiện",
+          reason: actionType.name || "Event Activity Points",
           newTotal: member.reward_point,
         }).catch((err) => console.error("[Points Hook Email Error]", err));
       }

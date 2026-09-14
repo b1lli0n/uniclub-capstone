@@ -1,9 +1,11 @@
 const mongoose = require("mongoose");
+const User = require("../models/user.model");
 const Club = require("../models/club.model");
 const ClubMember = require("../models/club_member.model");
 const Event = require("../models/event.model");
 const Profile = require("../models/profile.model");
 const ClubCreationRequest = require("../models/club_creation_requests.model");
+const JoinForm = require("../models/join_form.model");
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -73,6 +75,7 @@ const getClubList = async ({ query, currentUser }) => {
 
   const [clubs, total] = await Promise.all([
     Club.find(filter)
+      .populate("president_id", "full_name email avatar_url student_code")
       .sort(sortOption)
       .skip(skip)
       .limit(limitNumber)
@@ -83,7 +86,7 @@ const getClubList = async ({ query, currentUser }) => {
   let clubsWithCounts = clubs;
   if (clubs.length > 0) {
     const clubIds = clubs.map((c) => c._id);
-    const [memberCounts, eventCounts] = await Promise.all([
+    const [memberCounts, eventCounts, presidentMembers] = await Promise.all([
       ClubMember.aggregate([
         { $match: { club_id: { $in: clubIds }, status: "active" } },
         { $group: { _id: "$club_id", count: { $sum: 1 } } },
@@ -92,6 +95,13 @@ const getClubList = async ({ query, currentUser }) => {
         { $match: { club_id: { $in: clubIds } } },
         { $group: { _id: "$club_id", count: { $sum: 1 } } },
       ]),
+      ClubMember.find({
+        club_id: { $in: clubIds },
+        role: { $in: ["president", "leader"] },
+        status: "active",
+      })
+        .populate("user_id", "full_name email avatar_url student_code")
+        .lean(),
     ]);
 
     const memberCountMap = new Map(
@@ -100,12 +110,28 @@ const getClubList = async ({ query, currentUser }) => {
     const eventCountMap = new Map(
       eventCounts.map((item) => [String(item._id), item.count])
     );
+    const presidentMap = new Map();
+    for (const pm of presidentMembers) {
+      if (pm.user_id && !presidentMap.has(String(pm.club_id))) {
+        presidentMap.set(String(pm.club_id), pm.user_id);
+      }
+    }
 
-    clubsWithCounts = clubs.map((club) => ({
-      ...club,
-      member_count: memberCountMap.get(String(club._id)) || 0,
-      event_count: eventCountMap.get(String(club._id)) || 0,
-    }));
+    clubsWithCounts = clubs.map((club) => {
+      const leaderUser = club.president_id || presidentMap.get(String(club._id)) || null;
+
+      if (!club.president_id && leaderUser?._id) {
+        Club.updateOne({ _id: club._id }, { president_id: leaderUser._id }).catch(() => {});
+      }
+
+      return {
+        ...club,
+        president_id: leaderUser,
+        leader: leaderUser ? leaderUser.full_name : "Unknown",
+        member_count: memberCountMap.get(String(club._id)) || 0,
+        event_count: eventCountMap.get(String(club._id)) || 0,
+      };
+    });
   }
 
   return {
@@ -129,6 +155,7 @@ const getClubDetail = async ({ clubId, currentUser }) => {
   }
 
   const club = await Club.findById(clubId)
+    .populate("president_id", "full_name email avatar_url student_code")
     .lean();
 
   if (!club) {
@@ -143,6 +170,22 @@ const getClubDetail = async ({ clubId, currentUser }) => {
     throw error;
   }
 
+  let leaderUser = club.president_id;
+  if (!leaderUser) {
+    const presidentMember = await ClubMember.findOne({
+      club_id: clubId,
+      role: { $in: ["president", "leader"] },
+      status: "active",
+    })
+      .populate("user_id", "full_name email avatar_url student_code")
+      .lean();
+
+    if (presidentMember?.user_id) {
+      leaderUser = presidentMember.user_id;
+      Club.updateOne({ _id: clubId }, { president_id: leaderUser._id }).catch(() => {});
+    }
+  }
+
   const [memberCount, eventCount] = await Promise.all([
     ClubMember.countDocuments({
       club_id: clubId,
@@ -155,6 +198,8 @@ const getClubDetail = async ({ clubId, currentUser }) => {
 
   return {
     ...club,
+    president_id: leaderUser,
+    leader: leaderUser ? leaderUser.full_name : "Unknown",
     member_count: memberCount,
     event_count: eventCount,
   };
@@ -363,6 +408,17 @@ const assignManagementRole = async ({ clubId, memberId, role }) => {
         $set: { role: "member" },
       }
     );
+
+    // Đồng bộ cập nhật president_id trong Club thành Leader ID mới nhất
+    await Club.findByIdAndUpdate(clubId, {
+      president_id: member.user_id?._id || member.user_id,
+    });
+
+    // Đồng bộ cập nhật created_by trong JoinForm để gắn liền với Leader mới
+    await JoinForm.updateMany(
+      { club_id: clubId },
+      { created_by: memberId }
+    );
   }
 
   member.role = role;
@@ -388,7 +444,7 @@ const assignManagementRole = async ({ clubId, memberId, role }) => {
 
 // UC - 20 Activate/Deactivate Club
 // Endpoint: PATCH /api/club-management/:clubId/status
-const updateClubStatus = async ({ clubId, status }) => {
+const updateClubStatus = async ({ clubId, status, reason }) => {
   if (!isValidObjectId(clubId)) {
     const error = new Error("Invalid club ID");
     error.statusCode = 400;
@@ -401,8 +457,7 @@ const updateClubStatus = async ({ clubId, status }) => {
     throw error;
   }
 
-  const club = await Club.findById(clubId)
-    .lean();
+  const club = await Club.findById(clubId).lean();
 
   if (!club) {
     const error = new Error("Club not found");
@@ -418,10 +473,148 @@ const updateClubStatus = async ({ clubId, status }) => {
     clubId,
     { status },
     { new: true }
-  )
-    .lean();
+  ).lean();
+
+  // If club is deactivated, send email to leader
+  if (status === "inactive") {
+    try {
+      const { sendClubDeactivatedEmailToLeader } = require("./email.service");
+      let leaderEmail = null;
+      let leaderName = "Club Leader";
+
+      if (club.president_id) {
+        const leaderUser = await User.findById(club.president_id).lean();
+        if (leaderUser?.email) {
+          leaderEmail = leaderUser.email;
+          leaderName = leaderUser.full_name || leaderName;
+        }
+      }
+
+      if (!leaderEmail) {
+        const presMember = await ClubMember.findOne({
+          club_id: clubId,
+          role: { $in: ["president", "leader"] },
+          status: "active",
+        })
+          .populate("user_id", "full_name email")
+          .lean();
+
+        if (presMember?.user_id?.email) {
+          leaderEmail = presMember.user_id.email;
+          leaderName = presMember.user_id.full_name || leaderName;
+        }
+      }
+
+      if (leaderEmail) {
+        sendClubDeactivatedEmailToLeader({
+          toEmail: leaderEmail,
+          leaderName,
+          clubName: club.name,
+          reason: reason ? String(reason).trim() : "",
+        }).catch((err) =>
+          console.error("Failed to send club deactivated email:", err.message)
+        );
+      } else {
+        console.warn(`[Club Deactivation] No leader email found for club: ${club.name} (${clubId})`);
+      }
+    } catch (emailErr) {
+      console.error("Error triggering club deactivation email:", emailErr.message);
+    }
+  }
 
   return updatedClub;
+};
+
+// UC - Update Club Information (student_affairs)
+// Endpoint: PATCH /api/club-management/:clubId or PUT /api/club-management/:clubId
+const updateClub = async ({ clubId, updateData }) => {
+  if (!isValidObjectId(clubId)) {
+    const error = new Error("Invalid club ID");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const club = await Club.findById(clubId).lean();
+  if (!club) {
+    const error = new Error("Club not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const fieldsToUpdate = {};
+  if (updateData.name !== undefined) {
+    const trimmed = String(updateData.name).trim();
+    if (!trimmed) {
+      const error = new Error("Club name cannot be empty");
+      error.statusCode = 400;
+      throw error;
+    }
+    fieldsToUpdate.name = trimmed;
+  }
+
+  if (updateData.category !== undefined) {
+    const allowedCategories = ["Arts", "Sports", "Academic", "Event", "Other"];
+    const matchCat = allowedCategories.find(
+      (c) => c.toLowerCase() === String(updateData.category).trim().toLowerCase()
+    );
+    if (!matchCat) {
+      const error = new Error("Invalid club category");
+      error.statusCode = 400;
+      throw error;
+    }
+    fieldsToUpdate.category = matchCat;
+  }
+
+  if (updateData.description !== undefined) {
+    fieldsToUpdate.description = String(updateData.description).trim();
+  }
+
+  if (updateData.slogan !== undefined) {
+    fieldsToUpdate.slogan = String(updateData.slogan).trim();
+  }
+
+  if (updateData.logo_url !== undefined) {
+    fieldsToUpdate.logo_url = String(updateData.logo_url).trim();
+  }
+
+  if (updateData.status !== undefined) {
+    if (!["active", "inactive"].includes(updateData.status)) {
+      const error = new Error("Invalid club status");
+      error.statusCode = 400;
+      throw error;
+    }
+    fieldsToUpdate.status = updateData.status;
+  }
+
+  const updatedClub = await Club.findByIdAndUpdate(
+    clubId,
+    { $set: fieldsToUpdate },
+    { new: true }
+  )
+    .populate("president_id", "full_name email avatar_url student_code")
+    .lean();
+
+  let leaderUser = updatedClub.president_id;
+  if (!leaderUser) {
+    const presidentMember = await ClubMember.findOne({
+      club_id: clubId,
+      role: { $in: ["president", "leader"] },
+      status: "active",
+    })
+      .populate("user_id", "full_name email avatar_url student_code")
+      .lean();
+
+    if (presidentMember?.user_id) {
+      leaderUser = presidentMember.user_id;
+      Club.updateOne({ _id: clubId }, { president_id: leaderUser._id }).catch(() => {});
+    }
+  }
+
+  return {
+    ...updatedClub,
+    president_id: leaderUser,
+    leader: leaderUser ? leaderUser.full_name : "Unknown",
+  };
 };
 
 // UC-13 View Club Creation Request List
@@ -460,7 +653,7 @@ const getClubCreationRequestList = async ({ query }) => {
 
   // Filter
   if (status) {
-    if (!["pending", "approved", "rejected"].includes(status)) {
+    if (!["waiting_member_approval", "pending", "approved", "rejected"].includes(status)) {
       const error = new Error("Invalid request status");
       error.statusCode = 400;
       throw error;
@@ -488,6 +681,7 @@ const getClubCreationRequestList = async ({ query }) => {
     ClubCreationRequest.find(filter)
       .populate("requested_by", "full_name email")
       .populate("reviewed_by", "full_name email")
+      .populate("members.user_id", "full_name email student_code")
       .sort(sortOption)
       .skip(skip)
       .limit(limitNumber)
@@ -512,6 +706,10 @@ const getClubCreationRequestDetail = async ({ requestId }) => {
   const request = await ClubCreationRequest.findById(requestId)
     .populate(
       "requested_by",
+      "full_name email avatar_url student_code"
+    )
+    .populate(
+      "members.user_id",
       "full_name email avatar_url student_code"
     )
     .populate(
@@ -575,30 +773,51 @@ const reviewClubCreationRequest = async ({
       if (!newClub) {
         newClub = await Club.create({
           name: request.club_name.trim(),
+          slogan: request.slogan || "",
           description: request.description || request.reason || "",
           category: request.category || "Arts",
           logo_url: request.logo_url || "https://placehold.co/200x200/png",
+          president_id: request.requested_by,
           status: "active",
         });
       }
 
       // Add requester as President/Leader in ClubMember
-      await ClubMember.findOneAndUpdate(
+      const presidentMember = await ClubMember.findOneAndUpdate(
         { club_id: newClub._id, user_id: request.requested_by },
         { role: "president", status: "active", joined_at: new Date() },
         { upsert: true, new: true }
       );
 
-      // Add initial members in ClubMember
-      if (Array.isArray(request.member_ids)) {
-        for (const memberId of request.member_ids) {
-          if (String(memberId) !== String(request.requested_by)) {
-            await ClubMember.findOneAndUpdate(
-              { club_id: newClub._id, user_id: memberId },
-              { role: "member", status: "active", joined_at: new Date() },
-              { upsert: true, new: true }
-            );
-          }
+      // Automatically create a Default Join Form with active status for the new club
+      const existingJoinForm = await JoinForm.findOne({ club_id: newClub._id });
+      if (!existingJoinForm && presidentMember) {
+        await JoinForm.create({
+          club_id: newClub._id,
+          title: `Application Form for ${newClub.name}`,
+          description: `Welcome to ${newClub.name}! Please answer the questions below for the Club Board to review your application.`,
+          questions: [
+            { content: "Why do you want to join this club?" },
+            { content: "What skills, hobbies, or experiences can you contribute to the club's activities?" },
+            { content: "How many hours per week can you dedicate to club activities?" },
+          ],
+          status: "active",
+          created_by: presidentMember._id,
+        });
+      }
+
+      // Add initial members in ClubMember (only accepted members!)
+      const acceptedMemberIds = Array.isArray(request.members) && request.members.length > 0
+        ? request.members.filter((m) => m.status === "accepted").map((m) => m.user_id)
+        : (request.member_ids || []);
+
+      for (const memberId of acceptedMemberIds) {
+        if (String(memberId) !== String(request.requested_by)) {
+          await ClubMember.findOneAndUpdate(
+            { club_id: newClub._id, user_id: memberId },
+            { role: "member", status: "active", joined_at: new Date() },
+            { upsert: true, new: true }
+          );
         }
       }
     } catch (err) {
@@ -619,14 +838,14 @@ const reviewClubCreationRequest = async ({
       if (status === "approved") {
         sendClubCreationApprovedEmailToStudent({
           toEmail: requester.email,
-          requesterName: requester.full_name || "Sinh viên",
+          requesterName: requester.full_name || "Student",
           clubName: request.club_name,
           reviewNote: reviewNote || "",
         }).catch((err) => console.error("Club creation approved email error:", err.message));
       } else if (status === "rejected") {
         sendClubCreationRejectedEmailToStudent({
           toEmail: requester.email,
-          requesterName: requester.full_name || "Sinh viên",
+          requesterName: requester.full_name || "Student",
           clubName: request.club_name,
           reviewNote: reviewNote || "",
         }).catch((err) => console.error("Club creation rejected email error:", err.message));
@@ -645,6 +864,7 @@ module.exports = {
   getClubMembers,
   assignManagementRole,
   updateClubStatus,
+  updateClub,
   getClubCreationRequestList,
   getClubCreationRequestDetail,
   reviewClubCreationRequest,

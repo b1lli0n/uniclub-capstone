@@ -790,7 +790,7 @@ function MyProfilePage({ currentUser }) {
             </div>
 
             <div className="my-profile-detail-item">
-              <span className="my-profile-detail-item__label">Student Code (MSSV)</span>
+              <span className="my-profile-detail-item__label">Student ID</span>
               <span className="my-profile-detail-item__value">{profile.studentCode || 'Not updated'}</span>
             </div>
 
@@ -836,7 +836,7 @@ function MyProfilePage({ currentUser }) {
                   </label>
 
                   <label className="my-profile-field">
-                    <span>Student Code (MSSV)</span>
+                    <span>Student ID</span>
                     <input
                       type="text"
                       value={profile.studentCode || 'Not updated'}

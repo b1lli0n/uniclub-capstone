@@ -16,13 +16,14 @@ import { getUserProfileById } from '../../api/profile.api'
 import { formatRoleLabel, mapClubFromApi, mapMemberFromApi } from '../../api/clubMappers'
 import { CLUB_DETAIL_COPY } from '../../data/mockData'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
+import { formatDateVN, formatTimeRange24 } from '../../utils/dateTimeUtils'
 import '../../styles/club-detail.css'
 
 function EventIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
       <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
       <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" strokeLinecap="round" />
     </svg>
   )
@@ -30,10 +31,8 @@ function EventIcon() {
 
 function mapEventFromApi(apiEvent) {
   if (!apiEvent) return null
-  const startDate = apiEvent.start_time ? new Date(apiEvent.start_time) : null
-  const formattedDate = startDate ? startDate.toLocaleDateString('vi-VN') : ''
-  const formattedTime = startDate ? startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''
-
+  const formattedDate = formatDateVN(apiEvent.start_time)
+  const formattedTime = formatTimeRange24(apiEvent.start_time, apiEvent.end_time)
   return {
     id: apiEvent._id || apiEvent.id,
     name: apiEvent.title || '',
@@ -177,8 +176,7 @@ function ClubDetailPage({ clubId, onBack }) {
 
   const isClubMember = Boolean(currentMembership)
   const canManageMembers =
-    currentMembership?.rawRole?.toLowerCase() === 'president' ||
-    currentMembership?.rawRole?.toLowerCase() === 'leader'
+    currentMembership?.rawRole?.toLowerCase() === 'president'
   const detailDescription = club
     ? `${club.description}. ${CLUB_DETAIL_COPY.descriptionSuffix}`
     : ''
@@ -190,15 +188,23 @@ function ClubDetailPage({ clubId, onBack }) {
     try {
       const response = await getClubJoinForm(clubId)
       const form = response.data
+      if (!form || form.status !== 'active') {
+        showToast({
+          type: 'warning',
+          title: 'Recruitment Not Open',
+          message: 'This club is currently not recruiting new members.',
+        })
+        return
+      }
       setJoinForm(form)
       setJoinAnswers((form.questions || []).map(() => ''))
       setJoinModalOpen(true)
     } catch (error) {
       console.error(error)
       showToast({
-        type: 'error',
-        title: 'Form unavailable',
-        message: error.message || 'Could not load the join form.',
+        type: 'warning',
+        title: 'Recruitment Not Open',
+        message: error.message || 'This club is currently not recruiting new members.',
       })
     }
   }
@@ -209,9 +215,14 @@ function ClubDetailPage({ clubId, onBack }) {
 
     setSubmitting(true)
     try {
+      const answersPayload = (joinForm.questions || []).map((q, idx) => ({
+        question_id: q._id || q.id,
+        value: (joinAnswers[idx] || '').trim(),
+      }))
+
       await submitJoinRequest(clubId, {
         form_id: joinForm._id,
-        answers: joinAnswers,
+        answers: answersPayload,
       })
       setJoinModalOpen(false)
       // Display notification when club join request is submitted.
@@ -320,7 +331,7 @@ function ClubDetailPage({ clubId, onBack }) {
         <div className="club-product-card">
           <div className="club-product-card__copy">
             <span>Club slogan</span>
-            <h2>{CLUB_DETAIL_COPY.slogan}</h2>
+            <h2>{club.slogan || CLUB_DETAIL_COPY.slogan}</h2>
             <p>{club.description}</p>
           </div>
 
@@ -341,6 +352,12 @@ function ClubDetailPage({ clubId, onBack }) {
                 <strong>{club.events}</strong>
                 <small>Events</small>
               </div>
+              {(club.leader || memberRows.find((m) => m.rawRole === 'president')?.name) && (
+                <div>
+                  <strong>{club.leader || memberRows.find((m) => m.rawRole === 'president')?.name}</strong>
+                  <small>Leader</small>
+                </div>
+              )}
             </div>
             <button
               type="button"
@@ -470,22 +487,27 @@ function ClubDetailPage({ clubId, onBack }) {
               <button type="button" onClick={() => setJoinModalOpen(false)} aria-label="Close">X</button>
             </div>
 
-            {(joinForm?.questions || []).map((question, index) => (
-              <label key={`${question}-${index}`} className="club-join-modal__field">
-                <span>{question}</span>
-                <textarea
-                  placeholder="Your answer"
-                  rows={3}
-                  value={joinAnswers[index] || ''}
-                  onChange={(event) => {
-                    const nextAnswers = [...joinAnswers]
-                    nextAnswers[index] = event.target.value
-                    setJoinAnswers(nextAnswers)
-                  }}
-                  required
-                />
-              </label>
-            ))}
+            {(joinForm?.questions || []).map((question, index) => {
+              const questionText = typeof question === 'string' ? question : (question.content || question.label || `Question ${index + 1}`)
+              const questionKey = question._id || question.id || index
+
+              return (
+                <label key={questionKey} className="club-join-modal__field">
+                  <span>{questionText}</span>
+                  <textarea
+                    placeholder="Your answer"
+                    rows={3}
+                    value={joinAnswers[index] || ''}
+                    onChange={(event) => {
+                      const nextAnswers = [...joinAnswers]
+                      nextAnswers[index] = event.target.value
+                      setJoinAnswers(nextAnswers)
+                    }}
+                    required
+                  />
+                </label>
+              )
+            })}
 
             <div className="club-join-modal__actions">
               <button type="submit" disabled={submitting}>
@@ -639,7 +661,7 @@ function ClubDetailPage({ clubId, onBack }) {
                   </div>
 
                   <div className="club-profile-modal__field">
-                    <span className="club-profile-modal__label">Student Code (MSSV)</span>
+                    <span className="club-profile-modal__label">Student ID</span>
                     <strong className="club-profile-modal__val">
                       {selectedMemberProfile.studentCode || 'Not provided'}
                     </strong>

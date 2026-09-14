@@ -13,7 +13,7 @@ const {
 const router = express.Router();
 
 // GET /api/president/clubs/action-types
-router.get("/action-types", verifyToken, getActionTypes);
+router.get("/action-types", verifyToken, authorize(["student"]), getActionTypes);
 
 // Middleware guard: User must be authenticated, be a student, and have the president role in the club
 const presidentGuard = [

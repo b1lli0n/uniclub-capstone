@@ -87,6 +87,7 @@ const updateClubStatus = async (req, res) => {
     const data = await clubService.updateClubStatus({
       clubId: req.params.clubId,
       status: req.body.status,
+      reason: req.body.reason,
     });
 
     return res.status(200).json({
@@ -98,6 +99,26 @@ const updateClubStatus = async (req, res) => {
     return res.status(error.statusCode || 500).json({
       success: false,
       message: error.message || "Failed to update club status",
+    });
+  }
+};
+
+const updateClub = async (req, res) => {
+  try {
+    const data = await clubService.updateClub({
+      clubId: req.params.clubId,
+      updateData: req.body,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Club updated successfully",
+      data,
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to update club",
     });
   }
 };
@@ -182,6 +203,7 @@ module.exports = {
   getClubMembers,
   assignManagementRole,
   updateClubStatus,
+  updateClub,
   getClubCreationRequestList,
   getClubCreationRequestDetail,
   reviewClubCreationRequest,

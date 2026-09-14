@@ -126,7 +126,7 @@ export default function AdminEventRequestsTab() {
               <strong>{detailRequest.content}</strong>
             </div>
           </div>
-          {detailRequest.status === 'pending' && (
+          {detailRequest.status === 'pending' ? (
             <div className="admin-detail-actions">
               <button
                 type="button"
@@ -142,6 +142,12 @@ export default function AdminEventRequestsTab() {
               >
                 Reject
               </button>
+            </div>
+          ) : (
+            <div className="admin-detail-actions">
+              <span style={{ fontSize: '0.88rem', color: '#64748b', fontWeight: 700 }}>
+                This event request is currently <strong className={`admin-badge-status admin-badge-status--${detailRequest.status}`}>{formatStatusLabel(detailRequest.status)}</strong>
+              </span>
             </div>
           )}
         </div>
@@ -177,16 +183,51 @@ export default function AdminEventRequestsTab() {
               </div>
               <span>{item.club_id?.name || 'Unknown'}</span>
               <span>{new Date(item.created_at).toLocaleDateString()}</span>
-              <span className={`admin-detail-status admin-detail-status--${item.status}`}>
-                {formatStatusLabel(item.status)}
+              <span>
+                <strong className={`admin-badge-status admin-badge-status--${item.status}`}>
+                  {formatStatusLabel(item.status)}
+                </strong>
               </span>
-              <button
-                type="button"
-                className="admin-view-btn"
-                onClick={() => setDetailRequest(item)}
-              >
-                View
-              </button>
+              <span className="admin-row-actions">
+                {item.status === 'pending' && (
+                  <>
+                    <button
+                      type="button"
+                      className="admin-status-actions__approve"
+                      title="Approve event request"
+                      aria-label="Approve event request"
+                      onClick={() => handleApprove(item)}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+                        <path d="m5 12 4 4L19 6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-status-actions__reject"
+                      title="Reject event request"
+                      aria-label="Reject event request"
+                      onClick={() => handleReject(item)}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+                        <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  className="admin-view-btn"
+                  title={`View ${item.title} request`}
+                  aria-label={`View ${item.title} request`}
+                  onClick={() => setDetailRequest(item)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6Z" />
+                    <circle cx="12" cy="12" r="2.6" />
+                  </svg>
+                </button>
+              </span>
             </div>
           ))
         )}

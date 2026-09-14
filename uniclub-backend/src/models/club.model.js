@@ -15,6 +15,12 @@ const clubSchema = Schema(
       trim: true,
     },
 
+    slogan: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
     logo_url: {
       type: String,
       required: true,
@@ -29,6 +35,12 @@ const clubSchema = Schema(
       default: "Other",
     },
 
+    president_id: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
     status: {
       type: String,
       required: true,
@@ -40,5 +52,7 @@ const clubSchema = Schema(
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
   }
 );
+
+clubSchema.index({ president_id: 1 });
 
 module.exports = mongoose.model("Club", clubSchema);

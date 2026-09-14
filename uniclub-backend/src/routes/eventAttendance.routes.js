@@ -1,8 +1,16 @@
 const express = require("express");
 const eventAttendanceController = require("../controllers/eventAttendance.controller");
-const { verifyToken } = require("../middlewares/auth.middleware");
+const { verifyToken, authorize } = require("../middlewares/auth.middleware");
+const { requireClubRole } = require("../middlewares/club.middleware");
 
 const router = express.Router();
+
+// Only event_manager or president of the club can manage attendance
+const attendanceGuard = [
+  verifyToken,
+  authorize(["student"]),
+  requireClubRole(["president", "event_manager"], "clubId"),
+];
 
 // GET   /api/events/:eventId/attendance
 // PATCH /api/events/:eventId/attendance/status
@@ -10,19 +18,19 @@ const router = express.Router();
 
 router.get(
   "/:eventId/attendance",
-  verifyToken,
+  ...attendanceGuard,
   eventAttendanceController.getAttendanceList
 );
 
 router.patch(
   "/:eventId/attendance/status",
-  verifyToken,
+  ...attendanceGuard,
   eventAttendanceController.updateAttendanceStatus
 );
 
 router.post(
   "/:eventId/attendance/auto-absent",
-  verifyToken,
+  ...attendanceGuard,
   eventAttendanceController.autoMarkAbsentAfterEventEnd
 );
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getMyRegistrations } from '../../api/event.api'
+import { formatDateVN, formatTime24 } from '../../utils/dateTimeUtils'
 
 // ── QR Modal ─────────────────────────────────────────────────────────────────
 function QRModal({ registrationId, eventTitle, onClose }) {
@@ -20,33 +21,43 @@ function QRModal({ registrationId, eventTitle, onClose }) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#fff', borderRadius: '20px', padding: '2rem 2rem 1.5rem',
-          maxWidth: '340px', width: '100%', textAlign: 'center',
-          boxShadow: '0 30px 70px rgba(0,0,0,0.35)',
+          background: '#fff', borderRadius: '1.25rem',
+          padding: '2rem', maxWidth: '340px', width: '100%',
+          textAlign: 'center', boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
         }}
       >
-        <div style={{ fontSize: '2.2rem', marginBottom: '0.4rem' }}>🎟️</div>
-        <h3 style={{ margin: '0 0 0.3rem', fontSize: '1rem', fontWeight: 700, color: '#1a1a2e' }}>
+        <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>🎟️</div>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1c1917', marginBottom: '0.25rem' }}>
           Check-in Ticket
         </h3>
-        <p style={{ margin: '0 0 1.25rem', fontSize: '0.82rem', color: '#777', lineHeight: 1.4 }}>
+        <p style={{ fontSize: '0.82rem', color: '#78716c', marginBottom: '1.25rem' }}>
           {eventTitle}
         </p>
-        <div style={{ background: '#f8f8ff', borderRadius: '12px', padding: '0.75rem', display: 'inline-block', border: '1px solid #e5e5f5' }}>
-          <img src={qrUrl} alt="QR check-in" style={{ width: 220, height: 220, display: 'block' }} />
+        <div style={{
+          display: 'inline-block', padding: '0.75rem',
+          background: '#f5f5f4', borderRadius: '1rem',
+          border: '1.5px dashed #d6d3d1', marginBottom: '1.25rem',
+        }}>
+          <img
+            src={qrUrl}
+            alt="Ticket QR Code"
+            style={{ width: '200px', height: '200px', display: 'block' }}
+          />
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
-          <button
-            onClick={onClose}
-            style={{
-              flex: 1, padding: '0.65rem', background: '#6366f1', color: '#fff',
-              border: 'none', borderRadius: '10px', cursor: 'pointer',
-              fontWeight: 700, fontSize: '0.88rem',
-            }}
-          >
-            Close
-          </button>
-        </div>
+        <p style={{ fontSize: '0.75rem', color: '#a8a29e', marginBottom: '1.25rem' }}>
+          Show this QR code at the check-in desk
+        </p>
+        <button
+          onClick={onClose}
+          style={{
+            width: '100%', padding: '0.65rem',
+            background: '#F57C00', color: '#fff',
+            border: 'none', borderRadius: '0.75rem',
+            fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
+          }}
+        >
+          Close
+        </button>
       </div>
     </div>
   )
@@ -58,10 +69,10 @@ function EventRow({ reg, onShowQR, navigate }) {
   const club  = event.club_id || {}
 
   const startDate = event.start_time
-    ? new Date(event.start_time).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })
+    ? formatDateVN(event.start_time)
     : '—'
   const startTime = event.start_time
-    ? new Date(event.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    ? formatTime24(event.start_time)
     : ''
 
   const checkInOpen = event.check_in_status === 'open'

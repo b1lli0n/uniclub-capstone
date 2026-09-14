@@ -23,6 +23,7 @@ import ClubAttendancePage from '../pages/home/ClubAttendancePage'
 import ClubPointRulesPage from '../pages/home/ClubPointRulesPage'
 import ClubRewardsPage from '../pages/home/ClubRewardsPage'
 import ActivitySchedulePage from '../pages/home/ActivitySchedulePage'
+import ActivityAttendancePage from '../pages/home/ActivityAttendancePage'
 import MyEventsPage from '../pages/home/MyEventsPage'
 import ClubInvitationsPage from '../pages/home/ClubInvitationsPage'
 import ClubPollsPage from '../pages/home/ClubPollsPage'
@@ -462,6 +463,14 @@ function ClubManageActivityScheduleRoute() {
   )
 }
 
+function ClubActivityAttendanceRoute() {
+  return (
+    <ClubRoute pageId="manage-activity-schedule" guard="secretary">
+      {() => <ActivityAttendancePage />}
+    </ClubRoute>
+  )
+}
+
 function ClubFeesRoute() {
   return (
     <ClubRoute pageId="fees" guard="member">
@@ -664,6 +673,8 @@ function AppRouter() {
       <Route path="/clubs/:clubId/rewards" element={<ClubRewardsRoute />} />
       <Route path="/clubs/:clubId/activity-schedule" element={<ClubActivityScheduleRoute />} />
       <Route path="/clubs/:clubId/manage-activity-schedule" element={<ClubManageActivityScheduleRoute />}/>
+      <Route path="/clubs/:clubId/manage-activity-schedule/:activityId/attendance" element={<ClubActivityAttendanceRoute />}/>
+      <Route path="/clubs/:clubId/activity-schedule/:activityId/attendance" element={<ClubActivityAttendanceRoute />}/>
       <Route path="/clubs/:clubId/events" element={<ClubEventsRoute />} />
       <Route path="/clubs/:clubId" element={<ClubDetailRoute />} />
 

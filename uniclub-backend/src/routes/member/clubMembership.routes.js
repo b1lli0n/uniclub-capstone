@@ -16,6 +16,7 @@ router.get(
   "/:clubId/members",
   verifyToken,
   authorize(["student"]),
+  requireClubRole([], "clubId"),
   getClubMembers
 );
 router.patch(

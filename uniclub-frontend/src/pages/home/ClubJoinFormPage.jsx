@@ -38,8 +38,8 @@ function mapFormFromApi(apiForm) {
     status: apiForm.status || 'inactive',
     updatedAt: apiForm.updated_at ? new Date(apiForm.updated_at).toLocaleDateString('en-GB') : '',
     questions: (apiForm.questions || []).map((q, idx) => ({
-      id: `q${idx + 1}`,
-      label: q,
+      id: q?._id ? String(q._id) : `q${idx + 1}`,
+      label: typeof q === 'string' ? q : (q?.content || ''),
       placeholder: 'Type your answer...',
     })),
   }
@@ -329,15 +329,7 @@ function ClubJoinFormPage({ clubId }) {
               </div>
 
               <div className="club-join-form-card__actions">
-                <button type="button" onClick={() => setDetailForm(form)}>View</button>
-                <button type="button" onClick={() => openEditModal(form)}>Update</button>
-                <button
-                  type="button"
-                  className={form.status === 'active' ? 'is-deactivate' : 'is-activate'}
-                  onClick={() => toggleFormStatus(form.id)}
-                >
-                  {form.status === 'active' ? 'Deactivate' : 'Activate'}
-                </button>
+                <button type="button" onClick={() => setDetailForm(form)}>View Details</button>
               </div>
             </article>
           ))}
@@ -385,7 +377,13 @@ function ClubJoinFormPage({ clubId }) {
               ))}
             </div>
             <div className="club-join-form-modal__actions">
-              <button type="button" onClick={() => openEditModal(detailForm)}>Update</button>
+              <button
+                type="button"
+                style={{ background: '#fd7e14', color: '#ffffff', fontWeight: 800 }}
+                onClick={() => openEditModal(detailForm)}
+              >
+                ✏️ Update Form
+              </button>
               <button
                 type="button"
                 className={detailForm.status === 'active' ? 'is-deactivate' : 'is-activate'}

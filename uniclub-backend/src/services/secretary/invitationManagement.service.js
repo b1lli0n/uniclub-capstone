@@ -60,17 +60,17 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
   }
 
   if (!invitedUser) {
-    throw getStatusError("User not found with email or ID: " + invited_user_id, 404);
+    throw getStatusError("User not found with email or student ID: " + invited_user_id, 404);
   }
 
   const resolvedUserId = invitedUser._id;
 
   if (invitedUser.status && invitedUser.status !== "active") {
-    throw getStatusError("Invited user is not active", 400);
+    throw getStatusError("This user account is currently inactive", 400);
   }
 
   if (String(resolvedUserId) === String(secretaryId)) {
-    throw getStatusError("You cannot invite yourself", 400);
+    throw getStatusError("You cannot send an invitation to yourself", 400);
   }
 
   const invitationRole = role || "member";
@@ -108,12 +108,22 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
     status: "active",
   });
 
+  const roleNameDisplay = {
+    president: "President",
+    secretary: "Secretary",
+    treasurer: "Treasurer",
+    event_manager: "Event Manager",
+    member: "Member",
+  }[invitationRole] || "Member";
+
+  const defaultInvitationMessage = `The Club Board invites you to join the club as a ${roleNameDisplay}.`;
+
   const invitation = await Invitation.create({
     club_id: clubId,
     invited_user_id: resolvedUserId,
     invited_by: secretaryMember ? secretaryMember._id : secretaryId,
     role: invitationRole,
-    message: typeof message === "string" ? message.trim() : "",
+    message: typeof message === "string" && message.trim() ? message.trim() : defaultInvitationMessage,
     status: "pending",
   });
 
@@ -125,8 +135,8 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
     if (invitedUser?.email && club) {
       sendInvitationEmail({
         toEmail: invitedUser.email,
-        userName: invitedUser.full_name || "Sinh viên",
-        clubName: club.name || "Câu lạc bộ",
+        userName: invitedUser.full_name || "Student",
+        clubName: club.name || "Club",
         role: invitationRole,
         message: typeof message === "string" ? message.trim() : "",
       }).catch((err) => console.error("Invitation email error:", err.message));

@@ -54,7 +54,7 @@ const getTransactionDetail = async (clubId, transactionId) => {
       payment_id: p._id,
       membership_id: p.membership_id?._id,
       user_id: p.membership_id?.user_id?._id,
-      full_name: p.membership_id?.user_id?.full_name || "Thành viên",
+      full_name: p.membership_id?.user_id?.full_name || "Member",
       email: p.membership_id?.user_id?.email || "",
       student_code: p.membership_id?.user_id?.student_code || "",
       avatar_url: p.membership_id?.user_id?.avatar_url || "",
@@ -101,7 +101,7 @@ const createTransactionRequest = async (clubId, userId, payload) => {
         amount,
         status: "pending",
         payment_method: "vnpay",
-        order_info: `Thanh toán ${period}`,
+        order_info: `Payment for ${period}`,
       }));
 
       if (paymentDocs.length > 0) {
@@ -119,8 +119,8 @@ const createTransactionRequest = async (clubId, userId, payload) => {
             if (m.user_id && m.user_id.email) {
               sendFeeNotificationEmail({
                 toEmail: m.user_id.email,
-                userName: m.user_id.full_name || "Thành viên",
-                clubName: m.club_id?.name || "Câu lạc bộ",
+                userName: m.user_id.full_name || "Member",
+                clubName: m.club_id?.name || "Club",
                 title: payload.description || period,
                 amount,
                 period,
@@ -175,7 +175,7 @@ const updateTransactionRequest = async (clubId, transactionId, userId, payload) 
         amount,
         status: "pending",
         payment_method: "vnpay",
-        order_info: `Thanh toán ${period}`,
+        order_info: `Payment for ${period}`,
       }));
 
       if (paymentDocs.length > 0) {

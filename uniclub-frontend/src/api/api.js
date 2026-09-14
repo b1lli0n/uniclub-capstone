@@ -16,7 +16,7 @@ export async function apiRequest(endpoint, options = {}) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }
-    throw new Error('Mạng đã bị ngắt kết nối')
+    throw new Error('Network connection lost')
   }
 
   try {

@@ -211,8 +211,8 @@ const awardPointsManually = async (presidentId, clubId, memberId, { rule_id, rew
     if (populated && populated.user_id && populated.user_id.email) {
       sendPointsAwardedEmail({
         toEmail: populated.user_id.email,
-        userName: populated.user_id.full_name || "Thành viên",
-        clubName: populated.club_id?.name || "Câu lạc bộ",
+        userName: populated.user_id.full_name || "Member",
+        clubName: populated.club_id?.name || "Club",
         points: finalPoints,
         reason: reason.trim(),
         newTotal: member.reward_point,

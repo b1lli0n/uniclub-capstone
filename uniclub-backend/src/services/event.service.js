@@ -214,11 +214,11 @@ const registerForEvent = async ({ eventId, userId, userEmail }) => {
 
       sendEventTicketEmail({
         toEmail: userDoc.email,
-        userName: userDoc.full_name || userEmail || "Sinh viên UniClub",
-        clubName: clubDoc?.name || "Guitar Club",
+        userName: userDoc.full_name || userEmail || "UniClub Student",
+        clubName: clubDoc?.name || "Club",
         eventTitle: event.title,
         eventDate: event.start_time,
-        eventLocation: event.location || "Hội trường A101",
+        eventLocation: event.location || "Hall A101",
         ticketCode,
         qrCodeUrl,
       });

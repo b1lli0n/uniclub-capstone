@@ -158,8 +158,8 @@ function ClubFinancePage({ clubId, userRole }) {
   return <main className="club-finance-page">
     <section className="club-finance-hero"><div><span>{club.name} · {isPresident ? 'President' : 'Treasurer'} workspace</span><h1>Financial Dashboard</h1><p>Track approved funds, manage transaction requests, and keep every club expense transparent.</p></div><div className="club-finance-hero__actions"><button type="button" onClick={exportReport}>⇩ Export report</button><button type="button" onClick={openCreate}>+ New request</button></div></section>
     <section className="club-finance-summary" aria-label="Financial overview"><SummaryCard label="Current balance" value={income - expense} accent="balance" /><SummaryCard label="Approved income" value={income} accent="income" /><SummaryCard label="Approved expenses" value={expense} accent="expense" /><div className="club-finance-summary__card club-finance-summary__card--pending"><span>Pending requests</span><strong>{transactions.filter((item) => item.status === 'pending').length}</strong><small>Awaiting review</small></div></section>
-    <section className="club-finance-transactions"><header><div><span>Transaction requests</span><h2>All transactions</h2></div><label className="club-finance-search">⌕<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, category or reference..." /></label></header><div className="club-finance-filters">{[['all', 'All'], ['income', 'Income'], ['expense', 'Expenses'], ['pending', 'Pending'], ['approved', 'Approved']].map(([value, label]) => <button key={value} type="button" className={filter === value ? 'is-active' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div><div className="club-finance-table" role="table"><div className="club-finance-table__head" role="row"><span>Transaction</span><span>Type</span><span>Amount</span><span>Status</span><span /></div>{loading ? <div className="club-finance-empty">Loading transaction records...</div> : displayed.map((item) => <div className="club-finance-table__row" role="row" key={item.id}><div><strong>{item.title}</strong><small>{item.referenceCode} · {item.period || item.date}</small></div><span className={`club-finance-type club-finance-type--${item.type}`}>{item.type === 'income' ? 'Income' : 'Expense'}</span><strong className={item.type === 'income' ? 'is-income' : 'is-expense'}>{item.type === 'income' ? '+' : '-'}{currency.format(item.amount)}</strong><span className={`club-finance-status club-finance-status--${item.status}`}>{statusLabel[item.status]}</span><div className="club-finance-table__actions"><button type="button" onClick={() => setSelected(item)}>View</button>{item.status === 'pending' && (<>{isPresident ? (<><button type="button" style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.25rem 0.55rem', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => handleApprove(item)}>✓ Approve</button><button type="button" style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.25rem 0.55rem', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => handleReject(item)}>× Reject</button></>) : (<button type="button" onClick={() => openEdit(item)}>Edit</button>)}</>)}</div></div>)}{!loading && !displayed.length && <div className="club-finance-empty">No transaction requests match this filter.</div>}</div></section>
-    {selected && <TransactionDetail item={selected} clubId={clubId} onClose={() => setSelected(null)} onEdit={() => openEdit(selected)} />}
+    <section className="club-finance-transactions"><header><div><span>Transaction requests</span><h2>All transactions</h2></div><label className="club-finance-search">⌕<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, category or reference..." /></label></header><div className="club-finance-filters">{[['all', 'All'], ['income', 'Income'], ['expense', 'Expenses'], ['pending', 'Pending'], ['approved', 'Approved']].map(([value, label]) => <button key={value} type="button" className={filter === value ? 'is-active' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div><div className="club-finance-table" role="table"><div className="club-finance-table__head" role="row"><span>Transaction</span><span>Type</span><span>Amount</span><span>Status</span><span /></div>{loading ? <div className="club-finance-empty">Loading transaction records...</div> : displayed.map((item) => <div className="club-finance-table__row" role="row" key={item.id}><div><strong>{item.title}</strong><small>{item.referenceCode} · {item.period || item.date}</small></div><span className={`club-finance-type club-finance-type--${item.type}`}>{item.type === 'income' ? 'Income' : 'Expense'}</span><strong className={item.type === 'income' ? 'is-income' : 'is-expense'}>{item.type === 'income' ? '+' : '-'}{currency.format(item.amount)}</strong><span className={`club-finance-status club-finance-status--${item.status}`}>{statusLabel[item.status]}</span><div className="club-finance-table__actions"><button type="button" onClick={() => setSelected(item)}>View</button></div></div>)}{!loading && !displayed.length && <div className="club-finance-empty">No transaction requests match this filter.</div>}</div></section>
+    {selected && <TransactionDetail item={selected} clubId={clubId} isPresident={isPresident} handleApprove={handleApprove} handleReject={handleReject} onClose={() => setSelected(null)} onEdit={() => openEdit(selected)} />}
     {formTarget && <TransactionForm item={formTarget === 'create' ? null : formTarget} form={form} setForm={setForm} onClose={() => setFormTarget(null)} onSubmit={saveRequest} />}
     {toast && <div className="club-finance-toast" role="status">{toast}</div>}
   </main>
@@ -167,7 +167,7 @@ function ClubFinancePage({ clubId, userRole }) {
 
 function SummaryCard({ label, value, accent }) { return <div className={`club-finance-summary__card club-finance-summary__card--${accent}`}><span>{label}</span><strong>{currency.format(value)}</strong><small>{accent === 'balance' ? 'Available club funds' : 'This semester'}</small></div> }
 
-function TransactionDetail({ item, clubId, onClose, onEdit }) {
+function TransactionDetail({ item, clubId, isPresident, handleApprove, handleReject, onClose, onEdit }) {
   const [detailData, setDetailData] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -278,7 +278,28 @@ function TransactionDetail({ item, clubId, onClose, onEdit }) {
 
       <footer>
         <button type="button" onClick={onClose}>Close</button>
-        {item.status === 'pending' && <button type="button" className="is-primary" onClick={onEdit}>Edit request</button>}
+        {item.status === 'pending' && (
+          isPresident ? (
+            <>
+              <button
+                type="button"
+                style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.45rem 0.9rem', cursor: 'pointer', fontWeight: 'bold' }}
+                onClick={() => { handleApprove(item); onClose(); }}
+              >
+                ✓ Approve request
+              </button>
+              <button
+                type="button"
+                style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.45rem 0.9rem', cursor: 'pointer', fontWeight: 'bold' }}
+                onClick={() => { handleReject(item); onClose(); }}
+              >
+                × Reject request
+              </button>
+            </>
+          ) : (
+            <button type="button" className="is-primary" onClick={onEdit}>✏️ Edit request</button>
+          )
+        )}
       </footer>
     </FinanceModal>
   )
@@ -288,3 +309,4 @@ function TransactionForm({ item, form, setForm, onClose, onSubmit }) { const cha
 function FinanceModal({ title, children, onClose }) { return <div className="club-finance-modal" role="dialog" aria-modal="true"><button className="club-finance-modal__backdrop" aria-label="Close dialog" onClick={onClose} /><section className="club-finance-modal__panel"><header><h2>{title}</h2><button type="button" aria-label="Close" onClick={onClose}>×</button></header>{children}</section></div> }
 
 export default ClubFinancePage
+1

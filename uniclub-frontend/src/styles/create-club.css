@@ -124,6 +124,24 @@
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
+.create-club-field select,
+.create-club-member-row__select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%23b35a00' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 10px 6px;
+  cursor: pointer;
+}
+
+.create-club-field select:hover,
+.create-club-member-row__select:hover {
+  border-color: rgba(245, 124, 0, 0.4);
+  background-color: #fff8f0;
+}
+
 .create-club-field input::placeholder,
 .create-club-field textarea::placeholder {
   color: #9a8b7e;

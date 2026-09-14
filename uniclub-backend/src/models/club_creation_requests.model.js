@@ -15,6 +15,21 @@ const clubCreationRequestSchema = new Schema({
     trim: true,
   },
 
+  slogan: {
+    type: String,
+    required: false,
+    trim: true,
+    default: "",
+  },
+
+  category: {
+    type: String,
+    required: false,
+    trim: true,
+    enum: ["Arts", "Sports", "Academic", "Event", "Other"],
+    default: "Academic",
+  },
+
   reason: {
     type: String,
     required: true,
@@ -29,9 +44,14 @@ const clubCreationRequestSchema = new Schema({
 
   status: {
     type: String,
-    enum: ["pending", "approved", "rejected"],
+    enum: ["waiting_member_approval", "pending", "approved", "rejected", "expired"],
     required: true,
-    default: "pending",
+    default: "waiting_member_approval",
+  },
+
+  expires_at: {
+    type: Date,
+    required: false,
   },
 
   requested_by: {
@@ -39,6 +59,25 @@ const clubCreationRequestSchema = new Schema({
     ref: "User",
     required: true,
   },
+
+  members: [
+    {
+      user_id: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+      },
+      status: {
+        type: String,
+        enum: ["pending", "accepted", "rejected"],
+        default: "pending",
+      },
+      responded_at: {
+        type: Date,
+        default: null,
+      },
+    },
+  ],
 
   member_ids: [
     {

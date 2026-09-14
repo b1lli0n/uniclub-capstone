@@ -44,6 +44,12 @@ const joinRequestSchema = Schema(
             if (typeof ans === "string") {
               return { value: ans.trim() };
             }
+            if (typeof ans === "object" && ans !== null) {
+              return {
+                question_id: ans.question_id || null,
+                value: typeof ans.value === "string" ? ans.value.trim() : String(ans.value || "").trim(),
+              };
+            }
             return ans;
           });
         }

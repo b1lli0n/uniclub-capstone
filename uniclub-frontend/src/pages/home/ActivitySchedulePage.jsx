@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   getActivityScheduleDetail,
   getClubActivitySchedule,
@@ -6,10 +7,8 @@ import {
 import {
   createSecretaryActivity,
   deleteSecretaryActivity,
-  getSecretaryActivityAttendance,
   getSecretaryActivityScheduleDetail,
   getSecretaryClubActivitySchedule,
-  saveSecretaryActivityAttendance,
   updateSecretaryActivity,
 } from '../../api/secretaryActivitySchedule.api'
 import { useToast } from '../../components/common/notificationContext'
@@ -141,6 +140,7 @@ function mapActivityFromApi(apiActivity) {
 }
 
 function ActivitySchedulePage({ clubId, isSecretary = false }) {
+  const navigate = useNavigate()
   const showToast = useToast()
 
   const [selectedActivity, setSelectedActivity] = useState(null)
@@ -158,81 +158,6 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
   const [activityToDelete, setActivityToDelete] = useState(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
-
-  const DEFAULT_ATTENDANCE_MEMBERS = useMemo(() => [
-    { id: 'm1', name: 'Nguyen Ty (K18 CT)', email: 'tynce181041@fpt.edu.vn', checked: false },
-    { id: 'm2', name: 'Pham Hoang Long', email: 'longph@fpt.edu.vn', checked: false },
-    { id: 'm3', name: 'Tran Minh Tu', email: 'tutm@fpt.edu.vn', checked: false },
-    { id: 'm4', name: 'Le Quoc Bao', email: 'baolq@fpt.edu.vn', checked: false },
-    { id: 'm5', name: 'Vo Thi Mai', email: 'maivt@fpt.edu.vn', checked: false },
-  ], [])
-
-  const [activityAttendanceMap, setActivityAttendanceMap] = useState(() => {
-    try {
-      const saved = localStorage.getItem('uniclub_activity_attendance')
-      return saved ? JSON.parse(saved) : {}
-    } catch (e) {
-      return {}
-    }
-  })
-
-  const getMemberAttendance = (activityId) => {
-    if (!activityId) return DEFAULT_ATTENDANCE_MEMBERS
-    return activityAttendanceMap[activityId] || DEFAULT_ATTENDANCE_MEMBERS
-  }
-
-  const toggleMemberAttendance = (activityId, memberId) => {
-    setActivityAttendanceMap((prev) => {
-      const currentList = prev[activityId] || DEFAULT_ATTENDANCE_MEMBERS
-      const updatedList = currentList.map((m) =>
-        m.id === memberId ? { ...m, checked: !m.checked } : m
-      )
-      const nextMap = { ...prev, [activityId]: updatedList }
-      try {
-        localStorage.setItem('uniclub_activity_attendance', JSON.stringify(nextMap))
-      } catch (e) {
-        console.error(e)
-      }
-      return nextMap
-    })
-  }
-
-  const handleSaveAttendance = async (activityId) => {
-    const attendanceList = getMemberAttendance(activityId)
-    const payload = attendanceList.map((m) => ({
-      userId: m.id,
-      membershipId: m.membershipId,
-      checked: Boolean(m.checked),
-    }))
-
-    try {
-      if (clubId) {
-        await saveSecretaryActivityAttendance(clubId, activityId, payload)
-      }
-      const checkedCount = attendanceList.filter((m) => m.checked).length
-
-      setActivityAttendanceMap((prev) => {
-        const nextMap = { ...prev, [activityId]: attendanceList }
-        try {
-          localStorage.setItem('uniclub_activity_attendance', JSON.stringify(nextMap))
-        } catch (e) {
-          console.error(e)
-        }
-        return nextMap
-      })
-
-      showToast({
-        type: 'success',
-        message: `Attendance saved successfully! Added +30 pts for ${checkedCount} attended member(s).`,
-      })
-    } catch (err) {
-      console.error('Save attendance error:', err)
-      showToast({
-        type: 'error',
-        message: err.message || 'Failed to save attendance',
-      })
-    }
-  }
 
   const today = useMemo(() => startOfDay(new Date()), [])
   const monday = useMemo(() => getMondayOfWeek(today, weekOffset), [today, weekOffset])
@@ -307,22 +232,6 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
         : await getActivityScheduleDetail(clubId, activity.id)
       const mapped = mapActivityFromApi(res?.data)
       if (mapped) setSelectedActivity(mapped)
-
-      // Fetch existing attendance records from MongoDB
-      if (isSecretary) {
-        try {
-          const attRes = await getSecretaryActivityAttendance(clubId, activity.id)
-          const membersFromDb = attRes?.data?.members
-          if (Array.isArray(membersFromDb) && membersFromDb.length > 0) {
-            setActivityAttendanceMap((prev) => ({
-              ...prev,
-              [activity.id]: membersFromDb,
-            }))
-          }
-        } catch (e) {
-          // Keep clean list if no DB record yet
-        }
-      }
     } catch (err) {
       console.error('Error loading activity detail:', err)
       showToast({
@@ -534,7 +443,30 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                         <span className="activity-card__time">{activity.time}</span>
                         {isSecretary ? (
-                          <div style={{ display: 'flex', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              title="Take Attendance"
+                              onClick={() =>
+                                navigate(`/clubs/${clubId}/manage-activity-schedule/${activity.id}/attendance`)
+                              }
+                              style={{
+                                background: 'rgba(16, 185, 129, 0.12)',
+                                border: 'none',
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                color: '#10b981',
+                                cursor: 'pointer',
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <span>📋</span>
+                              <span>Attendance</span>
+                            </button>
                             <button
                               type="button"
                               onClick={(e) => handleOpenEdit(e, activity)}
@@ -671,117 +603,58 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                     </p>
                   </div>
 
-                  {/* Member Attendance Section */}
-                  {(() => {
-                    const attendanceList = getMemberAttendance(selectedActivity.id)
-                    const checkedCount = attendanceList.filter((m) => m.checked).length
-                    const pct = Math.round((checkedCount / (attendanceList.length || 1)) * 100)
-
-                    return (
-                      <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                          <div>
-                            <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                              👥 Member Attendance ({checkedCount}/{attendanceList.length})
-                            </h4>
-                            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>
-                              Ratio: {pct}% checked-in
-                            </span>
-                          </div>
-
-                          {/* Progress Bar */}
-                          <div style={{ width: '90px', height: '8px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
-                            <div
-                              style={{
-                                width: `${pct}%`,
-                                height: '100%',
-                                background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
-                                transition: 'width 0.3s ease',
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Member List */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }}>
-                          {attendanceList.map((m) => (
-                            <div
-                              key={m.id}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '10px 14px',
-                                borderRadius: '12px',
-                                background: m.checked ? '#f0fdf4' : '#ffffff',
-                                border: `1px solid ${m.checked ? '#bbf7d0' : '#cbd5e1'}`,
-                                transition: 'all 0.2s ease',
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div
-                                  style={{
-                                    width: '32px',
-                                    height: '32px',
-                                    borderRadius: '50%',
-                                    background: m.checked ? '#22c55e' : '#94a3b8',
-                                    color: '#ffffff',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontWeight: '800',
-                                    fontSize: '13px',
-                                  }}
-                                >
-                                  {m.name.charAt(0)}
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>{m.name}</div>
-                                  <div style={{ fontSize: '11px', color: '#64748b' }}>{m.email}</div>
-                                </div>
-                              </div>
-
-                              {/* Toggle Switch / Checkbox */}
-                              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '8px' }}>
-                                <span style={{ fontSize: '12px', fontWeight: '700', color: m.checked ? '#166534' : '#64748b' }}>
-                                  {m.checked ? '✓ Checked' : '⌛ Not yet'}
-                                </span>
-                                <input
-                                  type="checkbox"
-                                  checked={m.checked}
-                                  onChange={() => toggleMemberAttendance(selectedActivity.id, m.id)}
-                                  style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#16a34a' }}
-                                />
-                              </label>
-                            </div>
-                          ))}
-                        </div>
+                  {/* Member Attendance Overview & Navigation to Dedicated Screen */}
+                  {isSecretary && (
+                    <div
+                      style={{
+                        marginTop: '24px',
+                        padding: '16px 20px',
+                        borderRadius: '16px',
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '12px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <div>
+                        <h4 style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
+                          👥 Member Attendance
+                        </h4>
+                        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+                          Take attendance & award meeting points (+30 pts)
+                        </p>
                       </div>
-                    )
-                  })()}
+                      <button
+                        type="button"
+                        style={{
+                          padding: '10px 18px',
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '12px',
+                          fontWeight: '800',
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                          whiteSpace: 'nowrap',
+                        }}
+                        onClick={() => {
+                          const targetId = selectedActivity.id
+                          setSelectedActivity(null)
+                          navigate(`/clubs/${clubId}/manage-activity-schedule/${targetId}/attendance`)
+                        }}
+                      >
+                        Open Attendance Sheet ➔
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
-            <div className="points-modal__footer" style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button
-                type="button"
-                style={{
-                  width: '100%',
-                  height: '48px',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  fontSize: '15px',
-                  fontWeight: '800',
-                  borderRadius: '14px',
-                  boxShadow: '0 8px 20px rgba(16, 185, 129, 0.22)',
-                  border: 'none',
-                  color: '#ffffff',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-                onClick={() => handleSaveAttendance(selectedActivity.id)}
-              >
-                💾 Save Attendance & Award Meeting Points (+30 pts)
-              </button>
+            <div className="points-modal__footer" style={{ marginTop: '20px' }}>
               <button
                 className="btn-primary"
                 style={{ width: '100%', height: '46px', background: '#fd7e14', fontSize: '15px', fontWeight: '700', borderRadius: '14px' }}
@@ -886,7 +759,18 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    style={{ ...inputStyle, background: '#ffffff', color: '#0f172a' }}
+                    style={{
+                      ...inputStyle,
+                      appearance: 'none',
+                      WebkitAppearance: 'none',
+                      background: '#ffffff',
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%2364748b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M1 1l4 4 4-4'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 0.75rem center',
+                      paddingRight: '2.25rem',
+                      color: '#0f172a',
+                      cursor: 'pointer',
+                    }}
                   >
                     {STATUS_FILTERS.filter((s) => s.id !== 'all').map((opt) => (
                       <option key={opt.id} value={opt.id} style={{ background: '#ffffff', color: '#0f172a' }}>

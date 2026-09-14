@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Activity = require("../../models/activity.model");
 const ClubMember = require("../../models/club_member.model");
 const { getStatusError } = require("../../utils/error");
@@ -254,7 +255,7 @@ const getActivityAttendance = async (clubId, activityId) => {
     return {
       id: userId,
       membershipId: m._id,
-      name: m.user_id?.full_name || "Thành viên",
+      name: m.user_id?.full_name || "Member",
       email: m.user_id?.email || "",
       avatarUrl: m.user_id?.avatar_url || "",
       checked: existing ? existing.status === "attended" : false,
@@ -290,9 +291,9 @@ const saveActivityAttendance = async (clubId, activityId, memberAttendanceList, 
     if (!userId && !membershipId) continue;
 
     let member = null;
-    if (membershipId) {
+    if (membershipId && mongoose.Types.ObjectId.isValid(membershipId)) {
       member = await ClubMember.findOne({ _id: membershipId, club_id: clubId, status: "active" });
-    } else if (userId) {
+    } else if (userId && mongoose.Types.ObjectId.isValid(userId)) {
       member = await ClubMember.findOne({ user_id: userId, club_id: clubId, status: "active" });
     }
     if (!member) continue;
@@ -303,13 +304,16 @@ const saveActivityAttendance = async (clubId, activityId, memberAttendanceList, 
     await ActivityAttendance.findOneAndUpdate(
       { activity_id: activityId, membership_id: member._id },
       {
-        club_id: clubId,
-        membership_id: member._id,
-        status,
-        check_in_time: checked ? new Date() : null,
-        checked_by: checkedBy,
+        $set: {
+          activity_id: activityId,
+          club_id: clubId,
+          membership_id: member._id,
+          status,
+          check_in_time: checked ? new Date() : null,
+          checked_by: checkedBy,
+        },
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
     if (checked) {

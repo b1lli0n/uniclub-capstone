@@ -5,8 +5,17 @@ import { ADMIN_NAV_ITEMS } from '../../data/mockData'
 import fptUniversityLogo from '../../assets/Logo-Dai-hoc-FPT.webp'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 import AdminEventRequestsTab from './AdminEventRequestsTab'
-import { getAdminClubList, getClubCreationRequestList, reviewClubCreationRequest, assignManagementRole } from '../../api/clubManagement.api'
-import { mapAdminClubFromApi, mapCreationRequestFromApi, mapAdminRoleToApi } from '../../api/clubMappers'
+import {
+  getAdminClubList,
+  getAdminClubDetail,
+  getClubCreationRequestList,
+  reviewClubCreationRequest,
+  updateClubStatus,
+  updateClub,
+  assignManagementRole,
+  getClubMembers,
+} from '../../api/clubManagement.api'
+import { mapAdminClubFromApi, mapCreationRequestFromApi, mapAdminRoleToApi, mapMemberFromApi } from '../../api/clubMappers'
 
 const ADMIN_SORT_OPTIONS = [
   { value: 'pending', label: 'Status: Pending' },
@@ -18,6 +27,9 @@ const ADMIN_SORT_OPTIONS = [
 ]
 
 const ADMIN_CLUB_SORT_OPTIONS = [
+  { value: '', label: 'All Status' },
+  { value: 'active', label: 'Status: Active' },
+  { value: 'inactive', label: 'Status: Inactive' },
   { value: 'name-asc', label: 'Name A-Z' },
   { value: 'newest', label: 'Newest' },
   { value: 'oldest', label: 'Oldest' },
@@ -39,8 +51,16 @@ const adminIcons = {
   ),
   registrations: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-      <path d="M8 6h13M8 12h13M8 18h13" strokeLinecap="round" />
-      <path d="M3 6h.01M3 12h.01M3 18h.01" strokeLinecap="round" />
+      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="9" y="3" width="6" height="4" rx="1" strokeLinejoin="round" />
+      <path d="M9 12h6M9 16h4" strokeLinecap="round" />
+    </svg>
+  ),
+  'event-requests': (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
+      <path d="m9 15 2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   clubs: (
@@ -133,8 +153,22 @@ function AdminTopbar() {
 
         <div className="home-topbar__actions">
           <div className="home-user-menu">
-            <span className="home-user-menu__avatar" aria-hidden="true" />
-            <span className="home-user-menu__name">Admin</span>
+            <span
+              className="home-user-menu__avatar"
+              aria-hidden="true"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#ffeedb',
+                color: '#ff8e0b',
+                fontSize: '15px',
+                borderRadius: '50%',
+              }}
+            >
+              🛡
+            </span>
+            <span className="home-user-menu__name">Student Affairs</span>
             <span className="home-user-menu__caret" aria-hidden="true">
               <svg viewBox="0 0 12 8" fill="currentColor">
                 <path d="M6 8L0 0h12L6 8z" />
@@ -159,6 +193,15 @@ function AdminDashboardPage({ onLogout }) {
   const [clubSearchQuery, setClubSearchQuery] = useState('')
   const [detailRequest, setDetailRequest] = useState(null)
   const [selectedActiveClub, setSelectedActiveClub] = useState(null)
+  const [isUpdateClubModalOpen, setIsUpdateClubModalOpen] = useState(false)
+  const [updatingClub, setUpdatingClub] = useState(false)
+  const [clubFormData, setClubFormData] = useState({
+    name: '',
+    category: 'Arts',
+    slogan: '',
+    description: '',
+    logo_url: '',
+  })
   const [isManagingMembers, setIsManagingMembers] = useState(false)
   const [memberRoleFilter, setMemberRoleFilter] = useState('all')
   const [openRoleDropdown, setOpenRoleDropdown] = useState(null)
@@ -172,6 +215,7 @@ function AdminDashboardPage({ onLogout }) {
   const [clubCurrentPage, setClubCurrentPage] = useState(1)
   const sortRef = useRef(null)
   const clubSortRef = useRef(null)
+  const logoFileInputRef = useRef(null)
   const selectedSort = ADMIN_SORT_OPTIONS.find((option) => option.value === sortMode)
   const selectedClubSort = ADMIN_CLUB_SORT_OPTIONS.find((option) => option.value === clubSortMode)
   const visibleRequests = useMemo(() => {
@@ -214,10 +258,16 @@ function AdminDashboardPage({ onLogout }) {
   }, [currentPage, visibleRequests])
   const visibleClubs = useMemo(() => {
     const query = clubSearchQuery.trim().toLowerCase()
-    const clubs = activeClubs.filter((item) => {
+    let clubs = activeClubs.filter((item) => {
       if (!query) return true
       return item.clubName.toLowerCase().includes(query)
     })
+
+    if (clubSortMode === 'active') {
+      clubs = clubs.filter((c) => (c.status || 'active') === 'active')
+    } else if (clubSortMode === 'inactive') {
+      clubs = clubs.filter((c) => c.status === 'inactive')
+    }
 
     if (clubSortMode === 'newest') {
       return clubs.sort((a, b) => b.createdAt - a.createdAt)
@@ -238,6 +288,17 @@ function AdminDashboardPage({ onLogout }) {
     const startIndex = (clubCurrentPage - 1) * ADMIN_PAGE_SIZE
     return visibleClubs.slice(startIndex, startIndex + ADMIN_PAGE_SIZE)
   }, [clubCurrentPage, visibleClubs])
+
+  const activeClubLeader = useMemo(() => {
+    if (!selectedActiveClub) return 'Unknown'
+    if (selectedActiveClub.leader && selectedActiveClub.leader !== 'Unknown') {
+      return selectedActiveClub.leader
+    }
+    const leaderInMembers = (selectedActiveClub.memberList || []).find(
+      (m) => m.role === 'Leader' || m.rawRole === 'president' || m.rawRole === 'leader'
+    )
+    return leaderInMembers?.name || 'Unknown'
+  }, [selectedActiveClub])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -357,8 +418,194 @@ function AdminDashboardPage({ onLogout }) {
     setIsManagingMembers(false)
   }
 
+  async function handleToggleClubStatus(clubId, currentStatus) {
+    const nextStatus = currentStatus === 'inactive' ? 'active' : 'inactive'
+    const isActivate = nextStatus === 'active'
+    const targetClub = activeClubs.find((item) => item.id === clubId) || (selectedActiveClub?.id === clubId ? selectedActiveClub : null)
+
+    const confirmResult = await confirm({
+      title: isActivate ? 'Activate club?' : 'Deactivate club?',
+      message: isActivate
+        ? `Activate ${targetClub?.clubName || 'this club'}? The club will become active and accessible to members.`
+        : `Are you sure you want to deactivate ${targetClub?.clubName || 'this club'}? An email notification will be sent to the club leader.`,
+      confirmText: isActivate ? 'Activate' : 'Deactivate',
+      tone: isActivate ? 'primary' : 'warning',
+      hasInput: !isActivate,
+      inputLabel: 'Reason for deactivation (will be sent via email to the Club Leader):',
+      inputPlaceholder: 'Enter reason for club deactivation (e.g., Policy violation, temporary suspension under directive...)...',
+      inputRequired: false,
+    })
+
+    if (!confirmResult) return
+    const reason = typeof confirmResult === 'object' ? (confirmResult.value || '') : ''
+
+    try {
+      await updateClubStatus(clubId, nextStatus, reason)
+
+      setActiveClubs((clubs) =>
+        clubs.map((club) =>
+          club.id === clubId ? { ...club, status: nextStatus } : club
+        )
+      )
+
+      setSelectedActiveClub((club) =>
+        club && club.id === clubId ? { ...club, status: nextStatus } : club
+      )
+
+      showToast({
+        type: 'success',
+        title: isActivate ? 'Club activated' : 'Club deactivated',
+        message: `${targetClub?.clubName || 'The club'} is now ${nextStatus}.`,
+      })
+    } catch (err) {
+      if (String(clubId).startsWith('club-')) {
+        setActiveClubs((clubs) =>
+          clubs.map((club) =>
+            club.id === clubId ? { ...club, status: nextStatus } : club
+          )
+        )
+        setSelectedActiveClub((club) =>
+          club && club.id === clubId ? { ...club, status: nextStatus } : club
+        )
+        showToast({
+          type: 'success',
+          title: isActivate ? 'Club activated' : 'Club deactivated',
+          message: `${targetClub?.clubName || 'The club'} is now ${nextStatus}.`,
+        })
+        return
+      }
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: err.message || 'Failed to update club status',
+      })
+    }
+  }
+
+  function handleOpenUpdateClubModal(club) {
+    if (!club) return
+    setClubFormData({
+      name: club.clubName || club.name || '',
+      category: club.category || 'Arts',
+      slogan: club.slogan || '',
+      description: club.description || '',
+      logo_url: club.logoUrl || club.logo_url || '',
+    })
+    if (logoFileInputRef.current) {
+      logoFileInputRef.current.value = ''
+    }
+    setIsUpdateClubModalOpen(true)
+  }
+
+  function handleLogoFileChange(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast({
+        type: 'error',
+        title: 'Image Too Large',
+        message: 'Image size must not exceed 5MB.',
+      })
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setClubFormData((prev) => ({ ...prev, logo_url: reader.result }))
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function handleRemoveLogo() {
+    setClubFormData((prev) => ({ ...prev, logo_url: '' }))
+    if (logoFileInputRef.current) {
+      logoFileInputRef.current.value = ''
+    }
+  }
+
+  async function handleUpdateClubSubmit(e) {
+    e.preventDefault()
+    if (!selectedActiveClub?.id) return
+
+    if (!clubFormData.name.trim()) {
+      showToast({
+        type: 'error',
+        title: 'Validation error',
+        message: 'Club name cannot be empty.',
+      })
+      return
+    }
+
+    setUpdatingClub(true)
+    try {
+      const payload = {
+        name: clubFormData.name.trim(),
+        category: clubFormData.category,
+        slogan: clubFormData.slogan.trim(),
+        description: clubFormData.description.trim(),
+        logo_url: clubFormData.logo_url.trim(),
+      }
+
+      await updateClub(selectedActiveClub.id, payload)
+
+      const updatedName = payload.name
+      const updatedCategory = payload.category
+      const updatedSlogan = payload.slogan
+      const updatedDesc = payload.description
+      const updatedLogo = payload.logo_url
+
+      setActiveClubs((clubs) =>
+        clubs.map((club) =>
+          club.id === selectedActiveClub.id
+            ? {
+                ...club,
+                clubName: updatedName,
+                name: updatedName,
+                category: updatedCategory,
+                slogan: updatedSlogan,
+                description: updatedDesc,
+                logoUrl: updatedLogo,
+              }
+            : club
+        )
+      )
+
+      setSelectedActiveClub((prev) =>
+        prev
+          ? {
+              ...prev,
+              clubName: updatedName,
+              name: updatedName,
+              category: updatedCategory,
+              slogan: updatedSlogan,
+              description: updatedDesc,
+              logoUrl: updatedLogo,
+            }
+          : prev
+      )
+
+      setIsUpdateClubModalOpen(false)
+      showToast({
+        type: 'success',
+        title: 'Club updated',
+        message: `${updatedName} has been successfully updated.`,
+      })
+    } catch (err) {
+      showToast({
+        type: 'error',
+        title: 'Update failed',
+        message: err.message || 'Failed to update club information',
+      })
+    } finally {
+      setUpdatingClub(false)
+    }
+  }
+
   async function handleDeleteClub(clubId) {
-    const targetClub = activeClubs.find((item) => item.id === clubId)
+    const targetClub = activeClubs.find((item) => item.id === clubId) || (selectedActiveClub?.id === clubId ? selectedActiveClub : null)
     const accepted = await confirm({
       title: 'Delete club?',
       message: `Delete ${targetClub?.clubName || 'this club'} from the active club list?`,
@@ -645,7 +892,7 @@ function AdminDashboardPage({ onLogout }) {
             </div>
             <div className="admin-detail-field">
               <span>Leader</span>
-              <strong>{selectedActiveClub.leader}</strong>
+              <strong>{activeClubLeader}</strong>
             </div>
             <div className="admin-detail-field">
               <span>Category</span>
@@ -661,12 +908,50 @@ function AdminDashboardPage({ onLogout }) {
             </div>
             <div className="admin-detail-field">
               <span>Status</span>
-              <strong className="admin-active-status">Active</strong>
+              <strong className={`admin-badge-status admin-badge-status--${selectedActiveClub.status || 'active'}`}>
+                {formatStatusLabel(selectedActiveClub.status || 'active')}
+              </strong>
             </div>
             <div className="admin-detail-field admin-detail-field--wide">
               <span>Description</span>
               <strong>{selectedActiveClub.description}</strong>
             </div>
+          </div>
+
+          <div className="admin-detail-actions admin-club-detail-actions">
+            <button
+              type="button"
+              className={selectedActiveClub.status === 'inactive' ? 'admin-detail-approve' : 'admin-detail-deactivate'}
+              onClick={() => handleToggleClubStatus(selectedActiveClub.id, selectedActiveClub.status || 'active')}
+            >
+              {selectedActiveClub.status === 'inactive' ? (
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Activate Club
+                </>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" strokeLinecap="round" />
+                  </svg>
+                  Deactivate Club
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              className="admin-detail-update"
+              onClick={() => handleOpenUpdateClubModal(selectedActiveClub)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Update Club
+            </button>
           </div>
 
           <div className="admin-members-section">
@@ -809,28 +1094,59 @@ function AdminDashboardPage({ onLogout }) {
                 <span>{item.leader}</span>
                 <span>{item.members}</span>
                 <span>
-                  <strong className={`admin-active-status${item.status === 'inactive' ? ' admin-inactive-status' : ''}`}>
+                  <strong className={`admin-badge-status admin-badge-status--${item.status === 'inactive' ? 'inactive' : 'active'}`}>
                     {item.status === 'inactive' ? 'Inactive' : 'Active'}
                   </strong>
                 </span>
                 <span className="admin-row-actions">
                   <button
                     type="button"
-                    className="admin-delete-btn"
-                    aria-label={`Delete ${item.clubName}`}
-                    onClick={() => handleDeleteClub(item.id)}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                      <path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
                     className="admin-view-btn"
+                    title={`View ${item.clubName}`}
                     aria-label={`View ${item.clubName}`}
-                    onClick={() => {
+                    onClick={async () => {
                       setSelectedActiveClub(item)
                       setIsManagingMembers(false)
+                      try {
+                        const [detailRes, membersRes] = await Promise.allSettled([
+                          getAdminClubDetail(item.id),
+                          getClubMembers(item.id),
+                        ])
+
+                        let updatedDetail = item
+                        if (detailRes.status === 'fulfilled' && (detailRes.value?.data || detailRes.value?.club)) {
+                          const rawData = detailRes.value.data || detailRes.value.club
+                          updatedDetail = { ...item, ...mapAdminClubFromApi(rawData) }
+                        }
+
+                        let fetchedMembers = item.memberList || []
+                        if (membersRes.status === 'fulfilled') {
+                          fetchedMembers = (membersRes.value.data?.members || []).map((m, idx) => mapMemberFromApi(m, idx))
+                        }
+
+                        const leaderFromMembers = fetchedMembers.find(
+                          (m) => m.role === 'Leader' || m.rawRole === 'president' || m.rawRole === 'leader'
+                        )?.name
+
+                        const finalLeader =
+                          updatedDetail.leader && updatedDetail.leader !== 'Unknown'
+                            ? updatedDetail.leader
+                            : (leaderFromMembers || item.leader || 'Unknown')
+
+                        setSelectedActiveClub({
+                          ...updatedDetail,
+                          leader: finalLeader,
+                          memberList: fetchedMembers,
+                        })
+
+                        if (finalLeader !== 'Unknown') {
+                          setActiveClubs((clubs) =>
+                            clubs.map((c) => (c.id === item.id ? { ...c, leader: finalLeader } : c))
+                          )
+                        }
+                      } catch (err) {
+                        console.error('Failed to load club details or members:', err)
+                      }
                     }}
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
@@ -870,6 +1186,228 @@ function AdminDashboardPage({ onLogout }) {
               <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
+        </div>
+      </div>
+    )
+  }
+
+  function renderUpdateClubModal() {
+    if (!isUpdateClubModalOpen || !selectedActiveClub) return null
+
+    return (
+      <div
+        className="admin-modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="update-club-title"
+      >
+        <button
+          type="button"
+          className="admin-modal-backdrop"
+          aria-label="Close modal overlay"
+          onClick={() => !updatingClub && setIsUpdateClubModalOpen(false)}
+        />
+        <div className="admin-modal-card admin-update-club-modal">
+          <div className="admin-modal-header">
+            <div className="admin-modal-header__title">
+              <div className="admin-modal-icon-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div>
+                <h3 id="update-club-title">Update Club Information</h3>
+                <p>Modify details for <strong>{selectedActiveClub.clubName}</strong></p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="admin-modal-close"
+              aria-label="Close modal"
+              disabled={updatingClub}
+              onClick={() => setIsUpdateClubModalOpen(false)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1="6" y1="6" x2="18" y2="18" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
+
+          <form onSubmit={handleUpdateClubSubmit} className="admin-modal-form">
+            <div className="admin-form-group">
+              <label htmlFor="club-name-input">
+                Club Name <span className="admin-form-required">*</span>
+              </label>
+              <input
+                id="club-name-input"
+                type="text"
+                className="admin-form-input"
+                value={clubFormData.name}
+                onChange={(e) => setClubFormData((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g. F-Coder Club"
+                required
+                disabled={updatingClub}
+              />
+            </div>
+
+            <div className="admin-form-row">
+              <div className="admin-form-group">
+                <label htmlFor="club-category-select">
+                  Category <span className="admin-form-required">*</span>
+                </label>
+                <select
+                  id="club-category-select"
+                  className="admin-form-select"
+                  value={clubFormData.category}
+                  onChange={(e) => setClubFormData((prev) => ({ ...prev, category: e.target.value }))}
+                  disabled={updatingClub}
+                >
+                  <option value="Academic">Academic</option>
+                  <option value="Arts">Arts</option>
+                  <option value="Sports">Sports</option>
+                  <option value="Event">Event</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="admin-form-group">
+                <label htmlFor="club-slogan-input">Slogan</label>
+                <input
+                  id="club-slogan-input"
+                  type="text"
+                  className="admin-form-input"
+                  value={clubFormData.slogan}
+                  onChange={(e) => setClubFormData((prev) => ({ ...prev, slogan: e.target.value }))}
+                  placeholder="e.g. Code your future"
+                  disabled={updatingClub}
+                />
+              </div>
+            </div>
+
+            <div className="admin-form-group">
+              <label>Club Logo</label>
+              <input
+                ref={logoFileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleLogoFileChange}
+                disabled={updatingClub}
+              />
+              <div className="admin-logo-upload-box">
+                {clubFormData.logo_url ? (
+                  <div className="admin-logo-uploaded-preview">
+                    <img
+                      src={clubFormData.logo_url}
+                      alt="Club Logo Preview"
+                      className="admin-logo-uploaded-img"
+                    />
+                    <div className="admin-logo-uploaded-info">
+                      <span className="admin-logo-uploaded-label">Current logo</span>
+                      <div className="admin-logo-uploaded-actions">
+                        <button
+                          type="button"
+                          className="admin-logo-btn-change"
+                          onClick={() => logoFileInputRef.current?.click()}
+                          disabled={updatingClub}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                          </svg>
+                          Change image
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-logo-btn-remove"
+                          onClick={handleRemoveLogo}
+                          disabled={updatingClub}
+                        >
+                          Remove image
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="admin-logo-dropzone"
+                    onClick={() => logoFileInputRef.current?.click()}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        logoFileInputRef.current?.click()
+                      }
+                    }}
+                  >
+                    <div className="admin-logo-dropzone__icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
+                    </div>
+                    <div className="admin-logo-dropzone__text">
+                      <strong>Upload logo from computer</strong>
+                      <span>Supports PNG, JPG, WebP (Max 5MB)</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="admin-logo-dropzone__btn"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        logoFileInputRef.current?.click()
+                      }}
+                      disabled={updatingClub}
+                    >
+                      Browse file
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="admin-form-group">
+              <label htmlFor="club-desc-input">Description</label>
+              <textarea
+                id="club-desc-input"
+                rows="4"
+                className="admin-form-textarea"
+                value={clubFormData.description}
+                onChange={(e) => setClubFormData((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="Detailed description of the club..."
+                disabled={updatingClub}
+              />
+            </div>
+
+            <div className="admin-modal-actions">
+              <button
+                type="button"
+                className="admin-btn-secondary"
+                disabled={updatingClub}
+                onClick={() => setIsUpdateClubModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="admin-btn-primary"
+                disabled={updatingClub}
+              >
+                {updatingClub ? (
+                  <>
+                    <span className="admin-spinner" aria-hidden="true" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     )
@@ -919,8 +1457,14 @@ function AdminDashboardPage({ onLogout }) {
                     <strong>{detailRequest.sentDate}</strong>
                   </div>
                   <div className="admin-detail-field">
-                    <span>Number of members</span>
+                    <span>Total members</span>
                     <strong>{detailRequest.memberCount ?? 0}</strong>
+                  </div>
+                  <div className="admin-detail-field">
+                    <span>Confirmed members</span>
+                    <strong style={{ color: (detailRequest.acceptedCount ?? 0) >= 10 ? '#16a34a' : '#d97706' }}>
+                      {detailRequest.acceptedCount ?? 0} / {detailRequest.memberCount ?? 0} confirmed
+                    </strong>
                   </div>
                   <div className="admin-detail-field">
                     <span>Status</span>
@@ -938,28 +1482,75 @@ function AdminDashboardPage({ onLogout }) {
                   </div>
                 </div>
 
-                <div className="admin-detail-actions">
-                  <button
-                    type="button"
-                    className="admin-detail-approve"
-                    onClick={() => updateRegistrationRequestStatus(detailRequest, 'approved')}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                      <path d="m5 12 4 4L19 6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    Approve request
-                  </button>
-                  <button
-                    type="button"
-                    className="admin-detail-reject"
-                    onClick={() => updateRegistrationRequestStatus(detailRequest, 'rejected')}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                      <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
-                    </svg>
-                    Reject
-                  </button>
-                </div>
+                {detailRequest.members && detailRequest.members.length > 0 && (
+                  <div style={{ marginTop: '1.25rem' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#1e293b', marginBottom: '0.5rem' }}>
+                      Founding Members Confirmation ({detailRequest.acceptedCount ?? 0}/{detailRequest.members.length})
+                    </h4>
+                    <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                        <thead>
+                          <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
+                            <th style={{ padding: '6px 10px' }}>Full Name</th>
+                            <th style={{ padding: '6px 10px' }}>Email / Student Code</th>
+                            <th style={{ padding: '6px 10px' }}>Confirmation</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {detailRequest.members.map((m, idx) => {
+                            const u = m.user_id || {}
+                            return (
+                              <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '6px 10px', fontWeight: 600 }}>{u.full_name || 'Student'}</td>
+                                <td style={{ padding: '6px 10px', color: '#64748b' }}>{u.student_code || u.email || '-'}</td>
+                                <td style={{ padding: '6px 10px' }}>
+                                  {m.status === 'accepted' ? (
+                                    <span style={{ color: '#16a34a', fontWeight: 600 }}>Accepted</span>
+                                  ) : m.status === 'rejected' ? (
+                                    <span style={{ color: '#dc2626', fontWeight: 600 }}>Rejected</span>
+                                  ) : (
+                                    <span style={{ color: '#d97706', fontWeight: 600 }}>Pending</span>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {detailRequest.status === 'pending' ? (
+                  <div className="admin-detail-actions">
+                    <button
+                      type="button"
+                      className="admin-detail-approve"
+                      onClick={() => updateRegistrationRequestStatus(detailRequest, 'approved')}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path d="m5 12 4 4L19 6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Approve request
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-detail-reject"
+                      onClick={() => updateRegistrationRequestStatus(detailRequest, 'rejected')}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+                      </svg>
+                      Reject
+                    </button>
+                  </div>
+                ) : (
+                  <div className="admin-detail-actions">
+                    <span style={{ fontSize: '0.88rem', color: '#64748b', fontWeight: 700 }}>
+                      This registration request is currently <strong className={`admin-badge-status admin-badge-status--${detailRequest.status}`}>{formatStatusLabel(detailRequest.status)}</strong>
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -1046,39 +1637,51 @@ function AdminDashboardPage({ onLogout }) {
                       </div>
                       <span>{item.leader || item.sender || 'Unknown'}</span>
                       <span>{item.sentDate}</span>
-                      <span className="admin-status-actions">
+                      <span>
+                        <strong className={`admin-badge-status admin-badge-status--${item.status}`}>
+                          {formatStatusLabel(item.status)}
+                        </strong>
+                      </span>
+                      <span className="admin-row-actions">
+                        {item.status === 'pending' && (
+                          <>
+                            <button
+                              type="button"
+                              className="admin-status-actions__approve"
+                              title="Approve request"
+                              aria-label="Approve request"
+                              onClick={() => updateRegistrationRequestStatus(item, 'approved')}
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+                                <path d="m5 12 4 4L19 6" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-status-actions__reject"
+                              title="Reject request"
+                              aria-label="Reject request"
+                              onClick={() => updateRegistrationRequestStatus(item, 'rejected')}
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+                                <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+                              </svg>
+                            </button>
+                          </>
+                        )}
                         <button
                           type="button"
-                          className="admin-status-actions__approve"
-                          aria-label="Approve request"
-                          onClick={() => updateRegistrationRequestStatus(item, 'approved')}
+                          className="admin-view-btn"
+                          title={`View ${item.clubName} request`}
+                          aria-label={`View ${item.clubName} request`}
+                          onClick={() => setDetailRequest(item)}
                         >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
-                            <path d="m5 12 4 4L19 6" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          className="admin-status-actions__reject"
-                          aria-label="Reject request"
-                          onClick={() => updateRegistrationRequestStatus(item, 'rejected')}
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
-                            <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+                            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                            <circle cx="12" cy="12" r="2.6" />
                           </svg>
                         </button>
                       </span>
-                      <button
-                        type="button"
-                        className="admin-view-btn"
-                        aria-label={`View ${item.clubName} request`}
-                        onClick={() => setDetailRequest(item)}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-                          <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
-                          <circle cx="12" cy="12" r="2.6" />
-                        </svg>
-                      </button>
                     </div>
                   ))
                 )}
@@ -1115,6 +1718,7 @@ function AdminDashboardPage({ onLogout }) {
           )}
         </section>
       </main>
+      {renderUpdateClubModal()}
     </div>
   )
 }

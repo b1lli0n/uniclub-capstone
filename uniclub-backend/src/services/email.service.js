@@ -35,20 +35,20 @@ function getTransporter() {
 const sendApprovedEmail = async ({ toEmail, userName, clubName }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub] 🎉 Chúc mừng! Đơn gia nhập CLB ${clubName} đã được DUYỆT`;
+    const subject = `[UniClub] 🎉 Congratulations! Your application to join ${clubName} has been APPROVED`;
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
-        <h2 style="color: #2e7d32;">🎉 Chúc mừng ${userName}!</h2>
-        <p>Yêu cầu tham gia Câu lạc bộ <strong>${clubName}</strong> của bạn đã được <strong>PHÊ DUYỆT</strong> bởi Ban chủ nhiệm!</p>
-        <p>Bây giờ bạn đã trở thành thành viên chính thức của câu lạc bộ. Bạn có thể truy cập hệ thống <strong>UniClub</strong> để:</p>
+        <h2 style="color: #2e7d32;">🎉 Congratulations ${userName}!</h2>
+        <p>Your application to join <strong>${clubName}</strong> has been <strong>APPROVED</strong> by the Club Board!</p>
+        <p>You are now an official member of the club. You can access the <strong>UniClub</strong> platform to:</p>
         <ul>
-          <li>Xem lịch hoạt động và sự kiện nội bộ của CLB.</li>
-          <li>Đăng ký nhận vé QR tham gia các chương trình.</li>
-          <li>Tích lũy điểm thưởng thành tích và đóng quỹ CLB.</li>
+          <li>View club activity schedules and internal events.</li>
+          <li>Register for QR tickets to participate in club programs.</li>
+          <li>Earn achievement reward points and pay club membership fees.</li>
         </ul>
         <br/>
-        <p>Trân trọng,</p>
-        <p><strong>Ban quản trị UniClub & Ban chủ nhiệm ${clubName}</strong></p>
+        <p>Best regards,</p>
+        <p><strong>UniClub Administration & ${clubName} Board</strong></p>
       </div>
     `;
 
@@ -67,19 +67,19 @@ const sendApprovedEmail = async ({ toEmail, userName, clubName }) => {
 const sendRejectedEmail = async ({ toEmail, userName, clubName, reviewNote }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub] Thông báo kết quả đơn gia nhập CLB ${clubName}`;
-    const reasonText = reviewNote ? `<p><strong>Lý do từ chối / Ghi chú từ Ban chủ nhiệm:</strong> ${reviewNote}</p>` : "";
+    const subject = `[UniClub] Membership Application Result for ${clubName}`;
+    const reasonText = reviewNote ? `<p><strong>Reason / Note from Club Board:</strong> ${reviewNote}</p>` : "";
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
-        <h2 style="color: #d32f2f;">Thông báo kết quả đơn đăng ký</h2>
-        <p>Chào <strong>${userName}</strong>,</p>
-        <p>Cảm ơn bạn đã quan tâm và gửi đơn gia nhập <strong>${clubName}</strong>.</p>
-        <p>Rất tiếc, đơn đăng ký gia nhập của bạn hiện <strong>CHƯA ĐƯỢC PHÊ DUYỆT</strong> trong đợt này.</p>
+        <h2 style="color: #d32f2f;">Membership Application Result</h2>
+        <p>Hello <strong>${userName}</strong>,</p>
+        <p>Thank you for your interest in joining <strong>${clubName}</strong>.</p>
+        <p>Unfortunately, your membership application <strong>HAS NOT BEEN APPROVED</strong> at this time.</p>
         ${reasonText}
-        <p><em>Lưu ý: Bạn có thể hoàn thiện lại hồ sơ và nộp lại đơn đăng ký mới sau 24 giờ kể từ thời điểm này.</em></p>
+        <p><em>Note: You can update your application and re-apply 24 hours after this decision.</em></p>
         <br/>
-        <p>Trân trọng,</p>
-        <p><strong>Ban chủ nhiệm ${clubName}</strong></p>
+        <p>Best regards,</p>
+        <p><strong>${clubName} Board</strong></p>
       </div>
     `;
 
@@ -98,19 +98,19 @@ const sendRejectedEmail = async ({ toEmail, userName, clubName, reviewNote }) =>
 const sendPointsAwardedEmail = async ({ toEmail, userName, clubName, points, reason, newTotal }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub] 🏆 Bạn vừa nhận được +${points} điểm thưởng từ ${clubName}!`;
+    const subject = `[UniClub] 🏆 You received +${points} reward points from ${clubName}!`;
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 16px;">
         <div style="background: #ffffff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-          <h2 style="color: #2e7d32; margin-top: 0;">🏆 Thông Báo Thưởng Điểm Rèn Luyện</h2>
-          <p>Xin chào <strong>${userName}</strong>,</p>
-          <p>Chúc mừng! Bạn vừa nhận được <strong style="color: #2e7d32; font-size: 1.1em;">+${points} điểm thưởng</strong> từ Ban chủ nhiệm <strong>${clubName}</strong>.</p>
+          <h2 style="color: #2e7d32; margin-top: 0;">🏆 Reward Points Awarded</h2>
+          <p>Hello <strong>${userName}</strong>,</p>
+          <p>Congratulations! You have received <strong style="color: #2e7d32; font-size: 1.1em;">+${points} reward points</strong> from the Board of <strong>${clubName}</strong>.</p>
           <div style="background: #f1f8e9; padding: 16px; border-radius: 8px; border-left: 4px solid #2e7d32; margin: 16px 0;">
-            <p style="margin: 0 0 6px 0;"><strong>Nội dung đóng góp / Lý do:</strong> ${reason}</p>
-            <p style="margin: 0;"><strong>Điểm thưởng nhận được:</strong> <span style="color: #2e7d32; font-weight: bold;">+${points} pts</span></p>
+            <p style="margin: 0 0 6px 0;"><strong>Contribution / Reason:</strong> ${reason}</p>
+            <p style="margin: 0;"><strong>Points Earned:</strong> <span style="color: #2e7d32; font-weight: bold;">+${points} pts</span></p>
           </div>
-          ${newTotal !== undefined ? `<p style="font-size: 1.05em;">📊 <strong>Tổng ví điểm CLB hiện tại của bạn:</strong> <strong style="color: #ea580c;">${newTotal} pts</strong></p>` : ''}
-          <p style="color: #64748b; font-size: 0.9em; margin-top: 20px;">Lịch sử tích lũy điểm thưởng này đã được tự động lưu công khai vào <strong>Nhật ký đóng góp (Contribution Logs)</strong> trên hệ thống UniClub.</p>
+          ${newTotal !== undefined ? `<p style="font-size: 1.05em;">📊 <strong>Your current club points balance:</strong> <strong style="color: #ea580c;">${newTotal} pts</strong></p>` : ''}
+          <p style="color: #64748b; font-size: 0.9em; margin-top: 20px;">This point accumulation has been recorded in the <strong>Contribution Logs</strong> on UniClub.</p>
         </div>
       </div>
     `;
@@ -130,20 +130,20 @@ const sendPointsAwardedEmail = async ({ toEmail, userName, clubName, points, rea
 const sendEventRequestSubmittedEmailToAdmin = async ({ adminEmail = process.env.EMAIL_USER || "uniclub2402@gmail.com", clubName, requesterName, eventTitle, documentUrl }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub Admin] 📄 Đơn tạo sự kiện mới: "${eventTitle}" từ ${clubName}`;
+    const subject = `[UniClub Admin] 📄 New Event Request: "${eventTitle}" from ${clubName}`;
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 16px;">
         <div style="background: #ffffff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-          <h2 style="color: #ea580c; margin-top: 0;">📄 Thông Báo Yêu Cầu Tạo Sự Kiện Mới</h2>
-          <p>Kính gửi Ban Quản Trị Hệ Thống (Admin),</p>
-          <p>Câu lạc bộ <strong>${clubName}</strong> vừa nộp Đơn yêu cầu phê duyệt tạo sự kiện mới trên hệ thống UniClub:</p>
+          <h2 style="color: #ea580c; margin-top: 0;">📄 New Event Request Notification</h2>
+          <p>Dear System Administration,</p>
+          <p>The club <strong>${clubName}</strong> has submitted a request to create a new event on UniClub:</p>
           <div style="background: #fff7ed; padding: 16px; border-radius: 8px; border-left: 4px solid #ea580c; margin: 16px 0;">
-            <p style="margin: 0 0 6px 0;"><strong>Tên sự kiện:</strong> ${eventTitle}</p>
-            <p style="margin: 0 0 6px 0;"><strong>Câu lạc bộ đề xuất:</strong> ${clubName}</p>
-            <p style="margin: 0 0 6px 0;"><strong>Người gửi yêu cầu:</strong> ${requesterName}</p>
-            <p style="margin: 0;"><strong>Hợp đồng / Giấy phép:</strong> <a href="${documentUrl}" target="_blank" style="color: #2563eb; font-weight: bold;">Xem file Hợp đồng Google Drive PDF</a></p>
+            <p style="margin: 0 0 6px 0;"><strong>Event Title:</strong> ${eventTitle}</p>
+            <p style="margin: 0 0 6px 0;"><strong>Proposing Club:</strong> ${clubName}</p>
+            <p style="margin: 0 0 6px 0;"><strong>Requester:</strong> ${requesterName}</p>
+            <p style="margin: 0;"><strong>Document / Contract:</strong> <a href="${documentUrl}" target="_blank" style="color: #2563eb; font-weight: bold;">View Contract PDF on Google Drive</a></p>
           </div>
-          <p>Vui lòng đăng nhập vào <strong>Admin Dashboard -> Event Requests List</strong> để tiến hành kiểm tra Hợp đồng và Phê duyệt (Approve) hoặc Từ chối (Reject).</p>
+          <p>Please log in to <strong>Admin Dashboard -> Event Requests List</strong> to review the document and Approve or Reject.</p>
         </div>
       </div>
     `;
@@ -163,21 +163,21 @@ const sendEventRequestSubmittedEmailToAdmin = async ({ adminEmail = process.env.
 const sendEventRequestResultEmailToRequester = async ({ toEmail, userName, clubName, eventTitle, isApproved, reviewNote }) => {
   try {
     const mailer = getTransporter();
-    const statusText = isApproved ? "ĐÃ ĐƯỢC PHÊ DUYỆT" : "CHƯA ĐƯỢC PHÊ DUYỆT";
+    const statusText = isApproved ? "APPROVED" : "NOT APPROVED";
     const statusColor = isApproved ? "#2e7d32" : "#d32f2f";
-    const subject = `[UniClub] Thông báo kết quả duyệt Đơn tạo sự kiện: "${eventTitle}"`;
+    const subject = `[UniClub] Review Result for Event Proposal: "${eventTitle}"`;
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 16px;">
         <div style="background: #ffffff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-          <h2 style="color: ${statusColor}; margin-top: 0;">Thông Báo Kết Quả Phê Duyệt Sự Kiện</h2>
-          <p>Xin chào <strong>${userName}</strong>,</p>
-          <p>Ban Quản Trị Hệ Thống (Admin) vừa xem xét Hợp đồng và cập nhật kết quả Yêu cầu Tạo Sự Kiện của câu lạc bộ <strong>${clubName}</strong>:</p>
+          <h2 style="color: ${statusColor}; margin-top: 0;">Event Proposal Review Result</h2>
+          <p>Hello <strong>${userName}</strong>,</p>
+          <p>The System Administration has reviewed your event proposal for <strong>${clubName}</strong>:</p>
           <div style="background: #f1f5f9; padding: 16px; border-radius: 8px; border-left: 4px solid ${statusColor}; margin: 16px 0;">
-            <p style="margin: 0 0 6px 0;"><strong>Tên sự kiện:</strong> ${eventTitle}</p>
-            <p style="margin: 0 0 6px 0;"><strong>Trạng thái duyệt:</strong> <strong style="color: ${statusColor};">${statusText}</strong></p>
-            ${reviewNote ? `<p style="margin: 0;"><strong>Ghi chú từ Admin:</strong> ${reviewNote}</p>` : ''}
+            <p style="margin: 0 0 6px 0;"><strong>Event Title:</strong> ${eventTitle}</p>
+            <p style="margin: 0 0 6px 0;"><strong>Approval Status:</strong> <strong style="color: ${statusColor};">${statusText}</strong></p>
+            ${reviewNote ? `<p style="margin: 0;"><strong>Admin Note:</strong> ${reviewNote}</p>` : ''}
           </div>
-          ${isApproved ? '<p>Sự kiện đã được khởi tạo trong hệ thống ở trạng thái Nháp (Draft). Bạn có thể truy cập mục <strong>Manage Events</strong> để bổ sung Lịch trình Timeline và xuất bản sự kiện chính thức!</p>' : ''}
+          ${isApproved ? '<p>The event has been initialized in the system in Draft status. You can visit <strong>Manage Events</strong> to add the event timeline and officially publish it!</p>' : ''}
         </div>
       </div>
     `;
@@ -197,17 +197,17 @@ const sendEventRequestResultEmailToRequester = async ({ toEmail, userName, clubN
 const sendEventTicketEmail = async ({ toEmail, userName, clubName, eventTitle, eventDate, eventLocation, ticketCode, qrCodeUrl }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub] 🎟️ Vé Điện Tử QR Tham Gia Sự Kiện: "${eventTitle}"`;
-    const formattedDate = eventDate ? new Date(eventDate).toLocaleString('vi-VN', { dateStyle: 'full', timeStyle: 'short' }) : 'Thời gian diễn ra sự kiện';
+    const subject = `[UniClub] 🎟️ Event QR Ticket: "${eventTitle}"`;
+    const formattedDate = eventDate ? new Date(eventDate).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' }) : 'Event scheduled time';
     
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 16px;">
         <div style="background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); max-width: 550px; margin: 0 auto; border: 1px solid #e2e8f0;">
           
           <div style="text-align: center; border-bottom: 2px dashed #e2e8f0; padding-bottom: 20px; margin-bottom: 20px;">
-            <span style="font-size: 0.85rem; font-weight: 800; color: #ea580c; text-transform: uppercase; letter-spacing: 0.05em;">VÉ ĐIỆN TỬ THAM GIA SỰ KIỆN - UNICLUB</span>
+            <span style="font-size: 0.85rem; font-weight: 800; color: #ea580c; text-transform: uppercase; letter-spacing: 0.05em;">EVENT E-TICKET - UNICLUB</span>
             <h2 style="color: #0f172a; margin: 8px 0 4px 0; font-size: 1.4rem;">${eventTitle}</h2>
-            <p style="color: #64748b; margin: 0; font-size: 0.95rem;">Đơn vị tổ chức: <strong>${clubName}</strong></p>
+            <p style="color: #64748b; margin: 0; font-size: 0.95rem;">Organized by: <strong>${clubName}</strong></p>
           </div>
 
           <div style="text-align: center; margin: 20px 0;">
@@ -215,18 +215,18 @@ const sendEventTicketEmail = async ({ toEmail, userName, clubName, eventTitle, e
               <img src="${qrCodeUrl}" alt="QR Ticket Code" style="width: 180px; height: 180px; display: block; border-radius: 8px;" />
             </div>
             <p style="margin: 10px 0 0 0; font-weight: 800; font-size: 1.1rem; color: #0f172a; letter-spacing: 0.08em;">
-              MÃ VÉ: <span style="color: #ea580c;">${ticketCode}</span>
+              TICKET CODE: <span style="color: #ea580c;">${ticketCode}</span>
             </p>
           </div>
 
           <div style="background: #fff7ed; padding: 16px 20px; border-radius: 12px; border-left: 4px solid #ea580c; margin: 20px 0;">
-            <p style="margin: 0 0 8px 0; font-size: 0.92rem;">👤 <strong>Người sở hữu:</strong> ${userName}</p>
-            <p style="margin: 0 0 8px 0; font-size: 0.92rem;">🕒 <strong>Thời gian:</strong> ${formattedDate}</p>
-            <p style="margin: 0; font-size: 0.92rem;">📍 <strong>Địa điểm:</strong> ${eventLocation}</p>
+            <p style="margin: 0 0 8px 0; font-size: 0.92rem;">👤 <strong>Ticket Holder:</strong> ${userName}</p>
+            <p style="margin: 0 0 8px 0; font-size: 0.92rem;">🕒 <strong>Time:</strong> ${formattedDate}</p>
+            <p style="margin: 0; font-size: 0.92rem;">📍 <strong>Location:</strong> ${eventLocation}</p>
           </div>
 
           <div style="text-align: center; color: #64748b; font-size: 0.85rem; line-height: 1.5; margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
-            <p style="margin: 0;">* Vui lòng xuất trình mã QR này tại cổng check-in Hội trường để điểm danh và nhận ngay <strong>Điểm Thưởng Tích Lũy CLB</strong>!</p>
+            <p style="margin: 0;">* Please present this QR code at the check-in gate to verify attendance and receive your <strong>Club Reward Points</strong>!</p>
           </div>
 
         </div>
@@ -248,7 +248,7 @@ const sendEventTicketEmail = async ({ toEmail, userName, clubName, eventTitle, e
 const sendEventFeedbackSubmittedEmail = async ({ toEmail, userName, clubName, eventTitle, rating, comment, pointsAwarded }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub] 🌟 Cảm ơn bạn đã gửi Đánh giá Sự kiện: "${eventTitle}"`;
+    const subject = `[UniClub] 🌟 Thank you for reviewing the event: "${eventTitle}"`;
     const stars = "⭐".repeat(rating || 5);
     
     const html = `
@@ -256,27 +256,27 @@ const sendEventFeedbackSubmittedEmail = async ({ toEmail, userName, clubName, ev
         <div style="background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); max-width: 550px; margin: 0 auto; border: 1px solid #e2e8f0;">
           
           <div style="text-align: center; border-bottom: 2px dashed #e2e8f0; padding-bottom: 20px; margin-bottom: 20px;">
-            <span style="font-size: 0.85rem; font-weight: 800; color: #ea580c; text-transform: uppercase; letter-spacing: 0.05em;">CẢM ƠN ĐÓNG GÓP Ý KIẾN - UNICLUB</span>
+            <span style="font-size: 0.85rem; font-weight: 800; color: #ea580c; text-transform: uppercase; letter-spacing: 0.05em;">THANK YOU FOR YOUR FEEDBACK - UNICLUB</span>
             <h2 style="color: #0f172a; margin: 8px 0 4px 0; font-size: 1.4rem;">${eventTitle}</h2>
-            <p style="color: #64748b; margin: 0; font-size: 0.95rem;">Đơn vị tổ chức: <strong>${clubName}</strong></p>
+            <p style="color: #64748b; margin: 0; font-size: 0.95rem;">Organized by: <strong>${clubName}</strong></p>
           </div>
 
           <div style="background: #fff7ed; padding: 16px 20px; border-radius: 12px; border-left: 4px solid #ea580c; margin: 20px 0;">
-            <p style="margin: 0 0 8px 0; font-size: 0.95rem;">👤 <strong>Sinh viên:</strong> ${userName}</p>
-            <p style="margin: 0 0 8px 0; font-size: 0.95rem;">⭐ <strong>Đánh giá:</strong> ${stars} (${rating}/5 sao)</p>
-            <p style="margin: 0; font-size: 0.95rem;">💬 <strong>Ý kiến đóng góp:</strong> "${comment || 'Cảm ơn sự kiện tuyệt vời!'}"</p>
+            <p style="margin: 0 0 8px 0; font-size: 0.95rem;">👤 <strong>Student:</strong> ${userName}</p>
+            <p style="margin: 0 0 8px 0; font-size: 0.95rem;">⭐ <strong>Rating:</strong> ${stars} (${rating}/5 stars)</p>
+            <p style="margin: 0; font-size: 0.95rem;">💬 <strong>Feedback:</strong> "${comment || 'Thank you for an amazing event!'}"</p>
           </div>
 
           ${pointsAwarded ? `
           <div style="background: #f0fdf4; padding: 14px 20px; border-radius: 12px; border: 1px solid #bbf7d0; text-align: center; margin: 20px 0;">
             <p style="margin: 0; color: #166534; font-weight: 800; font-size: 1.05rem;">
-              🏆 Bạn được thưởng ngay <span style="color: #22c55e; font-size: 1.2rem;">+${pointsAwarded} pts</span> Đánh giá Sự kiện!
+              🏆 You earned <span style="color: #22c55e; font-size: 1.2rem;">+${pointsAwarded} pts</span> for your event review!
             </p>
           </div>
           ` : ''}
 
           <div style="text-align: center; color: #64748b; font-size: 0.85rem; line-height: 1.5; margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
-            <p style="margin: 0;">Ý kiến của bạn là động lực giúp Ban chủ nhiệm <strong>${clubName}</strong> nâng cao chất lượng các chương trình tiếp theo!</p>
+            <p style="margin: 0;">Your feedback helps the <strong>${clubName}</strong> Board improve upcoming programs!</p>
           </div>
 
         </div>
@@ -298,19 +298,19 @@ const sendEventFeedbackSubmittedEmail = async ({ toEmail, userName, clubName, ev
 const sendRedemptionRequestEmailToLeader = async ({ leaderEmail = process.env.EMAIL_USER || "uniclub2402@gmail.com", userName, clubName, rewardTitle, pointCost }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub Leader] 🎁 Yêu cầu đổi quà mới từ ${userName}: "${rewardTitle}"`;
+    const subject = `[UniClub Leader] 🎁 New Reward Redemption Request from ${userName}: "${rewardTitle}"`;
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 16px;">
         <div style="background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); max-width: 550px; margin: 0 auto; border: 1px solid #e2e8f0;">
-          <h2 style="color: #ea580c; margin-top: 0;">🎁 Yêu Cầu Đổi Phần Thưởng Mới</h2>
-          <p>Xin chào Ban Chủ Nhiệm / Leader <strong>${clubName}</strong>,</p>
-          <p>Thành viên <strong>${userName}</strong> vừa gửi Yêu cầu đổi phần thưởng trên hệ thống UniClub:</p>
+          <h2 style="color: #ea580c; margin-top: 0;">🎁 New Reward Redemption Request</h2>
+          <p>Hello <strong>${clubName}</strong> Board / Leader,</p>
+          <p>Member <strong>${userName}</strong> has submitted a reward redemption request on UniClub:</p>
           <div style="background: #fff7ed; padding: 16px 20px; border-radius: 12px; border-left: 4px solid #ea580c; margin: 20px 0;">
-            <p style="margin: 0 0 6px 0;"><strong>Tên quà tặng:</strong> ${rewardTitle}</p>
-            <p style="margin: 0 0 6px 0;"><strong>Điểm quy đổi:</strong> <strong style="color: #ea580c;">${pointCost} pts</strong></p>
-            <p style="margin: 0;"><strong>Thành viên yêu cầu:</strong> ${userName}</p>
+            <p style="margin: 0 0 6px 0;"><strong>Reward Title:</strong> ${rewardTitle}</p>
+            <p style="margin: 0 0 6px 0;"><strong>Points Cost:</strong> <strong style="color: #ea580c;">${pointCost} pts</strong></p>
+            <p style="margin: 0;"><strong>Requesting Member:</strong> ${userName}</p>
           </div>
-          <p>Vui lòng đăng nhập vào trang <strong>Rewards Management</strong> để duyệt (Approve) hoặc từ chối (Reject) yêu cầu này.</p>
+          <p>Please log in to the <strong>Rewards Management</strong> page to Approve or Reject this request.</p>
         </div>
       </div>
     `;
@@ -330,19 +330,19 @@ const sendRedemptionRequestEmailToLeader = async ({ leaderEmail = process.env.EM
 const sendRedemptionApprovedEmailToStudent = async ({ toEmail, userName, clubName, rewardTitle, pointCost, pickupCode }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub] 🎉 Chúc mừng! Yêu cầu đổi quà "${rewardTitle}" đã được PHÊ DUYỆT!`;
+    const subject = `[UniClub] 🎉 Congratulations! Your reward redemption for "${rewardTitle}" has been APPROVED!`;
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 16px;">
         <div style="background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); max-width: 550px; margin: 0 auto; border: 1px solid #e2e8f0;">
-          <h2 style="color: #2e7d32; margin-top: 0;">🎉 Chúc Mừng Bạn Đã Đổi Quà Thành Công!</h2>
-          <p>Xin chào <strong>${userName}</strong>,</p>
-          <p>Ban Chủ Nhiệm câu lạc bộ <strong>${clubName}</strong> đã <strong>PHÊ DUYỆT</strong> yêu cầu đổi phần thưởng của bạn:</p>
+          <h2 style="color: #2e7d32; margin-top: 0;">🎉 Reward Redemption Approved!</h2>
+          <p>Hello <strong>${userName}</strong>,</p>
+          <p>The Board of <strong>${clubName}</strong> has <strong>APPROVED</strong> your reward redemption request:</p>
           <div style="background: #f0fdf4; padding: 16px 20px; border-radius: 12px; border-left: 4px solid #22c55e; margin: 20px 0;">
-            <p style="margin: 0 0 6px 0;">🎁 <strong>Phần quà:</strong> ${rewardTitle}</p>
-            <p style="margin: 0 0 6px 0;">💎 <strong>Điểm đã trừ:</strong> -${pointCost} pts</p>
-            <p style="margin: 0;">🔑 <strong>Mã nhận quà:</strong> <strong style="color: #ea580c; font-size: 1.1rem;">${pickupCode}</strong></p>
+            <p style="margin: 0 0 6px 0;">🎁 <strong>Reward:</strong> ${rewardTitle}</p>
+            <p style="margin: 0 0 6px 0;">💎 <strong>Points Deducted:</strong> -${pointCost} pts</p>
+            <p style="margin: 0;">🔑 <strong>Pickup Code:</strong> <strong style="color: #ea580c; font-size: 1.1rem;">${pickupCode}</strong></p>
           </div>
-          <p style="color: #475569; font-size: 0.9rem;">📌 <em>Vui lòng truy cập mục <strong>Redemption History (Lịch sử đổi quà)</strong> trên web hoặc liên hệ Ban chủ nhiệm CLB để nhận quà trực tiếp!</em></p>
+          <p style="color: #475569; font-size: 0.9rem;">📌 <em>Please visit the <strong>Redemption History</strong> tab on the website or contact your Club Board to pick up your reward!</em></p>
         </div>
       </div>
     `;
@@ -362,18 +362,18 @@ const sendRedemptionApprovedEmailToStudent = async ({ toEmail, userName, clubNam
 const sendRedemptionRejectedEmailToStudent = async ({ toEmail, userName, clubName, rewardTitle, rejectionReason }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub] Thông báo kết quả yêu cầu đổi quà: "${rewardTitle}"`;
+    const subject = `[UniClub] Reward Redemption Result: "${rewardTitle}"`;
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 16px;">
         <div style="background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); max-width: 550px; margin: 0 auto; border: 1px solid #e2e8f0;">
-          <h2 style="color: #d32f2f; margin-top: 0;">Thông Báo Kết Quả Yêu Cầu Đổi Quà</h2>
-          <p>Xin chào <strong>${userName}</strong>,</p>
-          <p>Ban Chủ Nhiệm câu lạc bộ <strong>${clubName}</strong> đã xem xét yêu cầu đổi quà <strong>"${rewardTitle}"</strong> của bạn:</p>
+          <h2 style="color: #d32f2f; margin-top: 0;">Reward Redemption Result</h2>
+          <p>Hello <strong>${userName}</strong>,</p>
+          <p>The Board of <strong>${clubName}</strong> has reviewed your reward redemption request for <strong>"${rewardTitle}"</strong>:</p>
           <div style="background: #fef2f2; padding: 16px 20px; border-radius: 12px; border-left: 4px solid #ef4444; margin: 20px 0;">
-            <p style="margin: 0 0 6px 0;"><strong>Trạng thái:</strong> <strong style="color: #dc2626;">CHƯA ĐƯỢC PHÊ DUYỆT</strong></p>
-            <p style="margin: 0;"><strong>Lý do từ Ban chủ nhiệm:</strong> "${rejectionReason || 'Hiện chưa đủ số lượng kho quà'}"</p>
+            <p style="margin: 0 0 6px 0;"><strong>Status:</strong> <strong style="color: #dc2626;">NOT APPROVED</strong></p>
+            <p style="margin: 0;"><strong>Reason from Club Board:</strong> "${rejectionReason || 'Item is currently out of stock'}"</p>
           </div>
-          <p style="color: #475569; font-size: 0.9rem;">💡 <em>Điểm thưởng tích lũy của bạn đã được hoàn lại đầy đủ vào ví điểm CLB.</em></p>
+          <p style="color: #475569; font-size: 0.9rem;">💡 <em>Your redeemed reward points have been fully refunded to your club points balance.</em></p>
         </div>
       </div>
     `;
@@ -394,21 +394,21 @@ const sendFeeNotificationEmail = async ({ toEmail, userName, clubName, title, am
   try {
     const mailer = getTransporter();
     const formattedAmount = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
-    const subject = `[UniClub] 🧾 Thông báo đóng hội phí / tiền quỹ: ${title} - ${clubName}`;
+    const subject = `[UniClub] 🧾 Club Fee Payment Notice: ${title} - ${clubName}`;
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 16px;">
         <div style="background: #ffffff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-          <h2 style="color: #ea580c; margin-top: 0;">🧾 Thông Báo Đóng Hội Phí / Tiền Quỹ</h2>
-          <p>Xin chào <strong>${userName}</strong>,</p>
-          <p>Ban chủ nhiệm câu lạc bộ <strong>${clubName}</strong> vừa khởi tạo khoản thu hội phí / tiền quỹ mới trên hệ thống UniClub:</p>
+          <h2 style="color: #ea580c; margin-top: 0;">🧾 Club Fee Payment Notice</h2>
+          <p>Hello <strong>${userName}</strong>,</p>
+          <p>The Board of <strong>${clubName}</strong> has created a new fee payment notice on UniClub:</p>
           <div style="background: #fff7ed; padding: 16px; border-radius: 8px; border-left: 4px solid #ea580c; margin: 16px 0;">
-            <p style="margin: 0 0 6px 0;"><strong>Nội dung khoản thu:</strong> ${title}</p>
-            <p style="margin: 0 0 6px 0;"><strong>Số tiền cần nộp:</strong> <strong style="color: #ea580c; font-size: 1.15em;">${formattedAmount} (${Number(amount).toLocaleString("vi-VN")} VNĐ)</strong></p>
-            <p style="margin: 0;"><strong>Kỳ hạn / Ghi chú:</strong> ${period}</p>
+            <p style="margin: 0 0 6px 0;"><strong>Fee Title:</strong> ${title}</p>
+            <p style="margin: 0 0 6px 0;"><strong>Amount Due:</strong> <strong style="color: #ea580c; font-size: 1.15em;">${formattedAmount} (${Number(amount).toLocaleString("en-US")} VND)</strong></p>
+            <p style="margin: 0;"><strong>Period / Note:</strong> ${period}</p>
           </div>
-          <p>Vui lòng đăng nhập vào hệ thống UniClub ➔ Truy cập mục <strong>Fees (Hội phí)</strong> để xem chi tiết và tiến hành quét mã QR thanh toán trực tuyến.</p>
+          <p>Please log in to UniClub ➔ Go to <strong>Fees</strong> to view details and scan the QR code to pay online.</p>
           <br/>
-          <p style="color: #64748b; font-size: 0.9em;">Trân trọng,<br/><strong>Ban Quản Lý Tài Chính - ${clubName}</strong></p>
+          <p style="color: #64748b; font-size: 0.9em;">Best regards,<br/><strong>Financial Management Team - ${clubName}</strong></p>
         </div>
       </div>
     `;
@@ -425,19 +425,29 @@ const sendFeeNotificationEmail = async ({ toEmail, userName, clubName, title, am
   }
 };
 
+const ROLE_NAMES_EN = {
+  president: "Leader",
+  leader: "Leader",
+  secretary: "Secretary",
+  treasurer: "Treasurer",
+  event_manager: "Event Manager",
+  member: "Member",
+};
+
 const sendInvitationEmail = async ({ toEmail, userName, clubName, role, message }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub] 📩 Lời mời gia nhập CLB ${clubName}`;
+    const subject = `[UniClub] 📩 Invitation to join ${clubName}`;
+    const roleDisplay = ROLE_NAMES_EN[role] || role || "Member";
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
-        <h2 style="color: #2563eb;">📩 Chào ${userName}!</h2>
-        <p>Ban Chủ Nhiệm Câu lạc bộ <strong>${clubName}</strong> trân trọng gửi lời mời bạn tham gia CLB với vai trò <strong>${role || "Thành viên"}</strong>!</p>
+        <h2 style="color: #2563eb;">📩 Hello ${userName}!</h2>
+        <p>The Board of <strong>${clubName}</strong> cordially invites you to join the club as a <strong>${roleDisplay}</strong>!</p>
         ${message ? `<blockquote style="background: #f8fafc; padding: 12px; border-left: 4px solid #2563eb; margin: 15px 0;">"${message}"</blockquote>` : ""}
-        <p>Hãy truy cập hệ thống <strong>UniClub</strong> ➔ Mục <strong>Lời mời (Invitations)</strong> để Đồng ý (Accept) hoặc Từ chối (Reject) lời mời này nhé.</p>
+        <p>Please visit <strong>UniClub</strong> ➔ <strong>My Requests</strong> to Accept or Decline this invitation.</p>
         <br/>
-        <p>Trân trọng,</p>
-        <p><strong>Ban chủ nhiệm ${clubName}</strong></p>
+        <p>Best regards,</p>
+        <p><strong>${clubName} Board</strong></p>
       </div>
     `;
 
@@ -458,20 +468,20 @@ const STUDENT_AFFAIRS_EMAIL = "uniclub2402@gmail.com";
 const sendNewClubCreationRequestEmailToSA = async ({ clubName, requesterName, requesterEmail, description, memberCount }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub] 📝 Yêu cầu thành lập CLB mới: ${clubName}`;
+    const subject = `[UniClub] 📝 New Club Creation Request: ${clubName}`;
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
-        <h2 style="color: #ea580c;">📝 Yêu cầu thành lập Câu lạc bộ mới</h2>
-        <p>Sinh viên <strong>${requesterName}</strong> (${requesterEmail}) đã gửi yêu cầu thành lập câu lạc bộ mới trên hệ thống UniClub:</p>
+        <h2 style="color: #ea580c;">📝 New Club Creation Request</h2>
+        <p>Student <strong>${requesterName}</strong> (${requesterEmail}) has submitted a request to establish a new club on UniClub:</p>
         <div style="background: #fff7ed; padding: 15px; border-left: 4px solid #ea580c; margin: 15px 0; border-radius: 4px;">
-          <p style="margin: 0 0 8px 0;"><strong>Tên CLB:</strong> ${clubName}</p>
-          <p style="margin: 0 0 8px 0;"><strong>Mô tả / Lý do:</strong> ${description || "Không có"}</p>
-          <p style="margin: 0;"><strong>Số lượng thành viên khởi tạo:</strong> ${memberCount || 0} sinh viên</p>
+          <p style="margin: 0 0 8px 0;"><strong>Club Name:</strong> ${clubName}</p>
+          <p style="margin: 0 0 8px 0;"><strong>Description / Purpose:</strong> ${description || "None"}</p>
+          <p style="margin: 0;"><strong>Initial Founding Members:</strong> ${memberCount || 0} students</p>
         </div>
-        <p>Kính mời Phòng Công tác Sinh viên (Student Affairs) đăng nhập vào UniClub để xem chi tiết và phê duyệt.</p>
+        <p>The Student Affairs Department is requested to log in to UniClub to review and approve.</p>
         <br/>
-        <p>Trân trọng,</p>
-        <p><strong>Hệ thống Quản lý CLB UniClub</strong></p>
+        <p>Best regards,</p>
+        <p><strong>UniClub Management System</strong></p>
       </div>
     `;
 
@@ -490,16 +500,16 @@ const sendNewClubCreationRequestEmailToSA = async ({ clubName, requesterName, re
 const sendClubCreationApprovedEmailToStudent = async ({ toEmail, requesterName, clubName, reviewNote }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub] 🎉 Đơn thành lập CLB ${clubName} đã được DUYỆT!`;
+    const subject = `[UniClub] 🎉 Club Creation Request for ${clubName} has been APPROVED!`;
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
-        <h2 style="color: #16a34a;">🎉 Chúc mừng ${requesterName}!</h2>
-        <p>Đơn yêu cầu thành lập Câu lạc bộ <strong>${clubName}</strong> của bạn đã được <strong>Phòng Công tác Sinh viên (Student Affairs) PHÊ DUYỆT</strong>!</p>
-        ${reviewNote ? `<blockquote style="background: #f0fdf4; padding: 12px; border-left: 4px solid #16a34a; margin: 15px 0;"><strong>Ghi chú từ BGH/Phòng CTSV:</strong> "${reviewNote}"</blockquote>` : ""}
-        <p>Câu lạc bộ của bạn đã chính thức được kích hoạt trên hệ thống UniClub. Bạn có thể đăng nhập để truy cập trang quản lý CLB với vai trò Chủ tịch!</p>
+        <h2 style="color: #16a34a;">🎉 Congratulations ${requesterName}!</h2>
+        <p>Your request to establish <strong>${clubName}</strong> has been <strong>APPROVED by Student Affairs</strong>!</p>
+        ${reviewNote ? `<blockquote style="background: #f0fdf4; padding: 12px; border-left: 4px solid #16a34a; margin: 15px 0;"><strong>Note from Student Affairs:</strong> "${reviewNote}"</blockquote>` : ""}
+        <p>Your club has officially been activated on UniClub. You can now log in to access your club dashboard as President!</p>
         <br/>
-        <p>Trân trọng,</p>
-        <p><strong>Phòng Công tác Sinh viên & Ban Quản Trị UniClub</strong></p>
+        <p>Best regards,</p>
+        <p><strong>Student Affairs & UniClub Administration</strong></p>
       </div>
     `;
 
@@ -518,16 +528,16 @@ const sendClubCreationApprovedEmailToStudent = async ({ toEmail, requesterName, 
 const sendClubCreationRejectedEmailToStudent = async ({ toEmail, requesterName, clubName, reviewNote }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub] ❌ Thông báo kết quả Đơn thành lập CLB ${clubName}`;
+    const subject = `[UniClub] ❌ Result for Club Creation Request: ${clubName}`;
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
-        <h2 style="color: #dc2626;">❌ Chào ${requesterName},</h2>
-        <p>Rất tiếc, Đơn yêu cầu thành lập Câu lạc bộ <strong>${clubName}</strong> của bạn đã bị <strong>TỪ CHỐI</strong> sau khi Phòng Công tác Sinh viên (Student Affairs) xem xét.</p>
-        ${reviewNote ? `<blockquote style="background: #fef2f2; padding: 12px; border-left: 4px solid #dc2626; margin: 15px 0;"><strong>Lý do từ chối:</strong> "${reviewNote}"</blockquote>` : ""}
-        <p>Bạn có thể chỉnh sửa lại hồ sơ thông tin và gửi lại đơn yêu cầu mới trên hệ thống UniClub.</p>
+        <h2 style="color: #dc2626;">❌ Hello ${requesterName},</h2>
+        <p>Unfortunately, your request to establish <strong>${clubName}</strong> was <strong>REJECTED</strong> after review by Student Affairs.</p>
+        ${reviewNote ? `<blockquote style="background: #fef2f2; padding: 12px; border-left: 4px solid #dc2626; margin: 15px 0;"><strong>Reason for rejection:</strong> "${reviewNote}"</blockquote>` : ""}
+        <p>You can update your proposal details and submit a new request on UniClub.</p>
         <br/>
-        <p>Trân trọng,</p>
-        <p><strong>Phòng Công tác Sinh viên UniClub</strong></p>
+        <p>Best regards,</p>
+        <p><strong>UniClub Student Affairs</strong></p>
       </div>
     `;
 
@@ -540,6 +550,129 @@ const sendClubCreationRejectedEmailToStudent = async ({ toEmail, requesterName, 
     console.log(`📧 Club Creation Rejected Email sent to ${toEmail}`);
   } catch (error) {
     console.error("❌ Failed to send club creation rejected email:", error.message);
+  }
+};
+
+const sendClubCreationMemberInviteEmail = async ({ toEmail, memberName, requesterName, clubName, description }) => {
+  try {
+    const mailer = getTransporter();
+    const subject = `[UniClub] 💌 Invitation to join as Founding Member of: ${clubName}`;
+    const directUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/my-requests?tab=received`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
+        <h2 style="color: #2563eb;">💌 Invitation to Join Club Founding Members</h2>
+        <p>Hello <strong>${memberName || "Student"}</strong>,</p>
+        <p>Student <strong>${requesterName}</strong> has added you as a <strong>Founding Member</strong> in a proposal to establish a new club on UniClub:</p>
+        <div style="background: #eff6ff; padding: 15px; border-left: 4px solid #2563eb; margin: 15px 0; border-radius: 4px;">
+          <p style="margin: 0 0 8px 0;"><strong>Club Name:</strong> ${clubName}</p>
+          <p style="margin: 0 0 8px 0;"><strong>Purpose / Description:</strong> ${description || "None"}</p>
+          <p style="margin: 0;"><strong>Proposed Role:</strong> Founding Member</p>
+        </div>
+        <div style="background: #fffbeb; padding: 12px 16px; border-radius: 6px; border-left: 4px solid #f59e0b; margin: 15px 0; font-size: 0.95em;">
+          <p style="margin: 0 0 6px 0; color: #b45309; font-weight: bold;">⏳ Confirmation Deadline: Within 3 days</p>
+          <p style="margin: 0; color: #78350f;">The proposal will only be forwarded to the Student Affairs Department for review when <strong>all founding members</strong> on the list have accepted.</p>
+        </div>
+        <p>Please log in to UniClub to accept or decline the invitation:</p>
+        <div style="margin: 25px 0;">
+          <a href="${directUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+            👉 View & Respond to Invitation on UniClub
+          </a>
+        </div>
+        <p style="color: #64748b; font-size: 0.9em;">If you do not wish to participate, you can decline on the system.</p>
+        <br/>
+        <p>Best regards,</p>
+        <p><strong>UniClub Student Activity Management System</strong></p>
+      </div>
+    `;
+
+    await mailer.sendMail({
+      from: `"UniClub System" <${process.env.EMAIL_USER || "uniclub2402@gmail.com"}>`,
+      to: toEmail,
+      subject,
+      html,
+    });
+    console.log(`📧 Club Creation Member Invite Email sent to ${toEmail}`);
+  } catch (error) {
+    console.error("❌ Failed to send club creation member invite email:", error.message);
+  }
+};
+
+const sendClubCreationSubmittedEmailToRequester = async ({ toEmail, requesterName, clubName, memberCount, expiresAt }) => {
+  try {
+    const mailer = getTransporter();
+    const subject = `[UniClub] 📝 Club Creation Proposal Submitted: ${clubName}`;
+    const myRequestsUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/my-requests`;
+    const formattedDeadline = expiresAt ? new Date(expiresAt).toLocaleString("en-US") : "3 days from submission";
+    const html = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
+        <h2 style="color: #2563eb;">📝 Club Creation Proposal Confirmation</h2>
+        <p>Hello <strong>${requesterName || "Student"}</strong>,</p>
+        <p>You have successfully submitted a proposal to establish club <strong>${clubName}</strong> on the UniClub system.</p>
+        <div style="background: #f8fafc; padding: 15px; border-left: 4px solid #2563eb; margin: 15px 0; border-radius: 4px;">
+          <p style="margin: 0 0 8px 0;"><strong>Proposed Club Name:</strong> ${clubName}</p>
+          <p style="margin: 0 0 8px 0;"><strong>Number of Founding Members:</strong> ${memberCount} students</p>
+          <p style="margin: 0;"><strong>Confirmation Deadline (3 days):</strong> ${formattedDeadline}</p>
+        </div>
+        <div style="background: #fffbeb; padding: 12px 16px; border-radius: 6px; border-left: 4px solid #f59e0b; margin: 15px 0; font-size: 0.95em;">
+          <p style="margin: 0 0 6px 0; color: #b45309; font-weight: bold;">⚠️ Important Note:</p>
+          <p style="margin: 0; color: #78350f;">The system has sent email invitations to all founding members. Your proposal will only be forwarded to the Student Affairs Department after <strong>all ${memberCount} members</strong> confirm their agreement (Accept). Please remind your peers to check their inbox or log in to UniClub to respond in time!</p>
+        </div>
+        <div style="margin: 25px 0;">
+          <a href="${myRequestsUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+            👉 Track Confirmation Progress in My Requests
+          </a>
+        </div>
+        <br/>
+        <p>Best regards,</p>
+        <p><strong>UniClub Management System</strong></p>
+      </div>
+    `;
+
+    await mailer.sendMail({
+      from: `"UniClub System" <${process.env.EMAIL_USER || "uniclub2402@gmail.com"}>`,
+      to: toEmail,
+      subject,
+      html,
+    });
+    console.log(`📧 Club Creation Submitted Email sent to requester: ${toEmail}`);
+  } catch (error) {
+    console.error("❌ Failed to send club creation submitted email to requester:", error.message);
+  }
+};
+
+const sendClubDeactivatedEmailToLeader = async ({ toEmail, leaderName, clubName, reason }) => {
+  try {
+    const mailer = getTransporter();
+    const subject = `[UniClub] ⚠️ Club Deactivation Notice: ${clubName}`;
+    const reasonSection = reason
+      ? `<div style="background: #fff5f5; padding: 14px 16px; border-left: 4px solid #e53e3e; margin: 15px 0; border-radius: 6px;">
+           <p style="margin: 0 0 6px 0; color: #c53030; font-weight: bold;">Deactivation Reason:</p>
+           <p style="margin: 0; color: #2d3748; white-space: pre-wrap;">${reason}</p>
+         </div>`
+      : "";
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
+        <h2 style="color: #e53e3e;">⚠️ Club Deactivation Notice</h2>
+        <p>Hello <strong>${leaderName || "Club Leader"}</strong>,</p>
+        <p>The Student Affairs Department announces that club <strong>${clubName}</strong> has been set to <strong>Inactive</strong> status on UniClub.</p>
+        ${reasonSection}
+        <p>During the inactivity period, members cannot interact or create new activities in the club. If you have any inquiries or would like to submit an appeal/explanation, please contact the Student Affairs Department directly.</p>
+        <br/>
+        <p>Best regards,</p>
+        <p><strong>Student Affairs Department - UniClub</strong></p>
+      </div>
+    `;
+
+    await mailer.sendMail({
+      from: `"UniClub System" <${process.env.EMAIL_USER || "uniclub2402@gmail.com"}>`,
+      to: toEmail,
+      subject,
+      html,
+    });
+    console.log(`📧 Club Deactivated Email sent to leader: ${toEmail}`);
+  } catch (error) {
+    console.error("❌ Failed to send club deactivated email to leader:", error.message);
   }
 };
 
@@ -559,4 +692,7 @@ module.exports = {
   sendNewClubCreationRequestEmailToSA,
   sendClubCreationApprovedEmailToStudent,
   sendClubCreationRejectedEmailToStudent,
+  sendClubCreationMemberInviteEmail,
+  sendClubCreationSubmittedEmailToRequester,
+  sendClubDeactivatedEmailToLeader,
 };

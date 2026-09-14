@@ -6,10 +6,11 @@ import '../../styles/create-club.css'
 
 const CREATE_CLUB_CATEGORIES = [
   { value: '', label: 'Select category...' },
-  { value: 'academic', label: 'Academic' },
-  { value: 'sport', label: 'Sports' },
-  { value: 'art', label: 'Arts' },
-  { value: 'event', label: 'Events' },
+  { value: 'Academic', label: 'Academic' },
+  { value: 'Sports', label: 'Sports' },
+  { value: 'Arts', label: 'Arts' },
+  { value: 'Event', label: 'Events' },
+  { value: 'Other', label: 'Other' },
 ]
 
 function SectionIcon({ type }) {
@@ -45,6 +46,7 @@ function CreateClubPage({ onCancel, onSubmit }) {
   const showToast = useToast()
   const fileInputRef = useRef(null)
   const [name, setName] = useState('')
+  const [slogan, setSlogan] = useState('')
   const [category, setCategory] = useState('')
   const [description, setDescription] = useState('')
   const [memberSearch, setMemberSearch] = useState('')
@@ -115,6 +117,8 @@ function CreateClubPage({ onCancel, onSubmit }) {
     try {
       await requestCreateClub({
         club_name: name,
+        slogan,
+        category,
         description,
         reason: description,
         logo_url: logoUrl || 'https://placehold.co/200x200/png',
@@ -123,8 +127,8 @@ function CreateClubPage({ onCancel, onSubmit }) {
       // Display notification when club creation request is submitted.
       showToast({
         type: 'success',
-        title: 'Request submitted',
-        message: 'Your club creation request has been sent for review.',
+        title: 'Request Submitted',
+        message: 'Club creation proposal submitted! A confirmation email has been sent to you and all founding members (deadline: 3 days for all members to accept).',
       })
       onSubmit?.({ name, category, description, members, logoName })
     } catch (error) {
@@ -169,6 +173,18 @@ function CreateClubPage({ onCancel, onSubmit }) {
             </div>
 
             <div className="create-club-field">
+              <label htmlFor="club-slogan">Slogan</label>
+              <input
+                id="club-slogan"
+                data-testid="create-club-slogan-input"
+                type="text"
+                placeholder="Example: Connect, Learn, and Grow together"
+                value={slogan}
+                onChange={(event) => setSlogan(event.target.value)}
+              />
+            </div>
+
+            <div className="create-club-field">
               <label htmlFor="club-category">
                 Category <span className="create-club-required">*</span>
               </label>
@@ -208,6 +224,10 @@ function CreateClubPage({ onCancel, onSubmit }) {
                 </span>
                 Add Members
               </h2>
+
+              <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '-0.25rem 0 0.75rem 0', lineHeight: 1.4 }}>
+                Minimum 10 founding members required. After submission, email invitations will be sent to all members (valid for 3 days). Once 100% of founding members accept, the proposal will be forwarded to the Student Affairs Department for review.
+              </p>
 
 
               <div className="create-club-member-row" style={{ flexDirection: 'column', gap: '0.5rem' }}>

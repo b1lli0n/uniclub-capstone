@@ -23,6 +23,26 @@ const getJoinForm = async (clubId) => {
     throw getStatusError("No join form found for this club", 404);
   }
 
+  // Luôn lấy Leader hiện tại của CLB để gán vào form
+  const currentPresident = await ClubMember.findOne({
+    club_id: clubId,
+    role: "president",
+    status: "active",
+  })
+    .populate("user_id", "full_name email avatar_url student_code")
+    .lean();
+
+  if (currentPresident) {
+    form.leader = {
+      _id: currentPresident.user_id?._id,
+      member_id: currentPresident._id,
+      full_name: currentPresident.user_id?.full_name,
+      email: currentPresident.user_id?.email,
+      avatar_url: currentPresident.user_id?.avatar_url,
+      student_code: currentPresident.user_id?.student_code,
+    };
+  }
+
   return form;
 };
 

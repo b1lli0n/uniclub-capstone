@@ -10,5 +10,7 @@ router.get("/:id",verifyToken,authorize(["student"]),clubDiscoveryController.get
 );
 router.post("/creation-requests",verifyToken,authorize(["student"]),clubDiscoveryController.requestCreateClub
 );
+router.get("/creation-requests/my-requests",verifyToken,authorize(["student"]),clubDiscoveryController.getMyClubCreationRequests
+);
 
 module.exports = router;

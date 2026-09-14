@@ -7,6 +7,14 @@ import { getClubEventsForManager, createEvent, updateManagedEvent, cancelManaged
 import { createEventRequest } from '../../api/eventRequest.api'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 import { resolveEventUploadImage, UPLOAD_EVENT_IMAGES } from '../../utils/imageUtils'
+import {
+  formatDateVN,
+  formatTime24,
+  formatTimeRange24,
+  normalizeTimeInput as to24HourFormat,
+  parseTimeParts,
+  sortTimelines,
+} from '../../utils/dateTimeUtils'
 
 
 const CLUB_FALLBACK = ALL_CLUBS[0]
@@ -42,35 +50,7 @@ const MONTH_NAMES = [
 ]
 const WEEKDAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-function parseTimeParts(timeStr = '08:00 AM') {
-  if (!timeStr) return { hour: '08', minute: '00', period: 'AM' }
-  const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
-  if (match) {
-    const h = String(Math.min(12, Math.max(1, parseInt(match[1], 10)))).padStart(2, '0')
-    const m = match[2].padStart(2, '0')
-    const p = match[3].toUpperCase()
-    return { hour: h, minute: m, period: p }
-  }
-  const [hStr, mStr] = timeStr.split(':')
-  let h = parseInt(hStr || '8', 10)
-  const m = mStr ? mStr.substring(0, 2).padStart(2, '0') : '00'
-  let p = 'AM'
-  if (h >= 12) {
-    p = 'PM'
-    if (h > 12) h -= 12
-  }
-  if (h === 0) h = 12
-  return { hour: String(h).padStart(2, '0'), minute: m, period: p }
-}
 
-function to24HourFormat(timeStr = '08:00 AM') {
-  if (!timeStr) return '08:00'
-  const { hour, minute, period } = parseTimeParts(timeStr)
-  let h = parseInt(hour, 10)
-  if (period === 'PM' && h < 12) h += 12
-  if (period === 'AM' && h === 12) h = 0
-  return `${String(h).padStart(2, '0')}:${minute}`
-}
 
 function formatDateForInput(dateText, timeText, fallbackTime = '09:00') {
   const [day, month, year] = dateText.split('/').map(Number)
@@ -198,9 +178,8 @@ function canManageClubEventFeatures(role = '') {
 
 function mapEventFromApi(apiEvent) {
   if (!apiEvent) return null
-  const startDate = apiEvent.start_time ? new Date(apiEvent.start_time) : null
-  const formattedDate = startDate ? startDate.toLocaleDateString('en-GB') : ''
-  const formattedTime = startDate ? startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''
+  const formattedDate = formatDateVN(apiEvent.start_time)
+  const formattedTime = formatTimeRange24(apiEvent.start_time, apiEvent.end_time)
   
   const formatForInput = (d) => {
     if (!d) return ''
@@ -490,10 +469,11 @@ function ClubEventManagementPage({ clubId }) {
           id: item._id || item.id,
           eventId: item.event_id || item.eventId,
           time: item.time,
+          timelineAt: item.timeline_at || item.timelineAt || null,
           title: item.title,
           description: item.description,
           location: item.location || '',
-        }))
+        })).sort(sortTimelines)
         setDetailEventTimelines(mapped)
       } catch (err) {
         console.error("Failed to load event timelines:", err)
@@ -711,12 +691,13 @@ function ClubEventManagementPage({ clubId }) {
           id: res.data._id || res.data.id,
           eventId: detailEvent.id,
           time: res.data.time,
+          timelineAt: res.data.timeline_at || res.data.timelineAt || null,
           title: res.data.title,
           description: res.data.description,
           location: res.data.location || '',
         }
         setDetailEventTimelines((items) =>
-          items.map((item) => (item.id === editingTimeline.id ? updatedItem : item))
+          items.map((item) => (item.id === editingTimeline.id ? updatedItem : item)).sort(sortTimelines)
         )
       } else {
         const res = await createEventTimeline(detailEvent.id, payload)
@@ -724,12 +705,13 @@ function ClubEventManagementPage({ clubId }) {
           id: res.data._id || res.data.id,
           eventId: detailEvent.id,
           time: res.data.time,
+          timelineAt: res.data.timeline_at || res.data.timelineAt || null,
           title: res.data.title,
           description: res.data.description,
           location: res.data.location || '',
         }
         setDetailEventTimelines((items) =>
-          [...items, newItem].sort((a, b) => a.time.localeCompare(b.time))
+          [...items, newItem].sort(sortTimelines)
         )
       }
       closeTimelineEditor()
@@ -1173,18 +1155,7 @@ function ClubEventManagementPage({ clubId }) {
                       const { minute, period } = parseTimeParts(timelineDraft.time || '08:00 AM')
                       updateTimelineDraft('time', `${e.target.value}:${minute} ${period}`)
                     }}
-                    style={{
-                      width: '64px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      padding: '0 4px 0 8px',
-                      fontSize: '0.88rem',
-                      fontWeight: '800',
-                      background: '#ffffff',
-                      color: '#0f172a',
-                      cursor: 'pointer',
-                    }}
+                    className="club-event-management-time-select club-event-management-time-select--narrow"
                   >
                     {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map((h) => (
                       <option key={h} value={h}>{h}</option>
@@ -1200,18 +1171,7 @@ function ClubEventManagementPage({ clubId }) {
                       const { hour, period } = parseTimeParts(timelineDraft.time || '08:00 AM')
                       updateTimelineDraft('time', `${hour}:${e.target.value} ${period}`)
                     }}
-                    style={{
-                      width: '64px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      padding: '0 4px 0 8px',
-                      fontSize: '0.88rem',
-                      fontWeight: '800',
-                      background: '#ffffff',
-                      color: '#0f172a',
-                      cursor: 'pointer',
-                    }}
+                    className="club-event-management-time-select club-event-management-time-select--narrow"
                   >
                     {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map((m) => (
                       <option key={m} value={m}>{m}</option>
@@ -1225,18 +1185,7 @@ function ClubEventManagementPage({ clubId }) {
                       const { hour, minute } = parseTimeParts(timelineDraft.time || '08:00 AM')
                       updateTimelineDraft('time', `${hour}:${minute} ${e.target.value}`)
                     }}
-                    style={{
-                      width: '74px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      padding: '0 4px 0 8px',
-                      fontSize: '0.88rem',
-                      fontWeight: '900',
-                      background: '#ffffff',
-                      color: '#ea580c',
-                      cursor: 'pointer',
-                    }}
+                    className="club-event-management-time-select club-event-management-time-select--period"
                   >
                     <option value="AM">AM</option>
                     <option value="PM">PM</option>
