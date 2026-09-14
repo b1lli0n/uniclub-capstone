@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from 'react'
+import { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import '../../styles/home.css'
 import '../../styles/admin-dashboard.css'
 import { ADMIN_NAV_ITEMS } from '../../data/mockData'
@@ -9,12 +9,12 @@ import { getAdminClubList, getClubCreationRequestList, reviewClubCreationRequest
 import { mapAdminClubFromApi, mapCreationRequestFromApi, mapAdminRoleToApi } from '../../api/clubMappers'
 
 const ADMIN_SORT_OPTIONS = [
-  { value: 'pending', label: 'Status: Pending' },
   { value: 'all', label: 'All Requests' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
   { value: 'newest', label: 'Newest date' },
   { value: 'oldest', label: 'Oldest date' },
-  { value: 'approved', label: 'Status: Approved' },
-  { value: 'rejected', label: 'Status: Rejected' },
 ]
 
 const ADMIN_CLUB_SORT_OPTIONS = [
@@ -152,8 +152,9 @@ function AdminDashboardPage({ onLogout }) {
   const showToast = useToast()
   const [activeView, setActiveView] = useState('registrations')
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
-  const [sortMode, setSortMode] = useState('pending')
+  const [sortMode, setSortMode] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [clubSortMenuOpen, setClubSortMenuOpen] = useState(false)
   const [clubSortMode, setClubSortMode] = useState('')
   const [clubSearchQuery, setClubSearchQuery] = useState('')
@@ -169,49 +170,13 @@ function AdminDashboardPage({ onLogout }) {
   const [clubsLoading, setClubsLoading] = useState(false)
   const [clubsError, setClubsError] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalRequests, setTotalRequests] = useState(0)
   const [clubCurrentPage, setClubCurrentPage] = useState(1)
   const sortRef = useRef(null)
   const clubSortRef = useRef(null)
   const selectedSort = ADMIN_SORT_OPTIONS.find((option) => option.value === sortMode)
   const selectedClubSort = ADMIN_CLUB_SORT_OPTIONS.find((option) => option.value === clubSortMode)
-  const visibleRequests = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase()
-    let requests = registrationRequests.filter((item) => {
-      if (!query) return true
-
-      return item.clubName.toLowerCase().includes(query)
-    })
-    const parseSentDate = (dateText) => {
-      if (!dateText) return 0
-      const parts = dateText.split('/')
-      if (parts.length < 3) return 0
-      const [day, month, year] = parts.map(Number)
-      return new Date(year, month - 1, day).getTime()
-    }
-
-    if (!sortMode || sortMode === 'pending') {
-      return requests.filter((item) => item.status === 'pending')
-    }
-
-    if (sortMode === 'all') {
-      return requests
-    }
-
-    if (sortMode === 'oldest') {
-      return requests.sort((a, b) => parseSentDate(a.sentDate) - parseSentDate(b.sentDate))
-    }
-
-    if (sortMode === 'newest') {
-      return requests.sort((a, b) => parseSentDate(b.sentDate) - parseSentDate(a.sentDate))
-    }
-
-    return requests.filter((item) => item.status === sortMode)
-  }, [registrationRequests, searchQuery, sortMode])
-  const pageCount = Math.max(1, Math.ceil(visibleRequests.length / ADMIN_PAGE_SIZE))
-  const paginatedRequests = useMemo(() => {
-    const startIndex = (currentPage - 1) * ADMIN_PAGE_SIZE
-    return visibleRequests.slice(startIndex, startIndex + ADMIN_PAGE_SIZE)
-  }, [currentPage, visibleRequests])
   const visibleClubs = useMemo(() => {
     const query = clubSearchQuery.trim().toLowerCase()
     const clubs = activeClubs.filter((item) => {
@@ -240,8 +205,15 @@ function AdminDashboardPage({ onLogout }) {
   }, [clubCurrentPage, visibleClubs])
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, sortMode])
+  }, [debouncedSearchQuery, sortMode])
 
   useEffect(() => {
     setClubCurrentPage(1)
@@ -268,16 +240,29 @@ function AdminDashboardPage({ onLogout }) {
     return () => { cancelled = true }
   }, [activeView])
 
-  useEffect(() => {
+  const fetchRegistrationRequests = useCallback(() => {
     if (activeView !== 'registrations') return
     let cancelled = false
     setRegistrationsLoading(true)
     setRegistrationsError(null)
-    getClubCreationRequestList()
+
+    getClubCreationRequestList({
+      page: currentPage,
+      limit: ADMIN_PAGE_SIZE,
+      search: debouncedSearchQuery.trim() || undefined,
+      status: sortMode || undefined,
+    })
       .then((res) => {
         if (cancelled) return
-        const requests = (res.data || res.requests || []).map(mapCreationRequestFromApi)
+        const payload = res.data || res || {}
+        const rawRequests = payload.requests || (Array.isArray(payload) ? payload : [])
+        const requests = rawRequests.map(mapCreationRequestFromApi)
         setRegistrationRequests(requests)
+
+        const pagination = payload.pagination || {}
+        const calcTotalPages = pagination.total_pages || Math.max(1, Math.ceil((pagination.total ?? requests.length) / ADMIN_PAGE_SIZE))
+        setTotalPages(calcTotalPages)
+        setTotalRequests(pagination.total ?? requests.length)
       })
       .catch((err) => {
         if (cancelled) return
@@ -286,14 +271,20 @@ function AdminDashboardPage({ onLogout }) {
       .finally(() => {
         if (!cancelled) setRegistrationsLoading(false)
       })
+
     return () => { cancelled = true }
-  }, [activeView])
+  }, [activeView, currentPage, debouncedSearchQuery, sortMode])
 
   useEffect(() => {
-    if (currentPage > pageCount) {
-      setCurrentPage(pageCount)
+    const cleanup = fetchRegistrationRequests()
+    return cleanup
+  }, [fetchRegistrationRequests])
+
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages)
     }
-  }, [currentPage, pageCount])
+  }, [currentPage, totalPages])
 
   useEffect(() => {
     if (clubCurrentPage > clubPageCount) {
@@ -517,7 +508,7 @@ function AdminDashboardPage({ onLogout }) {
         status: nextStatus,
         review_note: isApprove ? 'Approved by admin' : 'Rejected by admin'
       })
-      
+
       setRegistrationRequests((items) =>
         items.map((item) =>
           item.id === request.id ? { ...item, status: nextStatus } : item
@@ -531,6 +522,7 @@ function AdminDashboardPage({ onLogout }) {
         title: isApprove ? 'Request approved' : 'Request rejected',
         message: `${request.clubName || 'The club'} has been ${isApprove ? 'approved' : 'rejected'}.`,
       })
+      fetchRegistrationRequests()
     } catch (err) {
       showToast({
         type: 'error',
@@ -1016,7 +1008,7 @@ function AdminDashboardPage({ onLogout }) {
                   </span>
                   <input
                     type="search"
-                    placeholder="Search"
+                    placeholder="Search by club name or category..."
                     aria-label="Search registrations"
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
@@ -1039,10 +1031,15 @@ function AdminDashboardPage({ onLogout }) {
                     {registrationsError}
                   </p>
                 ) : (
-                  paginatedRequests.map((item) => (
+                  registrationRequests.map((item) => (
                     <div className="admin-table__row admin-table__row--body" role="row" key={item.id}>
                       <div className="admin-club-cell">
                         <strong>{item.clubName}</strong>
+                        {item.category && item.category !== 'Not specified' ? (
+                          <span style={{ fontSize: '0.72rem', color: '#4f46e5', fontWeight: 600 }}>
+                            {item.category}
+                          </span>
+                        ) : null}
                       </div>
                       <span>{item.leader || item.sender || 'Unknown'}</span>
                       <span>{item.sentDate}</span>
@@ -1075,7 +1072,7 @@ function AdminDashboardPage({ onLogout }) {
                         onClick={() => setDetailRequest(item)}
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-                          <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                          <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6Z" />
                           <circle cx="12" cy="12" r="2.6" />
                         </svg>
                       </button>
@@ -1083,7 +1080,7 @@ function AdminDashboardPage({ onLogout }) {
                   ))
                 )}
 
-                {!registrationsLoading && !registrationsError && visibleRequests.length === 0 ? (
+                {!registrationsLoading && !registrationsError && registrationRequests.length === 0 ? (
                   <p className="admin-table__empty">No registrations match your search or filter.</p>
                 ) : null}
               </div>
@@ -1099,12 +1096,12 @@ function AdminDashboardPage({ onLogout }) {
                     <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
-                <span>{currentPage}</span>
+                <span>{currentPage} / {totalPages}</span>
                 <button
                   type="button"
                   aria-label="Next page"
-                  disabled={currentPage === pageCount}
-                  onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
                     <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />

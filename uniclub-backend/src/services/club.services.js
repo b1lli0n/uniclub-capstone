@@ -108,6 +108,7 @@ const getClubById = async (id) => {
 // UC - Request to Create a New Club
 const requestCreateClub = async ({
   club_name,
+  category,
   description,
   reason,
   logo_url,
@@ -169,6 +170,7 @@ const requestCreateClub = async ({
 
   const request = await ClubCreationRequest.create({
     club_name: club_name.trim(),
+    category: category ? category.trim() : "Other",
     description: description || "",
     reason: reason.trim(),
     logo_url: logo_url.trim(),

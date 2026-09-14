@@ -211,10 +211,29 @@ function ClubDetailPage({ clubId, onBack }) {
   const canManageMembers =
     currentMembership?.rawRole?.toLowerCase() === 'president' ||
     currentMembership?.rawRole?.toLowerCase() === 'leader'
-  const detailDescription = club
+  const ROLE_PRIORITY = {
+    president: 1,
+    leader: 1,
+    'vice leader': 2,
+    vice_leader: 2,
+    secretary: 3,
+    treasurer: 4,
+    event_manager: 5,
+    'event manager': 5,
+  }
+
+  const detailDescription = club?.description
     ? `${club.description}. ${CLUB_DETAIL_COPY.descriptionSuffix}`
     : ''
-  const previewMembers = memberRows.slice(0, 4)
+
+  // Chỉ hiển thị những người có chức vụ (Ban chủ nhiệm / Ban điều hành: President, Secretary, Treasurer, Event Manager,...), không hiện member thường
+  const previewMembers = memberRows
+    .filter((member) => member.rawRole && member.rawRole.toLowerCase() !== 'member')
+    .sort((a, b) => {
+      const priorityA = ROLE_PRIORITY[a.rawRole?.toLowerCase()] || 99
+      const priorityB = ROLE_PRIORITY[b.rawRole?.toLowerCase()] || 99
+      return priorityA - priorityB
+    })
   // Lọc chỉ các sự kiện chưa qua ngày (sắp diễn ra hoặc đang diễn ra), sắp xếp gần nhất lên trước
   const upcomingEvents = events
     .filter((event) => !event.isPast)
@@ -467,37 +486,47 @@ function ClubDetailPage({ clubId, onBack }) {
                 : 'Core members of the club'}
             </p>
           </div>
-          <button type="button" onClick={() => setMembersModalOpen(true)}>View all members</button>
+          {isClubMember ? (
+            <button type="button" onClick={() => setMembersModalOpen(true)}>
+              View all members
+            </button>
+          ) : null}
         </div>
 
-        <div className="club-detail-members">
-          {previewMembers.map((member) => (
-            <article
-              key={member.id}
-              className={`club-detail-member ${canManageMembers ? 'club-detail-member--clickable' : ''}`}
-              style={{
-                '--member-tone': member.tone,
-                cursor: canManageMembers ? 'pointer' : 'default',
-              }}
-              onClick={canManageMembers ? () => handleViewMemberProfile(member) : undefined}
-              title={canManageMembers ? 'Click to view profile' : undefined}
-            >
-              <div className="club-detail-member__avatar">
-                {member.avatarUrl ? (
-                  <img
-                    src={member.avatarUrl}
-                    alt={member.name}
-                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  member.name.slice(0, 1).toUpperCase()
-                )}
-              </div>
-              <strong>{member.name}</strong>
-              <span>{member.role}</span>
-            </article>
-          ))}
-        </div>
+        {previewMembers.length > 0 ? (
+          <div className="club-detail-members">
+            {previewMembers.map((member) => (
+              <article
+                key={member.id}
+                className={`club-detail-member ${canManageMembers ? 'club-detail-member--clickable' : ''}`}
+                style={{
+                  '--member-tone': member.tone,
+                  cursor: canManageMembers ? 'pointer' : 'default',
+                }}
+                onClick={canManageMembers ? () => handleViewMemberProfile(member) : undefined}
+                title={canManageMembers ? 'Click to view profile' : undefined}
+              >
+                <div className="club-detail-member__avatar">
+                  {member.avatarUrl ? (
+                    <img
+                      src={member.avatarUrl}
+                      alt={member.name}
+                      style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    member.name.slice(0, 1).toUpperCase()
+                  )}
+                </div>
+                <strong>{member.name}</strong>
+                <span>{member.role}</span>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="club-events-empty-state">
+            <p>No club officers listed yet.</p>
+          </div>
+        )}
       </section>
 
       {joinModalOpen ? (
@@ -514,22 +543,25 @@ function ClubDetailPage({ clubId, onBack }) {
               <button type="button" onClick={() => setJoinModalOpen(false)} aria-label="Close">X</button>
             </div>
 
-            {(joinForm?.questions || []).map((question, index) => (
-              <label key={`${question}-${index}`} className="club-join-modal__field">
-                <span>{question}</span>
-                <textarea
-                  placeholder="Your answer"
-                  rows={3}
-                  value={joinAnswers[index] || ''}
-                  onChange={(event) => {
-                    const nextAnswers = [...joinAnswers]
-                    nextAnswers[index] = event.target.value
-                    setJoinAnswers(nextAnswers)
-                  }}
-                  required
-                />
-              </label>
-            ))}
+            {(joinForm?.questions || []).map((question, index) => {
+              const questionText = typeof question === 'string' ? question : (question?.content || question?.label || '')
+              return (
+                <label key={question?._id || `q-${index}`} className="club-join-modal__field">
+                  <span>{questionText}</span>
+                  <textarea
+                    placeholder="Your answer"
+                    rows={3}
+                    value={joinAnswers[index] || ''}
+                    onChange={(event) => {
+                      const nextAnswers = [...joinAnswers]
+                      nextAnswers[index] = event.target.value
+                      setJoinAnswers(nextAnswers)
+                    }}
+                    required
+                  />
+                </label>
+              )
+            })}
 
             <div className="club-join-modal__actions">
               <button type="submit" disabled={submitting}>

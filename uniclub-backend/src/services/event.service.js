@@ -240,8 +240,14 @@ const cancelEventRegistration = async ({ eventId, userId }) => {
     throw getStatusError("Event not found", 404);
   }
 
-  if (new Date() > new Date(event.start_time)) {
-    throw getStatusError("Cannot cancel registration after the event has started", 400);
+  if (["completed", "cancelled"].includes(event.status)) {
+    throw getStatusError("Cannot cancel registration for a completed or cancelled event", 400);
+  }
+
+  // BR-27: Must cancel at least 24 hours prior to event start time
+  const deadline = new Date(event.start_time).getTime() - 24 * 60 * 60 * 1000;
+  if (Date.now() > deadline) {
+    throw getStatusError("Cancellations are locked within 24 hours of the event", 400);
   }
 
   const reg = await EventRegistration.findOne({
@@ -252,6 +258,10 @@ const cancelEventRegistration = async ({ eventId, userId }) => {
 
   if (!reg) {
     throw getStatusError("No active registration found for this event", 400);
+  }
+
+  if (reg.checked_in || reg.status === "attended") {
+    throw getStatusError("Cannot cancel registration after check-in", 400);
   }
 
   reg.status = "cancelled";

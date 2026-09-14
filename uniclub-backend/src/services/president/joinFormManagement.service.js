@@ -11,7 +11,7 @@ const getJoinForm = async (clubId) => {
     throw getStatusError("Invalid club ID", 400);
   }
 
-  const form = await JoinForm.findOne({ club_id: clubId })
+  const forms = await JoinForm.find({ club_id: clubId })
     .sort({ created_at: -1 })
     .populate({
       path: "created_by",
@@ -19,11 +19,7 @@ const getJoinForm = async (clubId) => {
     })
     .lean();
 
-  if (!form) {
-    throw getStatusError("No join form found for this club", 404);
-  }
-
-  return form;
+  return forms;
 };
 
 const createJoinForm = async ({ clubId, userId, clubMember, title, description, questions }) => {

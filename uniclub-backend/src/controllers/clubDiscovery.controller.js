@@ -76,7 +76,7 @@ const requestCreateClub = async (req, res) => {
   try {
     const requestedBy = req.user.id || req.user._id;
 
-    const { club_name, description, reason, logo_url, member_ids } = req.body;
+    const { club_name, category, description, reason, logo_url, member_ids } = req.body;
 
     if (!club_name || !reason || !logo_url) {
       return res.status(400).json({
@@ -94,6 +94,7 @@ const requestCreateClub = async (req, res) => {
 
     const data = await clubService.requestCreateClub({
       club_name,
+      category,
       description,
       reason,
       logo_url,

@@ -115,6 +115,7 @@ function CreateClubPage({ onCancel, onSubmit }) {
     try {
       await requestCreateClub({
         club_name: name,
+        category,
         description,
         reason: description,
         logo_url: logoUrl || 'https://placehold.co/200x200/png',

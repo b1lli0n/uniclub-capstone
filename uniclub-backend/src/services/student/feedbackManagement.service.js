@@ -44,6 +44,26 @@ const getFeedbackEvent = async (userId, eventId) => {
   };
 };
 
+const recalculateEventFeedbackSummary = async (eventId) => {
+  try {
+    const feedbacks = await Feedback.find({ event_id: eventId }).select("rating");
+    const total_reviews = feedbacks.length;
+    const average_rating =
+      total_reviews > 0
+        ? Number((feedbacks.reduce((sum, f) => sum + (f.rating || 0), 0) / total_reviews).toFixed(1))
+        : 0;
+
+    await Event.findByIdAndUpdate(eventId, {
+      $set: {
+        "feedback_summary.average_rating": average_rating,
+        "feedback_summary.total_reviews": total_reviews,
+      },
+    });
+  } catch (err) {
+    console.error("[Feedback Summary] Failed to recalculate event average:", err);
+  }
+};
+
 const createFeedbackEvent = async (userId, eventId, { rating, comment }) => {
   await assertEventAvailableForFeedback(eventId);
 
@@ -62,6 +82,8 @@ const createFeedbackEvent = async (userId, eventId, { rating, comment }) => {
     rating,
     comment
   });
+
+  await recalculateEventFeedbackSummary(eventId);
 
   try {
     const event = await Event.findById(eventId).populate("club_id", "name");
@@ -122,6 +144,7 @@ const updateFeedbackEvent = async (userId, eventId, { rating, comment }) => {
   }
 
   await feedback.save();
+  await recalculateEventFeedbackSummary(eventId);
 
   return feedback.populate([
     { path: "event_id", select: "_id title" },
@@ -140,6 +163,8 @@ const deleteFeedbackEvent = async (userId, eventId) => {
   if (!feedback) {
     throw getStatusError("Feedback not found", 404);
   }
+
+  await recalculateEventFeedbackSummary(eventId);
 
   return feedback;
 };
