@@ -44,8 +44,16 @@ const getMemberRewards = async ({ clubId, userId, search }) => {
     .sort({ created_at: -1 })
     .select("_id name description points_required image_url quantity status created_at");
 
+  const pendingRedemptions = await RewardRedemption.find({
+    membership_id: membership._id,
+    status: "pending",
+  });
+  const pendingPoints = pendingRedemptions.reduce((sum, r) => sum + (r.total_point || 0), 0);
+  const memberPoints = membership.reward_point || 0;
+  const availablePoints = Math.max(memberPoints - pendingPoints, 0);
+
   return {
-    available_points: membership.reward_point,
+    available_points: availablePoints,
     rewards,
   };
 };
@@ -65,9 +73,17 @@ const getMemberRewardDetail = async ({ clubId, rewardId, userId }) => {
     throw getStatusError("Reward not found", 404);
   }
 
+  const pendingRedemptions = await RewardRedemption.find({
+    membership_id: membership._id,
+    status: "pending",
+  });
+  const pendingPoints = pendingRedemptions.reduce((sum, r) => sum + (r.total_point || 0), 0);
+  const memberPoints = membership.reward_point || 0;
+  const availablePoints = Math.max(memberPoints - pendingPoints, 0);
+
   return {
-    available_points: membership.reward_point,
-    can_redeem: reward.quantity > 0 && membership.reward_point >= reward.points_required,
+    available_points: availablePoints,
+    can_redeem: reward.quantity > 0 && availablePoints >= reward.points_required,
     reward,
   };
 };

@@ -578,7 +578,7 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
                 value={awardDraft.ruleId}
                 onChange={(e) => {
                   const rId = e.target.value
-                  const found = (Array.isArray(rules) ? rules : []).find(r => r.id === rId)
+                  const found = (Array.isArray(rulesList) ? rulesList : []).find(r => r.id === rId)
                   setAwardDraft({
                     ...awardDraft,
                     ruleId: rId,
@@ -587,7 +587,7 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
                 }}
               >
                 <option value="">-- Manual Custom Points --</option>
-                {(Array.isArray(rules) ? rules : []).map((r) => (
+                {(Array.isArray(rulesList) ? rulesList : []).map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.title} ({r.rewardPoints})
                   </option>

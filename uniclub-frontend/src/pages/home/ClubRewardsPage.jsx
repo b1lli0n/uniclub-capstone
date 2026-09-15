@@ -208,6 +208,9 @@ function ClubRewardsPage({ isManager = false }) {
   const [detailReward, setDetailReward] = useState(null)
   const [confirmReward, setConfirmReward] = useState(null)
   const [detailHistory, setDetailHistory] = useState(null)
+  const [approveConfirmRequest, setApproveConfirmRequest] = useState(null)
+  const [rejectRequestModal, setRejectRequestModal] = useState(null)
+  const [rejectReason, setRejectReason] = useState('')
 
   // 1. Fetch rewards list & points balance
   useEffect(() => {
@@ -283,6 +286,9 @@ function ClubRewardsPage({ isManager = false }) {
             item: item.reward_id?.name || 'Reward',
             points: item.total_point,
             status: item.status,
+            rejectionReason: item.rejection_reason || '',
+            image: item.reward_id?.image_url || '🎁',
+            description: item.reward_id?.description || '',
           })))
 
           const hists = histRes.data || []
@@ -293,6 +299,9 @@ function ClubRewardsPage({ isManager = false }) {
             item: item.reward_id?.name || 'Reward',
             points: item.total_point,
             status: item.status,
+            rejectionReason: item.rejection_reason || '',
+            image: item.reward_id?.image_url || '🎁',
+            description: item.reward_id?.description || '',
           })))
         })
         .catch(err => console.error('Failed to load redemption history:', err))
@@ -307,6 +316,9 @@ function ClubRewardsPage({ isManager = false }) {
             item: item.reward_id?.name || 'Reward',
             points: item.total_point || item.points_spent,
             status: item.status,
+            rejectionReason: item.rejection_reason || '',
+            image: item.reward_id?.image_url || '🎁',
+            description: item.reward_id?.description || '',
           })))
         })
         .catch(err => console.error('Failed to load member redemption history:', err))
@@ -441,38 +453,44 @@ function ClubRewardsPage({ isManager = false }) {
       })
   }
 
-  // 7. Approve / Reject redemption request
-  function processRequest(request, status) {
-    if (!clubId) return
+  // 7. Approve redemption request confirmation
+  function handleApproveConfirm() {
+    if (!clubId || !approveConfirmRequest) return
     setIsActionLoading(true)
 
-    if (status === 'APPROVED') {
-      approveRedemption(clubId, request.id)
-        .then(() => {
-          showToast({ type: 'success', message: 'Redemption request approved successfully!' })
-          setReloadKey(k => k + 1)
-        })
-        .catch((err) => {
-          showToast({ type: 'error', message: err.message || 'Failed to approve redemption.' })
-        })
-        .finally(() => setIsActionLoading(false))
-    } else {
-      const reason = window.prompt('Enter rejection reason:')
-      if (reason === null) {
-        setIsActionLoading(false)
-        return
-      }
-      
-      rejectRedemption(clubId, request.id, reason || 'Rejected by club administrator')
-        .then(() => {
-          showToast({ type: 'success', message: 'Redemption request rejected.' })
-          setReloadKey(k => k + 1)
-        })
-        .catch((err) => {
-          showToast({ type: 'error', message: err.message || 'Failed to reject redemption.' })
-        })
-        .finally(() => setIsActionLoading(false))
+    approveRedemption(clubId, approveConfirmRequest.id)
+      .then(() => {
+        showToast({ type: 'success', message: 'Redemption request approved successfully!' })
+        setApproveConfirmRequest(null)
+        setReloadKey(k => k + 1)
+      })
+      .catch((err) => {
+        showToast({ type: 'error', message: err.message || 'Failed to approve redemption.' })
+      })
+      .finally(() => setIsActionLoading(false))
+  }
+
+  // 8. Reject redemption request with reason
+  function handleRejectSubmit(event) {
+    event.preventDefault()
+    if (!clubId || !rejectRequestModal) return
+    if (!rejectReason.trim()) {
+      showToast({ type: 'error', message: 'Please provide a reason for rejection.' })
+      return
     }
+
+    setIsActionLoading(true)
+    rejectRedemption(clubId, rejectRequestModal.id, rejectReason.trim())
+      .then(() => {
+        showToast({ type: 'success', message: 'Redemption request rejected.' })
+        setRejectRequestModal(null)
+        setRejectReason('')
+        setReloadKey(k => k + 1)
+      })
+      .catch((err) => {
+        showToast({ type: 'error', message: err.message || 'Failed to reject redemption.' })
+      })
+      .finally(() => setIsActionLoading(false))
   }
 
   return (
@@ -636,8 +654,8 @@ function ClubRewardsPage({ isManager = false }) {
                   <td>{request.item}</td>
                   <td>{request.points} pts</td>
                   <td>
-                    <button onClick={() => processRequest(request, 'APPROVED')} disabled={isActionLoading}>Approve</button>
-                    <button className="is-danger" onClick={() => processRequest(request, 'REJECTED')} disabled={isActionLoading}>Reject</button>
+                    <button onClick={() => setApproveConfirmRequest(request)} disabled={isActionLoading}>Approve</button>
+                    <button className="is-danger" onClick={() => { setRejectRequestModal(request); setRejectReason('') }} disabled={isActionLoading}>Reject</button>
                   </td>
                 </tr>
               ))}
@@ -731,6 +749,51 @@ function ClubRewardsPage({ isManager = false }) {
               <button onClick={handleRedeemReward} type="button" disabled={isActionLoading}>Confirm Redeem</button>
             </footer>
           </section>
+        </div>
+      )}
+
+      {approveConfirmRequest && (
+        <div className="club-rewards-modal" role="dialog" aria-modal="true">
+          <button className="club-rewards-modal__backdrop" aria-label="Close" onClick={() => setApproveConfirmRequest(null)} type="button" />
+          <section className="club-rewards-modal__panel club-rewards-confirm">
+            <h2>Approve Redemption Request</h2>
+            <p>Are you sure you want to approve the redemption request from <strong>{approveConfirmRequest.member}</strong> for <strong>{approveConfirmRequest.item}</strong> ({approveConfirmRequest.points} pts)?</p>
+            <p style={{ fontSize: '0.88rem', color: '#64748b' }}>Points will be deducted from the member's balance and inventory stock will be decremented.</p>
+            <footer>
+              <button onClick={() => setApproveConfirmRequest(null)} type="button" disabled={isActionLoading}>Cancel</button>
+              <button onClick={handleApproveConfirm} type="button" disabled={isActionLoading} style={{ background: '#16a34a', color: '#fff' }}>Confirm Approve</button>
+            </footer>
+          </section>
+        </div>
+      )}
+
+      {rejectRequestModal && (
+        <div className="club-rewards-modal" role="dialog" aria-modal="true">
+          <button className="club-rewards-modal__backdrop" aria-label="Close" onClick={() => setRejectRequestModal(null)} type="button" />
+          <form className="club-rewards-modal__panel" onSubmit={handleRejectSubmit}>
+            <header>
+              <h2>Reject Redemption Request</h2>
+              <button type="button" onClick={() => setRejectRequestModal(null)}>×</button>
+            </header>
+            <p style={{ marginTop: '0.5rem', color: '#475569', fontSize: '0.9rem' }}>
+              You are rejecting the request from <strong>{rejectRequestModal.member}</strong> for <strong>{rejectRequestModal.item}</strong> ({rejectRequestModal.points} pts).
+            </p>
+            <label style={{ display: 'block', marginTop: '1rem', fontWeight: 600 }}>
+              Rejection Reason <span style={{ color: '#dc2626' }}>*</span>
+              <textarea
+                rows="3"
+                required
+                placeholder="Enter rejection reason (e.g., Item out of stock, invalid request)..."
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                style={{ width: '100%', marginTop: '0.4rem' }}
+              />
+            </label>
+            <footer>
+              <button type="button" onClick={() => setRejectRequestModal(null)} disabled={isActionLoading}>Cancel</button>
+              <button type="submit" disabled={isActionLoading || !rejectReason.trim()} className="is-danger">Confirm Reject</button>
+            </footer>
+          </form>
         </div>
       )}
 
