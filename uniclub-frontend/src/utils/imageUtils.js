@@ -28,11 +28,16 @@ export const UPLOAD_CLUB_LOGOS = [
 export function resolveEventUploadImage(mediaUrisOrUrl, category = '') {
   let url = Array.isArray(mediaUrisOrUrl) ? mediaUrisOrUrl[0] : mediaUrisOrUrl
   if (url && typeof url === 'string') {
-    if (url.includes('/uploads/events/')) {
-      return url.substring(url.indexOf('/uploads/events/'))
+    const cleanUrl = url.trim()
+    // Nếu là URL Cloudinary hoặc URL HTTP(S) hoặc Base64
+    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://') || cleanUrl.startsWith('data:image/')) {
+      return cleanUrl
     }
-    if (url.includes('/uploads/')) {
-      return url.substring(url.indexOf('/uploads/'))
+    if (cleanUrl.includes('/uploads/events/')) {
+      return cleanUrl.substring(cleanUrl.indexOf('/uploads/events/'))
+    }
+    if (cleanUrl.includes('/uploads/')) {
+      return cleanUrl.substring(cleanUrl.indexOf('/uploads/'))
     }
   }
 
@@ -52,11 +57,16 @@ export function resolveEventUploadImage(mediaUrisOrUrl, category = '') {
 
 export function resolveClubLogo(logoUrl, nameOrCategory = '') {
   if (logoUrl && typeof logoUrl === 'string') {
-    if (logoUrl.includes('/uploads/clubs/')) {
-      return logoUrl.substring(logoUrl.indexOf('/uploads/clubs/'))
+    const cleanLogo = logoUrl.trim()
+    // Nếu là URL Cloudinary hoặc URL HTTP(S) hoặc Base64
+    if (cleanLogo.startsWith('http://') || cleanLogo.startsWith('https://') || cleanLogo.startsWith('data:image/')) {
+      return cleanLogo
     }
-    if (logoUrl.includes('/uploads/')) {
-      return logoUrl.substring(logoUrl.indexOf('/uploads/'))
+    if (cleanLogo.includes('/uploads/clubs/')) {
+      return cleanLogo.substring(cleanLogo.indexOf('/uploads/clubs/'))
+    }
+    if (cleanLogo.includes('/uploads/')) {
+      return cleanLogo.substring(cleanLogo.indexOf('/uploads/'))
     }
   }
 

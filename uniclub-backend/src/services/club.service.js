@@ -6,6 +6,7 @@ const Event = require("../models/event.model");
 const Profile = require("../models/profile.model");
 const ClubCreationRequest = require("../models/club_creation_requests.model");
 const JoinForm = require("../models/join_form.model");
+const { uploadClubLogo } = require("../utils/cloudinary.util");
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -574,7 +575,11 @@ const updateClub = async ({ clubId, updateData }) => {
   }
 
   if (updateData.logo_url !== undefined) {
-    fieldsToUpdate.logo_url = String(updateData.logo_url).trim();
+    let finalLogo = String(updateData.logo_url).trim();
+    if (finalLogo) {
+      finalLogo = await uploadClubLogo(finalLogo);
+    }
+    fieldsToUpdate.logo_url = finalLogo;
   }
 
   if (updateData.status !== undefined) {

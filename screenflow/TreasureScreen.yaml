@@ -1,0 +1,607 @@
+# ============================================================
+# UniClub - Treasurer Screen Flow
+#
+# Role hierarchy:
+#
+# STUDENT
+#   -> CLUB_MEMBER
+#       -> CLUB_COMMITTEE
+#           -> TREASURER
+#
+# Parent specification:
+#   club-member-screen-flow.yaml
+#
+# IMPORTANT:
+# - Treasurer inherits all Student and Club Member capabilities.
+# - This file contains only Treasurer-specific extensions or
+#   role-specific navigation shown in the supplied screen flow.
+# - ui_action values must remain exactly aligned with the
+#   supplied screen-flow diagram.
+# - TBD_BY_CODE must be verified against source code.
+# - Do not infer handlers, APIs, validations, database changes,
+#   or business rules from the diagram.
+# ============================================================
+
+
+role:
+  id: TREASURER
+  name: Treasurer
+
+  group:
+    id: CLUB_COMMITTEE
+    name: Club Committee
+
+extends:
+  role: CLUB_MEMBER
+  file: club-member-screen-flow.yaml
+
+
+# ============================================================
+# INHERITANCE
+# ============================================================
+
+inheritance:
+
+  description: >
+    Treasurer is a Club Committee role and is also a Club Member.
+    Therefore, Treasurer inherits all Student and Club Member
+    capabilities and gains additional financial management
+    functionality.
+
+  role_chain:
+    - STUDENT
+    - CLUB_MEMBER
+    - CLUB_COMMITTEE
+    - TREASURER
+
+  inherits_from_student:
+    - authentication
+    - logout
+    - profile
+    - requests_and_invitations
+    - public_club_list
+    - public_events
+    - event_registration
+    - event_registration_cancellation
+    - event_check_in
+    - event_feedback
+    - feedback_deletion
+
+  inherits_from_club_member:
+    - my_clubs
+    - club_detail
+    - membership_fees
+    - club_events
+    - leave_club
+    - club_member_list
+    - club_leaderboard
+    - point_history
+    - point_rules
+    - rewards
+    - reward_redemption
+    - reward_redemption_history
+    - activity_schedule
+    - club_fees
+    - polls
+
+
+# ============================================================
+# LEGEND
+# ============================================================
+
+legend:
+  initial_screen: Initial Screen
+  screen: Screen
+  popup: Popup
+
+
+# ============================================================
+# TREASURER SCREENS / EXTENSIONS
+# ============================================================
+
+screens:
+
+  # ----------------------------------------------------------
+  # HOME - TREASURER
+  #
+  # Role-specific representation of the inherited Home screen.
+  # Other inherited Home actions remain available unless
+  # source code proves otherwise.
+  # ----------------------------------------------------------
+
+  - id: home_treasurer
+    name: Home (Treasurer)
+    type: screen
+
+    role_variant_of: home_student
+
+    incoming:
+
+      - from: login
+        action: Login successfully
+        inherited_from: student-screen-flow.yaml
+
+    actions:
+
+      - id: open_my_clubs
+        ui_action: Click "My Clubs" button
+        trigger: click
+
+        target:
+          id: my_clubs
+          name: My Clubs
+          type: screen
+          inherited_from: club-member-screen-flow.yaml
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      - id: open_logout
+        ui_action: Click logout icon
+        trigger: click
+
+        target:
+          id: logout
+          name: Logout
+          type: popup
+          inherited_from: student-screen-flow.yaml
+
+        implementation:
+          handler: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # LOGOUT REFERENCE
+  # ----------------------------------------------------------
+
+  - id: treasurer_logout_reference
+    references_screen: logout
+    inherited_from: student-screen-flow.yaml
+
+    reachable_from:
+      - screen: home_treasurer
+        action: Click logout icon
+
+    inherited_actions:
+
+      - ui_action: Click "Yes" button
+
+        target:
+          id: login
+          name: Login
+          type: initial_screen
+
+
+  # ----------------------------------------------------------
+  # MY CLUBS REFERENCE
+  # ----------------------------------------------------------
+
+  - id: treasurer_my_clubs_reference
+    references_screen: my_clubs
+    inherited_from: club-member-screen-flow.yaml
+
+    reachable_from:
+
+      - screen: home_treasurer
+        action: Click "My Clubs" button
+
+    actions:
+
+      - id: view_treasurer_club_detail
+        ui_action: Click club card
+        trigger: click
+
+        target:
+          id: treasurer_club_detail
+          name: Club Detail
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+          selected_club: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # CLUB DETAIL - TREASURER EXTENSION
+  #
+  # Treasurer uses the Club Detail inherited from Club Member,
+  # with an additional Finance action.
+  # ----------------------------------------------------------
+
+  - id: treasurer_club_detail
+    name: Club Detail
+    type: screen
+
+    extends_screen: member_club_detail
+    inherited_from: club-member-screen-flow.yaml
+
+    incoming:
+
+      - from: my_clubs
+        action: Click club card
+
+    additional_actions:
+
+      - id: open_financial_dashboard
+        ui_action: Click "Finance" button
+        trigger: click
+
+        target:
+          id: financial_dashboard
+          name: Financial Dashboard
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+          authorization: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # FINANCIAL DASHBOARD
+  # ----------------------------------------------------------
+
+  - id: financial_dashboard
+    name: Financial Dashboard
+    type: screen
+
+    incoming:
+
+      - from: treasurer_club_detail
+        action: Click "Finance" button
+
+    actions:
+
+      # ------------------------------------------------------
+      # CREATE TRANSACTION REQUEST
+      # ------------------------------------------------------
+
+      - id: open_transaction_request_form
+        ui_action: Click "New request" button
+        trigger: click
+
+        target:
+          id: transaction_request_form
+          name: Transaction Request Form
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          authorization: TBD_BY_CODE
+          validation: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      # ------------------------------------------------------
+      # VIEW TRANSACTION DETAIL
+      # ------------------------------------------------------
+
+      - id: view_transaction_detail
+        ui_action: Click "View" button
+        trigger: click
+
+        target:
+          id: transaction_detail
+          name: Transaction Detail
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          selected_transaction: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      # ------------------------------------------------------
+      # EXPORT FINANCIAL REPORT
+      # ------------------------------------------------------
+
+      - id: open_financial_report_export
+        ui_action: Click "Export report" button
+        trigger: click
+
+        target:
+          id: financial_report_export_modal
+          name: Financial Report Export Modal
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          authorization: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # TRANSACTION REQUEST FORM
+  # ----------------------------------------------------------
+
+  - id: transaction_request_form
+    name: Transaction Request Form
+    type: popup
+
+    incoming:
+
+      - from: financial_dashboard
+        action: Click "New request" button
+
+    implementation:
+      form_fields: TBD_BY_CODE
+      default_values: TBD_BY_CODE
+      validation: TBD_BY_CODE
+      submit_handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      authorization: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # TRANSACTION DETAIL
+  # ----------------------------------------------------------
+
+  - id: transaction_detail
+    name: Transaction Detail
+    type: popup
+
+    incoming:
+
+      - from: financial_dashboard
+        action: Click "View" button
+
+    actions:
+
+      - id: open_update_transaction_request
+        ui_action: Click "Edit" button
+        trigger: click
+
+        target:
+          id: update_transaction_request
+          name: Update Transaction Request
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          authorization: TBD_BY_CODE
+          validation: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+    implementation:
+      displayed_data: TBD_BY_CODE
+      data_source: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # UPDATE TRANSACTION REQUEST
+  # ----------------------------------------------------------
+
+  - id: update_transaction_request
+    name: Update Transaction Request
+    type: popup
+
+    incoming:
+
+      - from: transaction_detail
+        action: Click "Edit" button
+
+    implementation:
+      form_fields: TBD_BY_CODE
+      initial_values: TBD_BY_CODE
+      editable_fields: TBD_BY_CODE
+      validation: TBD_BY_CODE
+      submit_handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      authorization: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # FINANCIAL REPORT EXPORT MODAL
+  # ----------------------------------------------------------
+
+  - id: financial_report_export_modal
+    name: Financial Report Export Modal
+    type: popup
+
+    incoming:
+
+      - from: financial_dashboard
+        action: Click "Export report" button
+
+    implementation:
+      export_options: TBD_BY_CODE
+      filters: TBD_BY_CODE
+      file_format: TBD_BY_CODE
+      handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      authorization: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+# ============================================================
+# FLOW DEFINITIONS
+# ============================================================
+
+flows:
+
+  # ----------------------------------------------------------
+  # Authentication
+  # ----------------------------------------------------------
+
+  - from: login
+    action: Login successfully
+    to: home_treasurer
+    inherited_behavior_from: student-screen-flow.yaml
+
+  - from: home_treasurer
+    action: Click logout icon
+    to: logout
+    inherited_behavior_from: student-screen-flow.yaml
+
+  - from: logout
+    action: Click "Yes" button
+    to: login
+    inherited_behavior_from: student-screen-flow.yaml
+
+
+  # ----------------------------------------------------------
+  # My Clubs
+  # ----------------------------------------------------------
+
+  - from: home_treasurer
+    action: Click "My Clubs" button
+    to: my_clubs
+
+  - from: my_clubs
+    action: Click club card
+    to: treasurer_club_detail
+
+
+  # ----------------------------------------------------------
+  # Finance
+  # ----------------------------------------------------------
+
+  - from: treasurer_club_detail
+    action: Click "Finance" button
+    to: financial_dashboard
+
+
+  # ----------------------------------------------------------
+  # Transaction Request
+  # ----------------------------------------------------------
+
+  - from: financial_dashboard
+    action: Click "New request" button
+    to: transaction_request_form
+
+
+  # ----------------------------------------------------------
+  # Transaction Detail / Update
+  # ----------------------------------------------------------
+
+  - from: financial_dashboard
+    action: Click "View" button
+    to: transaction_detail
+
+  - from: transaction_detail
+    action: Click "Edit" button
+    to: update_transaction_request
+
+
+  # ----------------------------------------------------------
+  # Financial Report
+  # ----------------------------------------------------------
+
+  - from: financial_dashboard
+    action: Click "Export report" button
+    to: financial_report_export_modal
+
+
+# ============================================================
+# USE CASE CANDIDATES
+#
+# These are interaction candidates derived from the supplied
+# screen flow. Final Use Case boundaries must be confirmed by
+# source-code behavior.
+# ============================================================
+
+use_case_candidates:
+
+  - action: Login successfully
+    source: login
+    target: home_treasurer
+    inherited: true
+
+  - action: Click logout icon
+    source: home_treasurer
+    target: logout
+    inherited: true
+
+  - action: Click "Yes" button
+    source: logout
+    target: login
+    inherited: true
+
+  - action: Click "My Clubs" button
+    source: home_treasurer
+    target: my_clubs
+    inherited: true
+
+  - action: Click club card
+    source: my_clubs
+    target: treasurer_club_detail
+    inherited: true
+
+  - action: Click "Finance" button
+    source: treasurer_club_detail
+    target: financial_dashboard
+    treasurer_specific: true
+
+  - action: Click "New request" button
+    source: financial_dashboard
+    target: transaction_request_form
+    treasurer_specific: true
+
+  - action: Click "View" button
+    source: financial_dashboard
+    target: transaction_detail
+    treasurer_specific: true
+
+  - action: Click "Edit" button
+    source: transaction_detail
+    target: update_transaction_request
+    treasurer_specific: true
+
+  - action: Click "Export report" button
+    source: financial_dashboard
+    target: financial_report_export_modal
+    treasurer_specific: true
+
+
+# ============================================================
+# IMPLEMENTATION VERIFICATION RULES
+# ============================================================
+
+verification_rules:
+
+  - >
+    Do not assume every Club Member can access Finance.
+    Verify role/permission checks in source code.
+
+  - >
+    Do not assume that opening Transaction Request Form creates
+    a transaction request. Verify the actual submit action.
+
+  - >
+    Do not assume the "Edit" action is available for every
+    transaction status. Verify conditional rendering and
+    backend validation.
+
+  - >
+    Do not assume exported report format, date range, filters,
+    or generated file type. Verify against implementation.
+
+  - >
+    Do not infer transaction approval workflow from this
+    diagram. This diagram only establishes the Treasurer
+    interactions explicitly shown.
+
+  - >
+    Keep inherited Student and Club Member functionality
+    available unless source code explicitly restricts it for
+    Treasurer.

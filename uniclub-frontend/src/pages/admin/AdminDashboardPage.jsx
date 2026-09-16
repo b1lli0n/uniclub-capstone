@@ -540,13 +540,14 @@ function AdminDashboardPage({ onLogout }) {
         logo_url: clubFormData.logo_url.trim(),
       }
 
-      await updateClub(selectedActiveClub.id, payload)
+      const res = await updateClub(selectedActiveClub.id, payload)
+      const apiClub = res?.data?.club || res?.data || res?.club || {}
 
-      const updatedName = payload.name
-      const updatedCategory = payload.category
-      const updatedSlogan = payload.slogan
-      const updatedDesc = payload.description
-      const updatedLogo = payload.logo_url
+      const updatedName = apiClub.name || payload.name
+      const updatedCategory = apiClub.category || payload.category
+      const updatedSlogan = apiClub.slogan || payload.slogan
+      const updatedDesc = apiClub.description || payload.description
+      const updatedLogo = apiClub.logo_url || payload.logo_url
 
       setActiveClubs((clubs) =>
         clubs.map((club) =>

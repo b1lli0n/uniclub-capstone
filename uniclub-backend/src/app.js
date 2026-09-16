@@ -35,6 +35,7 @@ const treasurerTransactionManagementRoutes = require("./routes/treasurer/transac
 const memberPollRoutes = require("./routes/member/poll.routes");
 const secretaryPollRoutes = require("./routes/secretary/poll.routes");
 const eventRequestRoutes = require("./routes/eventRequest.route");
+const uploadRoutes = require("./routes/upload.routes");
 
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
@@ -89,6 +90,7 @@ app.use("/api/treasurer/transaction-management", treasurerTransactionManagementR
 app.use("/api/member/invitation-management", memberInvitationManagementRoutes);
 app.use("/api/secretary/invitation-management", secretaryInvitationManagementRoutes);
 app.use("/api/event-requests", eventRequestRoutes);
+app.use("/api/upload", uploadRoutes);
 
 app.get("/", (req, res) => {
   return res.status(200).json({

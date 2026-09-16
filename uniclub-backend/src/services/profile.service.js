@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Profile = require("../models/profile.model");
 const User = require("../models/user.model");
+const { uploadAvatar } = require("../utils/cloudinary.util");
 const { getStatusError } = require("../utils/error");
 
 const getMyProfile = async (userId) => {
@@ -67,8 +68,12 @@ const updateMyProfile = async (userId, { avatar, student_code, phone, campus }) 
   };
 
   if (avatar !== undefined) {
-    updateData.avatar = avatar;
-    await User.findByIdAndUpdate(userId, { avatar_url: avatar });
+    let finalAvatarUrl = avatar;
+    if (avatar) {
+      finalAvatarUrl = await uploadAvatar(avatar);
+    }
+    updateData.avatar = finalAvatarUrl;
+    await User.findByIdAndUpdate(userId, { avatar_url: finalAvatarUrl });
   }
 
   if (student_code && (!existingProfile || !existingProfile.student_code)) {
