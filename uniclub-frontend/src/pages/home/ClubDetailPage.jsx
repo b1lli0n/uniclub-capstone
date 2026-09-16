@@ -31,8 +31,35 @@ function EventIcon() {
 
 function mapEventFromApi(apiEvent) {
   if (!apiEvent) return null
+  const startDate = apiEvent.start_time ? new Date(apiEvent.start_time) : null
+  const endDate = apiEvent.end_time ? new Date(apiEvent.end_time) : startDate
+  const now = new Date()
+
+  // Kiểm tra xem sự kiện đã qua ngày / kết thúc hay chưa
+  const isPast = endDate ? endDate < now : false
+  const isOngoing = startDate && endDate ? (startDate <= now && now <= endDate) : false
+  const isUpcoming = startDate ? startDate > now : false
+
   const formattedDate = formatDateVN(apiEvent.start_time)
   const formattedTime = formatTimeRange24(apiEvent.start_time, apiEvent.end_time)
+
+  let statusLabel = 'Upcoming'
+  let statusTone = 'upcoming'
+
+  if (apiEvent.check_in_status === 'open') {
+    statusLabel = 'Check-in Open'
+    statusTone = 'open'
+  } else if (isOngoing) {
+    statusLabel = 'Ongoing'
+    statusTone = 'ongoing'
+  } else if (isPast) {
+    statusLabel = 'Ended'
+    statusTone = 'ended'
+  } else {
+    statusLabel = 'Upcoming'
+    statusTone = 'upcoming'
+  }
+
   return {
     id: apiEvent._id || apiEvent.id,
     name: apiEvent.title || '',
@@ -42,6 +69,13 @@ function mapEventFromApi(apiEvent) {
     location: apiEvent.location || 'Campus',
     visibility: apiEvent.is_public ? 'public' : 'private',
     checkinOpen: apiEvent.check_in_status === 'open',
+    rawStartTime: startDate ? startDate.getTime() : 0,
+    rawEndTime: endDate ? endDate.getTime() : 0,
+    isPast,
+    isOngoing,
+    isUpcoming,
+    statusLabel,
+    statusTone,
   }
 }
 
@@ -176,12 +210,34 @@ function ClubDetailPage({ clubId, onBack }) {
 
   const isClubMember = Boolean(currentMembership)
   const canManageMembers =
-    currentMembership?.rawRole?.toLowerCase() === 'president'
-  const detailDescription = club
-    ? `${club.description}. ${CLUB_DETAIL_COPY.descriptionSuffix}`
-    : ''
-  const previewMembers = memberRows.slice(0, 4)
-  const previewClubEvents = events.slice(0, 3)
+    currentMembership?.rawRole?.toLowerCase() === 'president' ||
+    currentMembership?.rawRole?.toLowerCase() === 'leader'
+  const ROLE_PRIORITY = {
+    president: 1,
+    leader: 1,
+    'vice leader': 2,
+    vice_leader: 2,
+    secretary: 3,
+    treasurer: 4,
+    event_manager: 5,
+    'event manager': 5,
+  }
+
+  const detailDescription = club?.description || ''
+
+  // Chỉ hiển thị những người có chức vụ (Ban chủ nhiệm / Ban điều hành: President, Secretary, Treasurer, Event Manager,...), không hiện member thường
+  const previewMembers = memberRows
+    .filter((member) => member.rawRole && member.rawRole.toLowerCase() !== 'member')
+    .sort((a, b) => {
+      const priorityA = ROLE_PRIORITY[a.rawRole?.toLowerCase()] || 99
+      const priorityB = ROLE_PRIORITY[b.rawRole?.toLowerCase()] || 99
+      return priorityA - priorityB
+    })
+  // Lọc chỉ các sự kiện chưa qua ngày (sắp diễn ra hoặc đang diễn ra), sắp xếp gần nhất lên trước
+  const upcomingEvents = events
+    .filter((event) => !event.isPast)
+    .sort((a, b) => a.rawStartTime - b.rawStartTime)
+  const previewClubEvents = upcomingEvents.slice(0, 3)
   const hiddenPrivateEventsCount = 0
 
   async function openJoinModal() {
@@ -392,36 +448,44 @@ function ClubDetailPage({ clubId, onBack }) {
           </button>
         </div>
 
-        <div className="club-event-grid">
-          {previewClubEvents.map((event) => (
-            <article
-              key={event.id}
-              className="club-event-card club-event-card--clickable"
-              role="button"
-              tabIndex={0}
-              onClick={() => navigate(`/clubs/${club.id}/events/${event.id}`)}
-              onKeyDown={(keyEvent) => {
-                if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
-                  keyEvent.preventDefault()
-                  navigate(`/clubs/${club.id}/events/${event.id}`)
-                }
-              }}
-            >
-              <div className="club-event-card__icon">
-                <EventIcon />
-              </div>
-              <div className="club-event-card__badges">
-                <span className="club-event-card__tag">{event.checkinOpen ? 'Open' : 'Upcoming'}</span>
-                <span className={`club-event-card__visibility club-event-card__visibility--${event.visibility || 'public'}`}>
-                  {event.visibility === 'private' ? 'Private' : 'Public'}
-                </span>
-              </div>
-              <h3>{event.name}</h3>
-              <p>{event.description}</p>
-              <small>{event.date} - {event.location || 'Campus'}</small>
-            </article>
-          ))}
-        </div>
+        {previewClubEvents.length > 0 ? (
+          <div className="club-event-grid">
+            {previewClubEvents.map((event) => (
+              <article
+                key={event.id}
+                className="club-event-card club-event-card--clickable"
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/clubs/${club.id}/events/${event.id}`)}
+                onKeyDown={(keyEvent) => {
+                  if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+                    keyEvent.preventDefault()
+                    navigate(`/clubs/${club.id}/events/${event.id}`)
+                  }
+                }}
+              >
+                <div className="club-event-card__icon">
+                  <EventIcon />
+                </div>
+                <div className="club-event-card__badges">
+                  <span className={`club-event-card__tag club-event-card__tag--${event.statusTone}`}>
+                    {event.statusLabel}
+                  </span>
+                  <span className={`club-event-card__visibility club-event-card__visibility--${event.visibility || 'public'}`}>
+                    {event.visibility === 'private' ? 'Private' : 'Public'}
+                  </span>
+                </div>
+                <h3>{event.name}</h3>
+                <p>{event.description}</p>
+                <small>{event.date} - {event.location || 'Campus'}</small>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="club-events-empty-state">
+            <p>No upcoming events scheduled at this moment.</p>
+          </div>
+        )}
 
         {hiddenPrivateEventsCount > 0 ? (
           <p className="club-event-private-note">
@@ -440,37 +504,47 @@ function ClubDetailPage({ clubId, onBack }) {
                 : 'Core members of the club'}
             </p>
           </div>
-          <button type="button" onClick={() => setMembersModalOpen(true)}>View all members</button>
+          {isClubMember ? (
+            <button type="button" onClick={() => setMembersModalOpen(true)}>
+              View all members
+            </button>
+          ) : null}
         </div>
 
-        <div className="club-detail-members">
-          {previewMembers.map((member) => (
-            <article
-              key={member.id}
-              className={`club-detail-member ${canManageMembers ? 'club-detail-member--clickable' : ''}`}
-              style={{
-                '--member-tone': member.tone,
-                cursor: canManageMembers ? 'pointer' : 'default',
-              }}
-              onClick={canManageMembers ? () => handleViewMemberProfile(member) : undefined}
-              title={canManageMembers ? 'Click to view profile' : undefined}
-            >
-              <div className="club-detail-member__avatar">
-                {member.avatarUrl ? (
-                  <img
-                    src={member.avatarUrl}
-                    alt={member.name}
-                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  member.name.slice(0, 1).toUpperCase()
-                )}
-              </div>
-              <strong>{member.name}</strong>
-              <span>{member.role}</span>
-            </article>
-          ))}
-        </div>
+        {previewMembers.length > 0 ? (
+          <div className="club-detail-members">
+            {previewMembers.map((member) => (
+              <article
+                key={member.id}
+                className={`club-detail-member ${canManageMembers ? 'club-detail-member--clickable' : ''}`}
+                style={{
+                  '--member-tone': member.tone,
+                  cursor: canManageMembers ? 'pointer' : 'default',
+                }}
+                onClick={canManageMembers ? () => handleViewMemberProfile(member) : undefined}
+                title={canManageMembers ? 'Click to view profile' : undefined}
+              >
+                <div className="club-detail-member__avatar">
+                  {member.avatarUrl ? (
+                    <img
+                      src={member.avatarUrl}
+                      alt={member.name}
+                      style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    member.name.slice(0, 1).toUpperCase()
+                  )}
+                </div>
+                <strong>{member.name}</strong>
+                <span>{member.role}</span>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="club-events-empty-state">
+            <p>No club officers listed yet.</p>
+          </div>
+        )}
       </section>
 
       {joinModalOpen ? (
@@ -488,8 +562,8 @@ function ClubDetailPage({ clubId, onBack }) {
             </div>
 
             {(joinForm?.questions || []).map((question, index) => {
-              const questionText = typeof question === 'string' ? question : (question.content || question.label || `Question ${index + 1}`)
-              const questionKey = question._id || question.id || index
+              const questionText = typeof question === 'string' ? question : (question?.content || question?.label || `Question ${index + 1}`)
+              const questionKey = question?._id || question?.id || `q-${index}`
 
               return (
                 <label key={questionKey} className="club-join-modal__field">

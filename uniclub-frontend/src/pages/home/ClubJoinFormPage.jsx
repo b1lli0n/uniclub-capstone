@@ -43,10 +43,12 @@ function mapFormFromApi(apiForm) {
     status: apiForm.status || 'inactive',
     isLocked,
     responseCount,
-    updatedAt: apiForm.updated_at ? new Date(apiForm.updated_at).toLocaleDateString('en-GB') : '',
+    updatedAt: apiForm.updated_at || apiForm.update_at || apiForm.created_at
+      ? new Date(apiForm.updated_at || apiForm.update_at || apiForm.created_at).toLocaleDateString('vi-VN')
+      : '',
     questions: (apiForm.questions || []).map((q, idx) => ({
-      id: q?._id ? String(q._id) : `q${idx + 1}`,
-      label: typeof q === 'string' ? q : (q?.content || ''),
+      id: q?._id ? String(q._id) : (q?.id ? String(q.id) : `q${idx + 1}`),
+      label: typeof q === 'string' ? q : (q?.content || q?.label || ''),
       placeholder: 'Type your answer...',
     })),
   }
@@ -81,7 +83,7 @@ function ClubJoinFormPage({ clubId }) {
           getMyClubs(),
           getPresidentJoinForm(clubId).catch((err) => {
             if (err.status === 404 || err.message?.includes('404')) {
-              return { data: null }
+              return { data: [] }
             }
             throw err
           }),
@@ -97,8 +99,9 @@ function ClubJoinFormPage({ clubId }) {
         })
         setCanManageForms(membership?.role === 'president')
 
-        if (formRes.data) {
-          setForms([mapFormFromApi(formRes.data)])
+        if (formRes?.data) {
+          const list = Array.isArray(formRes.data) ? formRes.data : [formRes.data]
+          setForms(list.map(mapFormFromApi).filter(Boolean))
         } else {
           setForms([])
         }

@@ -4,7 +4,7 @@ const Reward = require("../models/reward.model");
 const RewardRedemption = require("../models/reward_redemption.model");
 const ContributionLog = require("../models/contribution_log.model");
 const ClubMember = require("../models/club_member.model");
-
+const { uploadRewardImage } = require("../utils/cloudinary.util");
 const { getStatusError } = require("../utils/error");
 
 /**
@@ -195,11 +195,16 @@ const createReward = async ({
     status: "active",
   });
 
+  let finalImageUrl = image_url ? String(image_url).trim() : "";
+  if (finalImageUrl) {
+    finalImageUrl = await uploadRewardImage(finalImageUrl);
+  }
+
   const reward = await Reward.create({
     club_id: clubId,
     name: name.trim(),
     description: description?.trim() || "",
-    image_url: image_url?.trim() || "",
+    image_url: finalImageUrl,
     points_required: normalizedPointCost,
     quantity: normalizedQuantity,
     status: "active",
@@ -245,7 +250,11 @@ const updateReward = async ({
   }
 
   if (image_url !== undefined) {
-    updateData.image_url = String(image_url).trim();
+    let finalImg = String(image_url).trim();
+    if (finalImg) {
+      finalImg = await uploadRewardImage(finalImg);
+    }
+    updateData.image_url = finalImg;
   }
 
   if (point_cost !== undefined || updateData.points_required !== undefined) {

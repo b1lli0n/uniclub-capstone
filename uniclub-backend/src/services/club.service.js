@@ -6,6 +6,7 @@ const Event = require("../models/event.model");
 const Profile = require("../models/profile.model");
 const ClubCreationRequest = require("../models/club_creation_requests.model");
 const JoinForm = require("../models/join_form.model");
+const { uploadClubLogo } = require("../utils/cloudinary.util");
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -574,7 +575,11 @@ const updateClub = async ({ clubId, updateData }) => {
   }
 
   if (updateData.logo_url !== undefined) {
-    fieldsToUpdate.logo_url = String(updateData.logo_url).trim();
+    let finalLogo = String(updateData.logo_url).trim();
+    if (finalLogo) {
+      finalLogo = await uploadClubLogo(finalLogo);
+    }
+    fieldsToUpdate.logo_url = finalLogo;
   }
 
   if (updateData.status !== undefined) {
@@ -618,11 +623,12 @@ const updateClub = async ({ clubId, updateData }) => {
 };
 
 // UC-13 View Club Creation Request List
-const getClubCreationRequestList = async ({ query }) => {
+const getClubCreationRequestList = async ({ query = {} }) => {
   const {
     page = 1,
     limit = 10,
     search,
+    category,
     status,
     sortBy = "newest",
   } = query;
@@ -633,47 +639,66 @@ const getClubCreationRequestList = async ({ query }) => {
 
   const filter = {};
 
-  // Search
+  // Search by club name, category, reason, and description
   if (search?.trim()) {
+    const keyword = search.trim();
     filter.$or = [
       {
         club_name: {
-          $regex: search.trim(),
+          $regex: keyword,
+          $options: "i",
+        },
+      },
+      {
+        category: {
+          $regex: keyword,
           $options: "i",
         },
       },
       {
         reason: {
-          $regex: search.trim(),
+          $regex: keyword,
+          $options: "i",
+        },
+      },
+      {
+        description: {
+          $regex: keyword,
           $options: "i",
         },
       },
     ];
   }
 
-  // Filter
-  if (status) {
-    if (!["waiting_member_approval", "pending", "approved", "rejected"].includes(status)) {
-      const error = new Error("Invalid request status");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    filter.status = status;
+  // Explicit category filter if provided
+  if (category?.trim() && category.toLowerCase() !== "all") {
+    filter.category = { $regex: `^${category.trim()}$`, $options: "i" };
   }
 
-  // Sort
+  // Sort & Status Filter
+  // Supports filtering by status: All, Pending, Approved, Rejected, Waiting Member Approval, Newest, Oldest
   let sortOption = { created_at: -1 };
 
+  if (status) {
+    const normalizedStatus = String(status).trim().toLowerCase();
+    if (["waiting_member_approval", "pending", "approved", "rejected"].includes(normalizedStatus)) {
+      filter.status = normalizedStatus;
+    } else if (normalizedStatus === "oldest") {
+      sortOption = { created_at: 1 };
+    } else if (normalizedStatus === "newest") {
+      sortOption = { created_at: -1 };
+    }
+    // "all" has no status filter and keeps default newest sort
+  }
+
+  // Explicit sortBy parameter
   if (sortBy === "oldest") {
     sortOption = { created_at: 1 };
-  }
-
-  if (sortBy === "club_name_asc") {
+  } else if (sortBy === "newest") {
+    sortOption = { created_at: -1 };
+  } else if (sortBy === "club_name_asc") {
     sortOption = { club_name: 1 };
-  }
-
-  if (sortBy === "club_name_desc") {
+  } else if (sortBy === "club_name_desc") {
     sortOption = { club_name: -1 };
   }
 

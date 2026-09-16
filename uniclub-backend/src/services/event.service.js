@@ -277,6 +277,10 @@ const cancelEventRegistration = async ({ eventId, userId }) => {
     throw getStatusError("Event not found", 404);
   }
 
+  if (["completed", "cancelled"].includes(event.status)) {
+    throw getStatusError("Cannot cancel registration for a completed or cancelled event", 400);
+  }
+
   // BR-27: Students may cancel free event registrations at least 24 hours prior to the event start time
   const now = new Date();
   const startTime = new Date(event.start_time);
@@ -297,6 +301,10 @@ const cancelEventRegistration = async ({ eventId, userId }) => {
 
   if (!reg) {
     throw getStatusError("No active registration found for this event", 400);
+  }
+
+  if (reg.checked_in || reg.status === "attended") {
+    throw getStatusError("Cannot cancel registration after check-in", 400);
   }
 
   reg.status = "cancelled";

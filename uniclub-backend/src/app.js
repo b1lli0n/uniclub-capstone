@@ -33,9 +33,9 @@ const secretaryActivityScheduleRoutes = require("./routes/secretary/activitySche
 const memberPaymentRoutes = require("./routes/member/payment.routes");
 const treasurerTransactionManagementRoutes = require("./routes/treasurer/transactionManagement.routes");
 const memberPollRoutes = require("./routes/member/poll.routes");
-const secretaryPollRoutes = require("./routes/secretary/poll.routes");
 const eventManagerEventRequestRoutes = require("./routes/eventManager/eventRequest.routes");
 const studentAffairsEventRequestRoutes = require("./routes/studentAffairs/eventRequestManagement.routes");
+const uploadRoutes = require("./routes/upload.routes");
 
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
@@ -91,6 +91,7 @@ app.use("/api/member/invitation-management", memberInvitationManagementRoutes);
 app.use("/api/secretary/invitation-management", secretaryInvitationManagementRoutes);
 app.use("/api/event-manager/event-requests", eventManagerEventRequestRoutes);
 app.use("/api/student-affairs/event-requests", studentAffairsEventRequestRoutes);
+app.use("/api/upload", uploadRoutes);
 
 app.get("/", (req, res) => {
   return res.status(200).json({

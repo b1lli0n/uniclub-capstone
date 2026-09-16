@@ -32,6 +32,10 @@ module.exports = {
   vnpUrl: process.env.vnp_Url,
   vnpReturnUrl: process.env.vnp_ReturnUrl,
   vnpIpnUrl: process.env.vnp_IpnUrl,
-  frontendVnpReturnUrl: process.env.FRONTEND_VNP_RETURN_URL
+  frontendVnpReturnUrl: process.env.FRONTEND_VNP_RETURN_URL,
+
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
 };
 

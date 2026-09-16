@@ -1,6 +1,7 @@
 const Event = require("../../models/event.model");
 const Club = require("../../models/club.model");
 const ClubMember = require("../../models/club_member.model");
+const { uploadEventMedia } = require("../../utils/cloudinary.util");
 const { getStatusError } = require("../../utils/error");
 
 const EVENT_SELECT =
@@ -97,6 +98,13 @@ const createEvent = async (clubId, userId, payload) => {
     status: "active",
   });
 
+  const processedPayload = { ...payload };
+  if (Array.isArray(processedPayload.media_uris) && processedPayload.media_uris.length > 0) {
+    processedPayload.media_uris = await Promise.all(
+      processedPayload.media_uris.map((uri) => uploadEventMedia(uri))
+    );
+  }
+
   const event = await Event.create({
     club_id: clubId,
     created_by: creatorMember ? creatorMember._id : userId,
@@ -104,7 +112,7 @@ const createEvent = async (clubId, userId, payload) => {
     progress_status: "completed",
     check_in_status: "open",
     is_public: true,
-    ...payload,
+    ...processedPayload,
   });
 
   return Event.findById(event._id)
@@ -145,7 +153,14 @@ const updateEvent = async (clubId, eventId, payload) => {
     }
   }
 
-  Object.assign(event, payload);
+  const processedPayload = { ...payload };
+  if (Array.isArray(processedPayload.media_uris) && processedPayload.media_uris.length > 0) {
+    processedPayload.media_uris = await Promise.all(
+      processedPayload.media_uris.map((uri) => uploadEventMedia(uri))
+    );
+  }
+
+  Object.assign(event, processedPayload);
   await event.save();
 
   return Event.findById(event._id)

@@ -24,9 +24,35 @@ const CATEGORY_GRADIENTS = {
 
 function mapEventFromApi(apiEvent) {
   if (!apiEvent) return null
+  const startDate = apiEvent.start_time ? new Date(apiEvent.start_time) : null
+  const endDate = apiEvent.end_time ? new Date(apiEvent.end_time) : startDate
+  const now = new Date()
+
+  // Kiểm tra xem sự kiện đã qua ngày / kết thúc hay chưa
+  const isPast = endDate ? endDate < now : false
+  const isOngoing = startDate && endDate ? (startDate <= now && now <= endDate) : false
+  const isUpcoming = startDate ? startDate > now : false
+
   const formattedDate = formatDateVN(apiEvent.start_time)
   const formattedTime = formatTimeRange24(apiEvent.start_time, apiEvent.end_time)
   const category = (apiEvent.category || 'academic').toLowerCase()
+
+  let statusLabel = 'Upcoming'
+  let statusTone = 'upcoming'
+
+  if (apiEvent.check_in_status === 'open') {
+    statusLabel = 'Check-in Open'
+    statusTone = 'open'
+  } else if (isOngoing) {
+    statusLabel = 'Ongoing'
+    statusTone = 'ongoing'
+  } else if (isPast) {
+    statusLabel = 'Ended'
+    statusTone = 'ended'
+  } else {
+    statusLabel = 'Upcoming'
+    statusTone = 'upcoming'
+  }
 
   return {
     id: apiEvent._id || apiEvent.id,
@@ -40,6 +66,11 @@ function mapEventFromApi(apiEvent) {
     categoryLabel: category.toUpperCase(),
     gradient: CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.academic,
     imageUrl: resolveEventUploadImage(apiEvent.media_uris || apiEvent.image_url, category),
+    isPast,
+    isOngoing,
+    isUpcoming,
+    statusLabel,
+    statusTone,
   }
 }
 
@@ -211,7 +242,9 @@ function ClubEventsPage() {
 
             <div className="club-events-card__body">
               <div className="club-events-card__badges">
-                <span className="club-event-card__tag">{event.checkinOpen ? 'Open' : 'Upcoming'}</span>
+                <span className={`club-event-card__tag club-event-card__tag--${event.statusTone}`}>
+                  {event.statusLabel}
+                </span>
                 <span className={`club-event-card__visibility club-event-card__visibility--${event.visibility || 'public'}`}>
                   {event.visibility === 'private' ? 'Private' : 'Public'}
                 </span>

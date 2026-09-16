@@ -4,6 +4,7 @@ const ClubMember = require("../models/club_member.model");
 const Event = require("../models/event.model");
 const ClubCreationRequest = require("../models/club_creation_requests.model");
 const User = require("../models/user.model");
+const { uploadClubLogo } = require("../utils/cloudinary.util");
 
 const buildClubQuery = ({ category, search }) => {
   const filter = { status: "active" };
@@ -233,13 +234,18 @@ const requestCreateClub = async ({
 
   const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
+  let finalLogoUrl = logo_url ? logo_url.trim() : "";
+  if (finalLogoUrl) {
+    finalLogoUrl = await uploadClubLogo(finalLogoUrl);
+  }
+
   const request = await ClubCreationRequest.create({
     club_name: club_name.trim(),
     slogan: slogan ? slogan.trim() : "",
     category: normalizeCategory(category),
     description: description || "",
     reason: reason.trim(),
-    logo_url: logo_url.trim(),
+    logo_url: finalLogoUrl,
     requested_by,
     members: membersList,
     member_ids: uniqueMemberIds,

@@ -42,6 +42,14 @@ const clubCreationRequestSchema = new Schema({
     trim: true,
   },
 
+  category: {
+    type: String,
+    required: false,
+    trim: true,
+    enum: ["Arts", "Sports", "Academic", "Event", "Other"],
+    default: "Other",
+  },
+
   status: {
     type: String,
     enum: ["waiting_member_approval", "pending", "approved", "rejected", "expired"],

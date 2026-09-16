@@ -197,6 +197,9 @@ const awardPointsManually = async (presidentId, clubId, memberId, { rule_id, rew
   if (member.reward_point < 0) {
     member.reward_point = 0; // prevent negative total points
   }
+  if (finalPoints > 0) {
+    member.ranking_point = (member.ranking_point || 0) + finalPoints;
+  }
   await member.save();
 
   // Create contribution log

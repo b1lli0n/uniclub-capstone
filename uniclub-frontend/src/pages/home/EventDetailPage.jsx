@@ -99,14 +99,10 @@ function isEventRegistrationOpen(event) {
 
 function isBeforeEventStart(event) {
   if (!event) return false
-  const now = new Date()
-  if (event.start_time) {
-    const deadline = new Date(new Date(event.start_time).getTime() - 24 * 60 * 60 * 1000)
-    return now <= deadline
-  }
-  const startDate = parseEventStartDate(event)
-  const deadline = new Date(startDate.getTime() - 24 * 60 * 60 * 1000)
-  return now <= deadline
+  const startTime = event.start_time ? new Date(event.start_time) : parseEventStartDate(event)
+  if (!startTime || isNaN(startTime.getTime())) return false
+  const deadline = startTime.getTime() - 24 * 60 * 60 * 1000
+  return Date.now() <= deadline
 }
 
 function isEventFeedbackOpen(event) {
@@ -205,9 +201,9 @@ function mapEventFromApi(apiEvent) {
   }
 }
 
-function RatingStars({ rating, onChange, readonly = false }) {
+function RatingStars({ rating, onChange, readonly = false, size = '1.4rem' }) {
   return (
-    <div className="event-detail-rating-stars" style={{ display: 'flex', gap: '0.3rem' }}>
+    <div className="event-detail-rating-stars" style={{ display: 'flex', gap: '0.2rem' }}>
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           key={star}
@@ -216,9 +212,10 @@ function RatingStars({ rating, onChange, readonly = false }) {
             background: 'none',
             border: 'none',
             cursor: readonly ? 'default' : 'pointer',
-            fontSize: '1.4rem',
+            fontSize: size,
             padding: 0,
             color: star <= rating ? '#F57C00' : '#d2c8bc',
+            lineHeight: 1,
           }}
           onClick={() => {
             if (!readonly) onChange?.(star)
@@ -826,9 +823,19 @@ function EventDetailPage() {
               <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <div>
                   <h2 style={{ margin: 0 }}>Feedback</h2>
-                  <span style={{ fontSize: '0.85rem', color: '#6f6676' }}>
-                    {feedbacks.length} {feedbacks.length === 1 ? 'review' : 'reviews'}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '0.25rem' }}>
+                    {feedbacks.length > 0 ? (
+                      <>
+                        <span style={{ fontSize: '0.92rem', color: '#F57C00', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                          ★ {(feedbacks.reduce((sum, f) => sum + (f.rating || 0), 0) / feedbacks.length).toFixed(1)}
+                        </span>
+                        <span style={{ color: '#8c7e95' }}>•</span>
+                      </>
+                    ) : null}
+                    <span style={{ fontSize: '0.85rem', color: '#6f6676' }}>
+                      {feedbacks.length} {feedbacks.length === 1 ? 'review' : 'reviews'}
+                    </span>
+                  </div>
                 </div>
                 {registration?.status === 'attended' && (
                   <button
@@ -1038,7 +1045,7 @@ function EventDetailPage() {
                   ) : registration.checkedIn ? (
                     <p>Cancellation is unavailable after check-in.</p>
                   ) : (
-                    <p>Cancellation is unavailable (must be cancelled at least 24 hours before event starts, BR-27).</p>
+                    <p>Cancellation is locked within 24 hours of the event start time (BR-27).</p>
                   )}
 
                   {registration.status === 'pending' ? (

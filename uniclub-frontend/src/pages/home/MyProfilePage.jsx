@@ -418,19 +418,21 @@ function MyProfilePage({ currentUser }) {
       // Xuất ảnh cropped & rotated từ canvas
       const croppedImage = await getGoogleCroppedAvatarBase64()
 
-      // 1. Lưu tạm thời dạng local (localStorage theo userId của đúng user)
-      const userKey = profile.id ? `uniclub_custom_avatar_${profile.id}` : 'uniclub_custom_avatar'
-      localStorage.setItem(userKey, croppedImage)
-
-      // 2. Gửi cập nhật lên backend
-      await updateMyProfile({
+      // 1. Gửi cập nhật lên backend (Backend tự động upload Cloudinary và trả về CDN URL)
+      const res = await updateMyProfile({
         avatar: croppedImage,
       })
+
+      const finalAvatar = res?.data?.avatar || res?.data?.avatar_url || croppedImage
+
+      // 2. Lưu vào localStorage và state UI
+      const userKey = profile.id ? `uniclub_custom_avatar_${profile.id}` : 'uniclub_custom_avatar'
+      localStorage.setItem(userKey, finalAvatar)
 
       // 3. Cập nhật state UI
       setProfile((prev) => ({
         ...prev,
-        avatarUrl: croppedImage,
+        avatarUrl: finalAvatar,
       }))
 
       setIsAvatarModalOpen(false)

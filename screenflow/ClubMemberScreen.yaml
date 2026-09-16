@@ -1,0 +1,1045 @@
+# ============================================================
+# UniClub - Club Member Screen Flow
+#
+# Inheritance:
+#   Club Member inherits all Student capabilities.
+#
+# Parent specification:
+#   student-screen-flow.yaml
+#
+# IMPORTANT:
+# - ui_action labels are taken from the supplied screen flow.
+# - Student features are NOT duplicated here.
+# - TBD_BY_CODE must be verified against source code.
+# - Do not infer APIs, handlers, validations, or business rules.
+# ============================================================
+
+role:
+  id: CLUB_MEMBER
+  name: Club Member
+
+extends:
+  role: STUDENT
+  file: student-screen-flow.yaml
+
+inheritance:
+  description: >
+    Club Member has all capabilities of Student and gains
+    additional club-member-specific functionality.
+
+  inherits:
+    - authentication
+    - logout
+    - profile
+    - student_requests_and_invitations
+    - public_club_list
+    - public_event_list
+    - event_registration
+    - event_registration_cancellation
+    - event_check_in
+    - event_feedback
+    - feedback_deletion
+
+legend:
+  initial_screen: Initial Screen
+  screen: Screen
+  popup: Popup
+
+
+# ============================================================
+# CLUB MEMBER EXTENSIONS
+# ============================================================
+
+screens:
+
+  # ----------------------------------------------------------
+  # CLUB MEMBER HOME EXTENSIONS
+  # ----------------------------------------------------------
+
+  - id: club_member_home_extensions
+    extends_screen: home_student
+    applies_to_role: CLUB_MEMBER
+
+    actions:
+
+      - id: open_my_clubs
+        ui_action: Click "My Clubs" button
+        trigger: click
+
+        target:
+          id: my_clubs
+          name: My Clubs
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      - id: open_my_membership_fees
+        ui_action: Click "My Membership Fees" button
+        trigger: click
+
+        target:
+          id: my_membership_fees
+          name: My Membership Fees
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # MY MEMBERSHIP FEES
+  # ----------------------------------------------------------
+
+  - id: my_membership_fees
+    name: My Membership Fees
+    type: screen
+
+    incoming:
+      - from: home_student
+        action: Click "My Membership Fees" button
+
+    actions:
+
+      - id: pay_membership_fee_vnpay
+        ui_action: Click "Payment VNPay" button
+        trigger: click
+
+        target:
+          id: membership_fee_payment
+          name: Payment
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          validation: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      - id: view_membership_fee_receipt
+        ui_action: Click "View payment receipt" button
+        trigger: click
+
+        target:
+          id: membership_fee_receipt_detail
+          name: Receipt Detail
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  - id: membership_fee_payment
+    name: Payment
+    type: popup
+
+    incoming:
+      - from: my_membership_fees
+        action: Click "Payment VNPay" button
+
+    implementation:
+      payment_method: TBD_BY_CODE
+      handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      payment_gateway: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  - id: membership_fee_receipt_detail
+    name: Receipt Detail
+    type: screen
+
+    incoming:
+      - from: my_membership_fees
+        action: Click "View payment receipt" button
+
+    implementation:
+      displayed_data: TBD_BY_CODE
+      data_source: TBD_BY_CODE
+      api: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # MY CLUBS
+  # ----------------------------------------------------------
+
+  - id: my_clubs
+    name: My Clubs
+    type: screen
+
+    incoming:
+      - from: home_student
+        action: Click "My Clubs" button
+
+    actions:
+
+      - id: view_my_club_detail
+        ui_action: Click club card
+        trigger: click
+
+        target:
+          id: member_club_detail
+          name: Club Detail
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+          selected_club: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # CLUB DETAIL
+  # ----------------------------------------------------------
+
+  - id: member_club_detail
+    name: Club Detail
+    type: screen
+
+    incoming:
+      - from: my_clubs
+        action: Click club card
+
+    actions:
+
+      - id: view_all_club_events
+        ui_action: Click "View all" button
+        trigger: click
+
+        target:
+          id: all_club_events
+          name: All Club Events
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+      - id: open_leave_club
+        ui_action: Click "Leave Club" button
+        trigger: click
+
+        target:
+          id: leave_club
+          name: Leave Club
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          validation: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      - id: view_all_members
+        ui_action: Click "View all members" button
+        trigger: click
+
+        target:
+          id: club_member_list
+          name: Club Member
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      - id: open_club_ranking
+        ui_action: Click "Ranking" button
+        trigger: click
+
+        target:
+          id: club_leaderboard
+          name: Club Leaderboard
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+      - id: open_point_rules
+        ui_action: Click "Point Rules" button
+        trigger: click
+
+        target:
+          id: point_rules
+          name: Point Rules
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+      - id: open_rewards
+        ui_action: Click "Rewards" button
+        trigger: click
+
+        target:
+          id: rewards
+          name: Rewards
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+      - id: open_reward_redemption_history
+        ui_action: Click "Reward redemption history" button
+        trigger: click
+
+        target:
+          id: reward_redemption_history
+          name: Reward Redemption History
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+      - id: open_activity_schedule
+        ui_action: Click "Schedule" button
+        trigger: click
+
+        target:
+          id: activity_schedule
+          name: Activity Schedule
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+      - id: open_club_fees
+        ui_action: Click "Fees" button
+        trigger: click
+
+        target:
+          id: club_fees
+          name: Fees
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+      - id: open_polls
+        ui_action: Click "Polls" button
+        trigger: click
+
+        target:
+          id: polls
+          name: Polls
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # LEAVE CLUB
+  # ----------------------------------------------------------
+
+  - id: leave_club
+    name: Leave Club
+    type: popup
+
+    incoming:
+      - from: member_club_detail
+        action: Click "Leave Club" button
+
+    implementation:
+      confirmation_action: TBD_BY_CODE
+      handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      validation: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # CLUB MEMBER LIST
+  # ----------------------------------------------------------
+
+  - id: club_member_list
+    name: Club Member
+    type: popup
+
+    incoming:
+      - from: member_club_detail
+        action: Click "View all members" button
+
+    implementation:
+      displayed_data: TBD_BY_CODE
+      data_source: TBD_BY_CODE
+      api: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # ALL CLUB EVENTS
+  # ----------------------------------------------------------
+
+  - id: all_club_events
+    name: All Club Events
+    type: screen
+
+    incoming:
+      - from: member_club_detail
+        action: Click "View all" button
+
+    actions:
+
+      - id: view_club_event_detail
+        ui_action: Click event card
+        trigger: click
+
+        target:
+          id: event_detail
+          name: Event Detail
+          type: screen
+          inherited_from: student-screen-flow.yaml
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+          selected_event: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # EVENT DETAIL
+  #
+  # Event Detail and its actions are inherited from Student.
+  # The screen flow confirms Club Member can reach Event Detail
+  # through All Club Events.
+  # ----------------------------------------------------------
+
+  - id: club_member_event_detail_reference
+    references_screen: event_detail
+    inherited_from: student-screen-flow.yaml
+
+    reachable_from:
+      - screen: all_club_events
+        action: Click event card
+
+    inherited_actions:
+      - Click "Register for event" button
+      - Click "Cancel registration" button
+      - Click "View registration info" button
+      - Click "Write/Edit feedback" button
+
+    inherited_targets:
+      - Register For Event
+      - Cancel Event Registration
+      - Check-in Event
+      - Feedback
+      - Delete Feedback Event
+
+
+  # ----------------------------------------------------------
+  # CLUB LEADERBOARD
+  # ----------------------------------------------------------
+
+  - id: club_leaderboard
+    name: Club Leaderboard
+    type: screen
+
+    incoming:
+      - from: member_club_detail
+        action: Click "Ranking" button
+
+    actions:
+
+      - id: view_my_point_history
+        ui_action: Click "My point history" button
+        trigger: click
+
+        target:
+          id: my_point_history
+          name: My point history
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  - id: my_point_history
+    name: My point history
+    type: popup
+
+    incoming:
+      - from: club_leaderboard
+        action: Click "My point history" button
+
+    implementation:
+      displayed_data: TBD_BY_CODE
+      data_source: TBD_BY_CODE
+      api: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # POINT RULES
+  # ----------------------------------------------------------
+
+  - id: point_rules
+    name: Point Rules
+    type: screen
+
+    incoming:
+      - from: member_club_detail
+        action: Click "Point Rules" button
+
+    implementation:
+      displayed_data: TBD_BY_CODE
+      data_source: TBD_BY_CODE
+      api: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # REWARDS
+  # ----------------------------------------------------------
+
+  - id: rewards
+    name: Rewards
+    type: screen
+
+    incoming:
+      - from: member_club_detail
+        action: Click "Rewards" button
+
+    actions:
+
+      - id: view_reward_detail
+        ui_action: Click reward card
+        trigger: click
+
+        target:
+          id: reward_detail
+          name: Reward Detail
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          selected_reward: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  - id: reward_detail
+    name: Reward Detail
+    type: popup
+
+    incoming:
+      - from: rewards
+        action: Click reward card
+
+    actions:
+
+      - id: redeem_reward
+        ui_action: Click "Redeem reward" button
+        trigger: click
+
+        target:
+          id: redeem_reward_popup
+          name: Redeem Reward
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          validation: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  - id: redeem_reward_popup
+    name: Redeem Reward
+    type: popup
+
+    incoming:
+      - from: reward_detail
+        action: Click "Redeem reward" button
+
+    implementation:
+      confirmation_action: TBD_BY_CODE
+      point_validation: TBD_BY_CODE
+      stock_validation: TBD_BY_CODE
+      handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # REWARD REDEMPTION HISTORY
+  # ----------------------------------------------------------
+
+  - id: reward_redemption_history
+    name: Reward Redemption History
+    type: screen
+
+    incoming:
+      - from: member_club_detail
+        action: Click "Reward redemption history" button
+
+    actions:
+
+      - id: view_reward_history_detail
+        ui_action: Click "View detail" button
+        trigger: click
+
+        target:
+          id: reward_history_detail
+          name: Reward History Detail
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  - id: reward_history_detail
+    name: Reward History Detail
+    type: popup
+
+    incoming:
+      - from: reward_redemption_history
+        action: Click "View detail" button
+
+    implementation:
+      displayed_data: TBD_BY_CODE
+      data_source: TBD_BY_CODE
+      api: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # ACTIVITY SCHEDULE
+  # ----------------------------------------------------------
+
+  - id: activity_schedule
+    name: Activity Schedule
+    type: screen
+
+    incoming:
+      - from: member_club_detail
+        action: Click "Schedule" button
+
+    actions:
+
+      - id: view_activity_detail
+        ui_action: Click activity card
+        trigger: click
+
+        target:
+          id: activity_detail
+          name: Activity Detail
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          selected_activity: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  - id: activity_detail
+    name: Activity Detail
+    type: popup
+
+    incoming:
+      - from: activity_schedule
+        action: Click activity card
+
+    implementation:
+      displayed_data: TBD_BY_CODE
+      data_source: TBD_BY_CODE
+      api: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # CLUB FEES
+  # ----------------------------------------------------------
+
+  - id: club_fees
+    name: Fees
+    type: screen
+
+    incoming:
+      - from: member_club_detail
+        action: Click "Fees" button
+
+    actions:
+
+      - id: pay_club_fee_vnpay
+        ui_action: Click "Payment VNPay" button
+        trigger: click
+
+        target:
+          id: vnpay_payment
+          name: VNPay Payment
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          validation: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      - id: view_club_fee_receipt
+        ui_action: Click "View payment receipt" button
+        trigger: click
+
+        target:
+          id: club_fee_receipt_detail
+          name: Receipt Detail
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  - id: vnpay_payment
+    name: VNPay Payment
+    type: popup
+
+    incoming:
+      - from: club_fees
+        action: Click "Payment VNPay" button
+
+    implementation:
+      payment_method: TBD_BY_CODE
+      handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      payment_gateway: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  - id: club_fee_receipt_detail
+    name: Receipt Detail
+    type: screen
+
+    incoming:
+      - from: club_fees
+        action: Click "View payment receipt" button
+
+    implementation:
+      displayed_data: TBD_BY_CODE
+      data_source: TBD_BY_CODE
+      api: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # POLLS
+  # ----------------------------------------------------------
+
+  - id: polls
+    name: Polls
+    type: screen
+
+    incoming:
+      - from: member_club_detail
+        action: Click "Polls" button
+
+    actions:
+
+      - id: view_and_vote_poll
+        ui_action: Click "View & Vote" button
+        trigger: click
+
+        target:
+          id: poll_detail_and_vote
+          name: Poll Detail & Vote
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          validation: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  - id: poll_detail_and_vote
+    name: Poll Detail & Vote
+    type: popup
+
+    incoming:
+      - from: polls
+        action: Click "View & Vote" button
+
+    implementation:
+      displayed_data: TBD_BY_CODE
+      vote_options: TBD_BY_CODE
+      vote_handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      validation: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+# ============================================================
+# FLOW DEFINITIONS
+# ============================================================
+
+flows:
+
+  # Home extensions
+
+  - from: home_student
+    action: Click "My Clubs" button
+    to: my_clubs
+
+  - from: home_student
+    action: Click "My Membership Fees" button
+    to: my_membership_fees
+
+
+  # Membership Fees
+
+  - from: my_membership_fees
+    action: Click "Payment VNPay" button
+    to: membership_fee_payment
+
+  - from: my_membership_fees
+    action: Click "View payment receipt" button
+    to: membership_fee_receipt_detail
+
+
+  # My Clubs
+
+  - from: my_clubs
+    action: Click club card
+    to: member_club_detail
+
+
+  # Club Events
+
+  - from: member_club_detail
+    action: Click "View all" button
+    to: all_club_events
+
+  - from: all_club_events
+    action: Click event card
+    to: event_detail
+
+
+  # Club Membership
+
+  - from: member_club_detail
+    action: Click "Leave Club" button
+    to: leave_club
+
+  - from: member_club_detail
+    action: Click "View all members" button
+    to: club_member_list
+
+
+  # Point / Ranking
+
+  - from: member_club_detail
+    action: Click "Ranking" button
+    to: club_leaderboard
+
+  - from: club_leaderboard
+    action: Click "My point history" button
+    to: my_point_history
+
+  - from: member_club_detail
+    action: Click "Point Rules" button
+    to: point_rules
+
+
+  # Rewards
+
+  - from: member_club_detail
+    action: Click "Rewards" button
+    to: rewards
+
+  - from: rewards
+    action: Click reward card
+    to: reward_detail
+
+  - from: reward_detail
+    action: Click "Redeem reward" button
+    to: redeem_reward_popup
+
+  - from: member_club_detail
+    action: Click "Reward redemption history" button
+    to: reward_redemption_history
+
+  - from: reward_redemption_history
+    action: Click "View detail" button
+    to: reward_history_detail
+
+
+  # Schedule
+
+  - from: member_club_detail
+    action: Click "Schedule" button
+    to: activity_schedule
+
+  - from: activity_schedule
+    action: Click activity card
+    to: activity_detail
+
+
+  # Fees
+
+  - from: member_club_detail
+    action: Click "Fees" button
+    to: club_fees
+
+  - from: club_fees
+    action: Click "Payment VNPay" button
+    to: vnpay_payment
+
+  - from: club_fees
+    action: Click "View payment receipt" button
+    to: club_fee_receipt_detail
+
+
+  # Polls
+
+  - from: member_club_detail
+    action: Click "Polls" button
+    to: polls
+
+  - from: polls
+    action: Click "View & Vote" button
+    to: poll_detail_and_vote
+
+
+# ============================================================
+# USE CASE CANDIDATES
+# ============================================================
+
+use_case_candidates:
+
+  - action: Click "My Clubs" button
+    source: home_student
+    target: my_clubs
+
+  - action: Click "My Membership Fees" button
+    source: home_student
+    target: my_membership_fees
+
+  - action: Click "Payment VNPay" button
+    source: my_membership_fees
+    target: membership_fee_payment
+
+  - action: Click "View payment receipt" button
+    source: my_membership_fees
+    target: membership_fee_receipt_detail
+
+  - action: Click club card
+    source: my_clubs
+    target: member_club_detail
+
+  - action: Click "View all" button
+    source: member_club_detail
+    target: all_club_events
+
+  - action: Click event card
+    source: all_club_events
+    target: event_detail
+
+  - action: Click "Leave Club" button
+    source: member_club_detail
+    target: leave_club
+
+  - action: Click "View all members" button
+    source: member_club_detail
+    target: club_member_list
+
+  - action: Click "Ranking" button
+    source: member_club_detail
+    target: club_leaderboard
+
+  - action: Click "My point history" button
+    source: club_leaderboard
+    target: my_point_history
+
+  - action: Click "Point Rules" button
+    source: member_club_detail
+    target: point_rules
+
+  - action: Click "Rewards" button
+    source: member_club_detail
+    target: rewards
+
+  - action: Click reward card
+    source: rewards
+    target: reward_detail
+
+  - action: Click "Redeem reward" button
+    source: reward_detail
+    target: redeem_reward_popup
+
+  - action: Click "Reward redemption history" button
+    source: member_club_detail
+    target: reward_redemption_history
+
+  - action: Click "View detail" button
+    source: reward_redemption_history
+    target: reward_history_detail
+
+  - action: Click "Schedule" button
+    source: member_club_detail
+    target: activity_schedule
+
+  - action: Click activity card
+    source: activity_schedule
+    target: activity_detail
+
+  - action: Click "Fees" button
+    source: member_club_detail
+    target: club_fees
+
+  - action: Click "Payment VNPay" button
+    source: club_fees
+    target: vnpay_payment
+
+  - action: Click "View payment receipt" button
+    source: club_fees
+    target: club_fee_receipt_detail
+
+  - action: Click "Polls" button
+    source: member_club_detail
+    target: polls
+
+  - action: Click "View & Vote" button
+    source: polls
+    target: poll_detail_and_vote

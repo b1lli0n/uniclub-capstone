@@ -1,0 +1,991 @@
+# ============================================================
+# UniClub - Student Screen Flow
+# Source: Student Screen Flow Diagram
+#
+# IMPORTANT:
+# - ui_action/action labels are taken from the screen-flow diagram.
+# - Do NOT infer handler names, API endpoints, validations,
+#   business rules, or database changes from this file.
+# - Fields marked TBD_BY_CODE must be verified from source code
+#   before writing the final Use Case Specification.
+# ============================================================
+
+role:
+  id: STUDENT
+  name: Student
+
+legend:
+  initial_screen: Initial Screen
+  screen: Screen
+  popup: Popup
+
+
+# ============================================================
+# SCREEN DEFINITIONS
+# ============================================================
+
+screens:
+
+  # ----------------------------------------------------------
+  # LOGIN
+  # ----------------------------------------------------------
+
+  - id: login
+    name: Login
+    type: initial_screen
+
+    incoming:
+      - from: logout
+        action: Click "Yes" button
+
+    actions:
+      - id: login_successfully
+        ui_action: Login successfully
+        trigger: system_result
+        target:
+          id: home_student
+          name: Home (Student)
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # HOME
+  # ----------------------------------------------------------
+
+  - id: home_student
+    name: Home (Student)
+    type: screen
+
+    incoming:
+      - from: login
+        action: Login successfully
+
+    actions:
+
+      - id: open_logout
+        ui_action: Click logout icon
+        trigger: click
+        target:
+          id: logout
+          name: Logout
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      - id: open_my_profile
+        ui_action: Click "My profile" button
+        trigger: click
+        target:
+          id: my_profile
+          name: My Profile
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+      - id: open_my_requests
+        ui_action: Click "My requests" button
+        trigger: click
+        target:
+          id: my_request_and_invitations
+          name: My Request & Invitations
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+      - id: open_create_club_request
+        ui_action: Click "Create Club" button
+        trigger: click
+        target:
+          id: request_to_create_club
+          name: Request To Create Club
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+      - id: open_club_list
+        ui_action: Click "Clubs" button
+        trigger: click
+        target:
+          id: list_of_clubs
+          name: List Of Clubs
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+      - id: open_my_events
+        ui_action: Click "My events" button
+        trigger: click
+        target:
+          id: my_events
+          name: My Events
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+      - id: open_public_events
+        ui_action: Click "Events" button
+        trigger: click
+        target:
+          id: public_event
+          name: Public Event
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # LOGOUT
+  # ----------------------------------------------------------
+
+  - id: logout
+    name: Logout
+    type: popup
+
+    incoming:
+      - from: home_student
+        action: Click logout icon
+
+    actions:
+
+      - id: confirm_logout
+        ui_action: Click "Yes" button
+        trigger: click
+        target:
+          id: login
+          name: Login
+          type: initial_screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # PROFILE
+  # ----------------------------------------------------------
+
+  - id: my_profile
+    name: My Profile
+    type: screen
+
+    incoming:
+      - from: home_student
+        action: Click "My profile" button
+
+    actions:
+
+      - id: open_update_profile
+        ui_action: Click "Edit" button
+        trigger: click
+        target:
+          id: update_profile
+          name: Update Profile
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  - id: update_profile
+    name: Update Profile
+    type: popup
+
+    incoming:
+      - from: my_profile
+        action: Click "Edit" button
+
+    implementation:
+      form_fields: TBD_BY_CODE
+      validation: TBD_BY_CODE
+      submit_handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # JOIN REQUESTS & INVITATIONS
+  # ----------------------------------------------------------
+
+  - id: my_request_and_invitations
+    name: My Request & Invitations
+    type: screen
+
+    incoming:
+      - from: home_student
+        action: Click "My requests" button
+
+    actions:
+
+      - id: view_join_request_detail
+        ui_action: Click "View Details" button
+        trigger: click
+        target:
+          id: join_request_detail
+          name: Join Request Detail
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          selected_item: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      - id: cancel_join_request
+        ui_action: Click "Cancel request" button
+        trigger: click
+        target:
+          id: cancel_join_request_popup
+          name: Cancel Join Request
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          validation: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      - id: open_received_invitation
+        ui_action: Click "Received invitation" button
+        trigger: click
+        target:
+          id: received_invitation
+          name: Received Invitation
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+
+
+  - id: join_request_detail
+    name: Join Request Detail
+    type: popup
+
+    incoming:
+      - from: my_request_and_invitations
+        action: Click "View Details" button
+
+    implementation:
+      displayed_data: TBD_BY_CODE
+      data_source: TBD_BY_CODE
+      api: TBD_BY_CODE
+
+
+  - id: cancel_join_request_popup
+    name: Cancel Join Request
+    type: popup
+
+    incoming:
+      - from: my_request_and_invitations
+        action: Click "Cancel request" button
+
+    implementation:
+      confirmation_action: TBD_BY_CODE
+      handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # RECEIVED INVITATIONS
+  # ----------------------------------------------------------
+
+  - id: received_invitation
+    name: Received Invitation
+    type: screen
+
+    incoming:
+      - from: my_request_and_invitations
+        action: Click "Received invitation" button
+
+    actions:
+
+      - id: view_received_invitation_detail
+        ui_action: Click "View Details" button
+        trigger: click
+        target:
+          id: received_detail
+          name: Received Detail
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          selected_item: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      - id: accept_reject_invitation
+        ui_action: Click "Accept/Reject" button
+        trigger: click
+        target:
+          id: accept_reject_club_invitation
+          name: Accept/Reject Club Invitation
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          validation: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  - id: received_detail
+    name: Received Detail
+    type: popup
+
+    incoming:
+      - from: received_invitation
+        action: Click "View Details" button
+
+    implementation:
+      displayed_data: TBD_BY_CODE
+      data_source: TBD_BY_CODE
+      api: TBD_BY_CODE
+
+
+  - id: accept_reject_club_invitation
+    name: Accept/Reject Club Invitation
+    type: popup
+
+    incoming:
+      - from: received_invitation
+        action: Click "Accept/Reject" button
+
+    implementation:
+      accept_handler: TBD_BY_CODE
+      reject_handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      validation: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # CREATE CLUB
+  # ----------------------------------------------------------
+
+  - id: request_to_create_club
+    name: Request To Create Club
+    type: screen
+
+    incoming:
+      - from: home_student
+        action: Click "Create Club" button
+
+    implementation:
+      form_fields: TBD_BY_CODE
+      validation: TBD_BY_CODE
+      submit_handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # CLUB LIST
+  # ----------------------------------------------------------
+
+  - id: list_of_clubs
+    name: List Of Clubs
+    type: screen
+
+    incoming:
+      - from: home_student
+        action: Click "Clubs" button
+
+    actions:
+
+      - id: view_club_detail
+        ui_action: Click club card
+        trigger: click
+        target:
+          id: club_detail
+          name: Club Detail
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+          selected_club: TBD_BY_CODE
+
+
+  - id: club_detail
+    name: Club Detail
+    type: screen
+
+    incoming:
+      - from: list_of_clubs
+        action: Click club card
+
+    actions:
+
+      - id: request_join_club
+        ui_action: Click "Join now" button
+        trigger: click
+        target:
+          id: request_to_join_club
+          name: Request To Join Club
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          validation: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  - id: request_to_join_club
+    name: Request To Join Club
+    type: popup
+
+    incoming:
+      - from: club_detail
+        action: Click "Join now" button
+
+    implementation:
+      form_fields: TBD_BY_CODE
+      validation: TBD_BY_CODE
+      submit_handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # MY EVENTS
+  # ----------------------------------------------------------
+
+  - id: my_events
+    name: My Events
+    type: screen
+
+    incoming:
+      - from: home_student
+        action: Click "My events" button
+
+    actions:
+
+      - id: view_my_event_detail
+        ui_action: Click event card
+        trigger: click
+        target:
+          id: event_detail
+          name: Event Detail
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+          selected_event: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # PUBLIC EVENTS
+  # ----------------------------------------------------------
+
+  - id: public_event
+    name: Public Event
+    type: screen
+
+    incoming:
+      - from: home_student
+        action: Click "Events" button
+
+    actions:
+
+      - id: view_public_event_detail
+        ui_action: Click event card
+        trigger: click
+        target:
+          id: event_detail
+          name: Event Detail
+          type: screen
+
+        implementation:
+          handler: TBD_BY_CODE
+          route: TBD_BY_CODE
+          selected_event: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # EVENT DETAIL
+  # ----------------------------------------------------------
+
+  - id: event_detail
+    name: Event Detail
+    type: screen
+
+    incoming:
+
+      - from: my_events
+        action: Click event card
+
+      - from: public_event
+        action: Click event card
+
+    actions:
+
+      - id: register_for_event
+        ui_action: Click "Register for event" button
+        trigger: click
+        target:
+          id: register_for_event_popup
+          name: Register For Event
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          validation: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      - id: cancel_event_registration
+        ui_action: Click "Cancel registration" button
+        trigger: click
+        target:
+          id: cancel_event_registration_popup
+          name: Cancel Event Registration
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          validation: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      - id: view_registration_info
+        ui_action: Click "View registration info" button
+        trigger: click
+        target:
+          id: check_in_event
+          name: Check-in Event
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          validation: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+      - id: write_edit_feedback
+        ui_action: Click "Write/Edit feedback" button
+        trigger: click
+        target:
+          id: feedback
+          name: Feedback
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          validation: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # REGISTER FOR EVENT
+  # ----------------------------------------------------------
+
+  - id: register_for_event_popup
+    name: Register For Event
+    type: popup
+
+    incoming:
+      - from: event_detail
+        action: Click "Register for event" button
+
+    implementation:
+      form_fields: TBD_BY_CODE
+      confirmation_action: TBD_BY_CODE
+      validation: TBD_BY_CODE
+      handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # CANCEL EVENT REGISTRATION
+  # ----------------------------------------------------------
+
+  - id: cancel_event_registration_popup
+    name: Cancel Event Registration
+    type: popup
+
+    incoming:
+      - from: event_detail
+        action: Click "Cancel registration" button
+
+    implementation:
+      confirmation_action: TBD_BY_CODE
+      validation: TBD_BY_CODE
+      handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # CHECK-IN EVENT
+  # ----------------------------------------------------------
+
+  - id: check_in_event
+    name: Check-in Event
+    type: popup
+
+    incoming:
+      - from: event_detail
+        action: Click "View registration info" button
+
+    implementation:
+      displayed_data: TBD_BY_CODE
+      check_in_method: TBD_BY_CODE
+      validation: TBD_BY_CODE
+      handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # FEEDBACK
+  # ----------------------------------------------------------
+
+  - id: feedback
+    name: Feedback
+    type: popup
+
+    incoming:
+      - from: event_detail
+        action: Click "Write/Edit feedback" button
+
+    actions:
+
+      - id: delete_feedback
+        ui_action: Click "Delete" button
+        trigger: click
+        target:
+          id: delete_feedback_event
+          name: Delete Feedback Event
+          type: popup
+
+        implementation:
+          handler: TBD_BY_CODE
+          service: TBD_BY_CODE
+          api: TBD_BY_CODE
+          behavior: TBD_BY_CODE
+
+    implementation:
+      form_fields: TBD_BY_CODE
+      create_handler: TBD_BY_CODE
+      update_handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      validation: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+  # ----------------------------------------------------------
+  # DELETE FEEDBACK
+  # ----------------------------------------------------------
+
+  - id: delete_feedback_event
+    name: Delete Feedback Event
+    type: popup
+
+    incoming:
+      - from: feedback
+        action: Click "Delete" button
+
+    implementation:
+      confirmation_action: TBD_BY_CODE
+      handler: TBD_BY_CODE
+      service: TBD_BY_CODE
+      api: TBD_BY_CODE
+      validation: TBD_BY_CODE
+      success_behavior: TBD_BY_CODE
+      error_behavior: TBD_BY_CODE
+
+
+# ============================================================
+# NAVIGATION / INTERACTION FLOW
+# ============================================================
+
+flows:
+
+  # Authentication
+
+  - from: login
+    action: Login successfully
+    to: home_student
+
+  - from: home_student
+    action: Click logout icon
+    to: logout
+
+  - from: logout
+    action: Click "Yes" button
+    to: login
+
+
+  # Profile
+
+  - from: home_student
+    action: Click "My profile" button
+    to: my_profile
+
+  - from: my_profile
+    action: Click "Edit" button
+    to: update_profile
+
+
+  # Requests & Invitations
+
+  - from: home_student
+    action: Click "My requests" button
+    to: my_request_and_invitations
+
+  - from: my_request_and_invitations
+    action: Click "View Details" button
+    to: join_request_detail
+
+  - from: my_request_and_invitations
+    action: Click "Cancel request" button
+    to: cancel_join_request_popup
+
+  - from: my_request_and_invitations
+    action: Click "Received invitation" button
+    to: received_invitation
+
+  - from: received_invitation
+    action: Click "View Details" button
+    to: received_detail
+
+  - from: received_invitation
+    action: Click "Accept/Reject" button
+    to: accept_reject_club_invitation
+
+
+  # Create Club
+
+  - from: home_student
+    action: Click "Create Club" button
+    to: request_to_create_club
+
+
+  # Clubs
+
+  - from: home_student
+    action: Click "Clubs" button
+    to: list_of_clubs
+
+  - from: list_of_clubs
+    action: Click club card
+    to: club_detail
+
+  - from: club_detail
+    action: Click "Join now" button
+    to: request_to_join_club
+
+
+  # My Events
+
+  - from: home_student
+    action: Click "My events" button
+    to: my_events
+
+  - from: my_events
+    action: Click event card
+    to: event_detail
+
+
+  # Public Events
+
+  - from: home_student
+    action: Click "Events" button
+    to: public_event
+
+  - from: public_event
+    action: Click event card
+    to: event_detail
+
+
+  # Event Actions
+
+  - from: event_detail
+    action: Click "Register for event" button
+    to: register_for_event_popup
+
+  - from: event_detail
+    action: Click "Cancel registration" button
+    to: cancel_event_registration_popup
+
+  - from: event_detail
+    action: Click "View registration info" button
+    to: check_in_event
+
+  - from: event_detail
+    action: Click "Write/Edit feedback" button
+    to: feedback
+
+  - from: feedback
+    action: Click "Delete" button
+    to: delete_feedback_event
+
+
+# ============================================================
+# USE CASE CANDIDATES
+#
+# These are derived only from user-visible actions in the
+# supplied screen flow. Their internal logic MUST be verified
+# against source code before final Use Case Specification.
+# ============================================================
+
+use_case_candidates:
+
+  - action: Login successfully
+    source: login
+    target: home_student
+
+  - action: Click logout icon
+    source: home_student
+    target: logout
+
+  - action: Click "Yes" button
+    source: logout
+    target: login
+
+  - action: Click "My profile" button
+    source: home_student
+    target: my_profile
+
+  - action: Click "Edit" button
+    source: my_profile
+    target: update_profile
+
+  - action: Click "My requests" button
+    source: home_student
+    target: my_request_and_invitations
+
+  - action: Click "View Details" button
+    source: my_request_and_invitations
+    target: join_request_detail
+
+  - action: Click "Cancel request" button
+    source: my_request_and_invitations
+    target: cancel_join_request_popup
+
+  - action: Click "Received invitation" button
+    source: my_request_and_invitations
+    target: received_invitation
+
+  - action: Click "View Details" button
+    source: received_invitation
+    target: received_detail
+
+  - action: Click "Accept/Reject" button
+    source: received_invitation
+    target: accept_reject_club_invitation
+
+  - action: Click "Create Club" button
+    source: home_student
+    target: request_to_create_club
+
+  - action: Click "Clubs" button
+    source: home_student
+    target: list_of_clubs
+
+  - action: Click club card
+    source: list_of_clubs
+    target: club_detail
+
+  - action: Click "Join now" button
+    source: club_detail
+    target: request_to_join_club
+
+  - action: Click "My events" button
+    source: home_student
+    target: my_events
+
+  - action: Click event card
+    source: my_events
+    target: event_detail
+
+  - action: Click "Events" button
+    source: home_student
+    target: public_event
+
+  - action: Click event card
+    source: public_event
+    target: event_detail
+
+  - action: Click "Register for event" button
+    source: event_detail
+    target: register_for_event_popup
+
+  - action: Click "Cancel registration" button
+    source: event_detail
+    target: cancel_event_registration_popup
+
+  - action: Click "View registration info" button
+    source: event_detail
+    target: check_in_event
+
+  - action: Click "Write/Edit feedback" button
+    source: event_detail
+    target: feedback
+
+  - action: Click "Delete" button
+    source: feedback
+    target: delete_feedback_event
