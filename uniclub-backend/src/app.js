@@ -34,7 +34,8 @@ const memberPaymentRoutes = require("./routes/member/payment.routes");
 const treasurerTransactionManagementRoutes = require("./routes/treasurer/transactionManagement.routes");
 const memberPollRoutes = require("./routes/member/poll.routes");
 const secretaryPollRoutes = require("./routes/secretary/poll.routes");
-const eventRequestRoutes = require("./routes/eventRequest.route");
+const eventManagerEventRequestRoutes = require("./routes/eventManager/eventRequest.routes");
+const studentAffairsEventRequestRoutes = require("./routes/studentAffairs/eventRequestManagement.routes");
 
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
@@ -88,7 +89,8 @@ app.use("/api/member/payment", memberPaymentRoutes);
 app.use("/api/treasurer/transaction-management", treasurerTransactionManagementRoutes);
 app.use("/api/member/invitation-management", memberInvitationManagementRoutes);
 app.use("/api/secretary/invitation-management", secretaryInvitationManagementRoutes);
-app.use("/api/event-requests", eventRequestRoutes);
+app.use("/api/event-manager/event-requests", eventManagerEventRequestRoutes);
+app.use("/api/student-affairs/event-requests", studentAffairsEventRequestRoutes);
 
 app.get("/", (req, res) => {
   return res.status(200).json({

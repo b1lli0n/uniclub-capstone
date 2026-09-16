@@ -1,29 +1,10 @@
-const eventRequestService = require("../services/eventRequest.service");
+const eventRequestService = require("../../services/eventRequest.service");
 
-const createEventRequest = async (req, res, next) => {
-  try {
-    const { clubId } = req.params;
-    const savedRequest = await eventRequestService.createEventRequest({
-      clubId,
-      userId: req.user?.id,
-      userEmail: req.user?.email,
-      body: req.body,
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: "Event creation request submitted successfully",
-      data: savedRequest,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
+// Student Affairs: Get all event creation requests
 const getEventRequests = async (req, res, next) => {
   try {
-    const { status } = req.query;
-    const requests = await eventRequestService.getEventRequests({ status });
+    const { status, sort } = req.query;
+    const requests = await eventRequestService.getEventRequests({ status, sort });
 
     return res.status(200).json({
       success: true,
@@ -34,19 +15,7 @@ const getEventRequests = async (req, res, next) => {
   }
 };
 
-const getMyEventRequests = async (req, res, next) => {
-  try {
-    const requests = await eventRequestService.getMyEventRequests(req.user.id);
-
-    return res.status(200).json({
-      success: true,
-      data: requests,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
+// Student Affairs: Get detail of an event request
 const getEventRequestDetail = async (req, res, next) => {
   try {
     const { requestId } = req.params;
@@ -61,6 +30,7 @@ const getEventRequestDetail = async (req, res, next) => {
   }
 };
 
+// Student Affairs: Review an event request (Approve / Reject)
 const reviewEventRequest = async (req, res, next) => {
   try {
     const { requestId } = req.params;
@@ -85,9 +55,7 @@ const reviewEventRequest = async (req, res, next) => {
 };
 
 module.exports = {
-  createEventRequest,
   getEventRequests,
-  getMyEventRequests,
   getEventRequestDetail,
   reviewEventRequest,
 };

@@ -273,30 +273,6 @@
   gap: 6px;
 }
 
-.club-point-rule-card__delete-btn {
-  width: 32px;
-  height: 32px;
-  border: 0;
-  border-radius: 10px;
-  background: #fff1ef;
-  color: #d32f2f;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.club-point-rule-card__delete-btn:hover {
-  background: #ffe0b2;
-  color: #b71c1c;
-}
-
-.club-point-rule-card__delete-btn svg {
-  width: 17px;
-  height: 17px;
-}
-
 .club-point-rules-empty {
   grid-column: 1 / -1;
   background: #fff;

@@ -145,7 +145,10 @@ const awardPointsManually = async (presidentId, clubId, memberId, { rule_id, rew
     throw getStatusError("Invalid club ID or member ID", 400);
   }
 
-  const member = await ClubMember.findOne({ _id: memberId, club_id: clubId, status: "active" });
+  let member = await ClubMember.findOne({ _id: memberId, club_id: clubId, status: "active" });
+  if (!member) {
+    member = await ClubMember.findOne({ user_id: memberId, club_id: clubId, status: "active" });
+  }
   if (!member) {
     throw getStatusError("Active club member not found", 404);
   }

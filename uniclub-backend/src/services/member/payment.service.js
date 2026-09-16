@@ -131,16 +131,10 @@ function parsePaging(options = {}) {
 
 function normalizeStatus(status) {
   if (status === undefined || status === null || status === '') return null
-  if (typeof status === 'number') {
-    return [PAYMENT_STATUS.PENDING, PAYMENT_STATUS.SUCCESS, PAYMENT_STATUS.FAILED].includes(status)
-      ? status
-      : null
-  }
-
-  const value = String(status).trim()
-  if (['0', '1', '2'].includes(value)) {
-    return Number(value)
-  }
+  const value = String(status).trim().toLowerCase()
+  if (['0', 'pending'].includes(value)) return PAYMENT_STATUS.PENDING
+  if (['1', 'success', 'paid'].includes(value)) return PAYMENT_STATUS.SUCCESS
+  if (['2', 'failed'].includes(value)) return PAYMENT_STATUS.FAILED
   return null
 }
 
@@ -496,9 +490,9 @@ async function getReceiptDetail(clubId, userId, receiptId) {
     period: payment.period,
     amount: payment.amount,
     status: payment.status,
-    status_label: payment.status === 1 ? 'SUCCESS' : payment.status === 2 ? 'FAILED' : 'PENDING',
+    status_label: payment.status === 'success' || payment.status === 1 ? 'SUCCESS' : payment.status === 'failed' || payment.status === 2 ? 'FAILED' : 'PENDING',
     payment_method: payment.payment_method,
-    payment_method_label: payment.payment_method === 1 ? 'VNPAY' : 'CASH',
+    payment_method_label: String(payment.payment_method).toLowerCase() === 'cash' || payment.payment_method === 0 ? 'CASH' : 'VNPAY',
     txn_ref: payment.txn_ref,
     vnp_response_code: payment.vnp_response_code,
     order_info: payment.order_info,
@@ -508,9 +502,46 @@ async function getReceiptDetail(clubId, userId, receiptId) {
   }
 }
 
+async function payFeeWithCash({ clubId, requesterId, paymentId }) {
+  if (!mongoose.isValidObjectId(clubId)) {
+    throw new Error('Invalid club_id')
+  }
+  if (!mongoose.isValidObjectId(paymentId)) {
+    throw new Error('Invalid payment_id')
+  }
+
+  const membership = await getActiveMembership(clubId, requesterId)
+
+  // Only club officers (president, treasurer, manager, vice_president) can confirm cash payments
+  const isOfficer = ['president', 'treasurer', 'manager', 'vice_president'].includes(membership.role)
+
+  if (!isOfficer) {
+    throw new Error('Chỉ Thủ quỹ hoặc Ban chủ nhiệm CLB mới có quyền xác nhận thu tiền mặt. Vui lòng nộp tiền cho Thủ quỹ.')
+  }
+
+  const payment = await Payment.findById(paymentId)
+
+  if (!payment) {
+    throw new Error('Payment record not found')
+  }
+
+  if (payment.status === PAYMENT_STATUS.SUCCESS || payment.status === 'success' || payment.status === 1) {
+    throw new Error('Payment is already completed')
+  }
+
+  payment.payment_method = PAYMENT_METHOD.CASH
+  payment.status = PAYMENT_STATUS.SUCCESS
+  payment.paid_at = new Date()
+  payment.order_info = payment.order_info || `Membership fee payment ${payment.period}`
+  await payment.save()
+
+  return payment
+}
+
 module.exports = {
   listFeeOfUser,
   createVnpayPaymentUrl,
   handleVnpayCallback,
-  getReceiptDetail
+  getReceiptDetail,
+  payFeeWithCash
 }

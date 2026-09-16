@@ -4,5 +4,6 @@ export const CLUB_INVITATION_STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
   { value: 'accepted', label: 'Accepted' },
   { value: 'rejected', label: 'Declined' },
+  { value: 'expired', label: 'Expired' },
   { value: 'cancelled', label: 'Cancelled' },
 ]

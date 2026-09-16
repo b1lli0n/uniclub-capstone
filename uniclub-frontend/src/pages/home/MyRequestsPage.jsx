@@ -297,6 +297,14 @@ function MyRequestsPage() {
                   <dd>{item.role || 'Member'}</dd>
                 </div>
               ) : null}
+              {activeTab === 'received' && item.expiresAt ? (
+                <div>
+                  <dt>Expires At</dt>
+                  <dd style={{ color: item.status === 'expired' ? '#dc2626' : 'inherit', fontWeight: item.status === 'expired' ? 700 : 'normal' }}>
+                    {item.expiresAt}
+                  </dd>
+                </div>
+              ) : null}
             </dl>
 
             <div className="my-request-card__actions">
@@ -461,6 +469,14 @@ function MyRequestsPage() {
                 <span>{activeTab === 'received' ? 'Received Date' : 'Sent Date'}</span>
                 <strong>{detailTarget.sentTime} {detailTarget.sentDate}</strong>
               </div>
+              {detailTarget.expiresAt ? (
+                <div className="request-detail-modal__item">
+                  <span>Expires At (Hạn chót)</span>
+                  <strong style={{ color: detailTarget.status === 'expired' ? '#dc2626' : 'inherit' }}>
+                    {detailTarget.expiresAt} {detailTarget.status === 'expired' ? '(Expired)' : ''}
+                  </strong>
+                </div>
+              ) : null}
             </div>
           </section>
         </div>

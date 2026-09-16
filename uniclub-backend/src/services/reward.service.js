@@ -358,13 +358,17 @@ const getRedemptionHistory = async ({
   };
 
   if (status) {
-    const allowedStatuses = ["pending", "approved", "rejected"];
+    const allowedStatuses = ["pending", "approved", "rejected", "reviewed"];
 
     if (!allowedStatuses.includes(status)) {
       throw getStatusError("Invalid redemption status", 400);
     }
 
-    filter.status = status;
+    if (status === "reviewed") {
+      filter.status = { $in: ["approved", "rejected"] };
+    } else {
+      filter.status = status;
+    }
   }
 
   if (rewardId) {

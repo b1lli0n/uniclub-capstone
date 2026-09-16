@@ -11,17 +11,27 @@ const transactionSchema = new Schema(
       required: true,
       index: true,
     },
+    fee_id: {
+      type: Schema.Types.ObjectId,
+      default: null,
+      index: true,
+    },
     type: {
       type: String,
       required: true,
       enum: ["income", "expense"],
       default: "income",
     },
+    category: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     title: {
       type: String,
-      required: true,
       trim: true,
       maxlength: 100,
+      default: "",
     },
     period: {
       type: String,

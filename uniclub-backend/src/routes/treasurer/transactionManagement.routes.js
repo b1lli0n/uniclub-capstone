@@ -44,7 +44,7 @@ router.patch(
   "/:clubId/transactions/:transactionId",
   verifyToken,
   authorize(["student"]),
-  requireClubRole(["president", "treasurer"], "clubId"),
+  requireClubRole(["president"], "clubId"),
   transactionController.updateTransactionRequest
 );
 

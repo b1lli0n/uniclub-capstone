@@ -61,7 +61,8 @@ const normalizeTimeString = (time) => {
 
 /**
  * Builds a valid timeline Date object anchoring to event start/end times.
- * Supports explicit timeline_at or automatically finds the right day in event duration.
+ * Enforces that the resolved datetime falls strictly within [event.start_time, event.end_time].
+ * Throws a 400 error if the timeline falls outside the event duration.
  */
 const buildTimelineDate = ({ event, time, timeline_at }) => {
   const normalizedTime = normalizeTimeString(time);
@@ -70,59 +71,70 @@ const buildTimelineDate = ({ event, time, timeline_at }) => {
   const eventStart = new Date(event.start_time);
   const eventEnd = new Date(event.end_time);
 
-  // Nếu người dùng chỉ định rõ timeline_at (hoặc ngày cụ thể cho sự kiện nhiều ngày)
+  /**
+   * Helper: format a Date as "HH:mm DD/MM/YYYY" for readable error messages.
+   */
+  const fmt = (d) => {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  };
+
+  let candidate;
+
   if (timeline_at) {
-    const candidate = new Date(timeline_at);
-    if (!Number.isNaN(candidate.getTime())) {
-      candidate.setHours(hour, minute, 0, 0);
-      return {
-        time: normalizedTime,
-        timeline_at: candidate,
-      };
+    // Explicit date provided — apply the requested time on that date
+    candidate = new Date(timeline_at);
+    if (Number.isNaN(candidate.getTime())) {
+      throw createError("Invalid timeline_at date", 400);
+    }
+    candidate.setHours(hour, minute, 0, 0);
+  } else {
+    // No explicit date — try to place the time on the event's start date first,
+    // then on each subsequent day within the event duration.
+    const startDay = new Date(eventStart);
+    startDay.setHours(0, 0, 0, 0);
+
+    const endDay = new Date(eventEnd);
+    endDay.setHours(23, 59, 59, 999);
+
+    const maxDays = Math.min(
+      30,
+      Math.max(1, Math.ceil((endDay.getTime() - startDay.getTime()) / (1000 * 60 * 60 * 24)))
+    );
+
+    candidate = null;
+    for (let i = 0; i < maxDays; i++) {
+      const attempt = new Date(startDay);
+      attempt.setDate(attempt.getDate() + i);
+      attempt.setHours(hour, minute, 0, 0);
+
+      // Accept the first datetime that falls strictly within event bounds
+      if (attempt >= eventStart && attempt <= eventEnd) {
+        candidate = attempt;
+        break;
+      }
+    }
+
+    // No valid slot found within the event window
+    if (!candidate) {
+      throw createError(
+        `Timeline ${normalizedTime} is outside event hours (${fmt(eventStart)} – ${fmt(eventEnd)}).`,
+        400
+      );
     }
   }
 
-  const startDay = new Date(eventStart);
-  startDay.setHours(0, 0, 0, 0);
-
-  const endDay = new Date(eventEnd);
-  endDay.setHours(23, 59, 59, 999);
-
-  // Tính các ngày ứng viên trong khoảng thời gian diễn ra sự kiện
-  const candidates = [];
-  const maxDays = Math.min(
-    30,
-    Math.max(1, Math.ceil((endDay.getTime() - startDay.getTime()) / (1000 * 60 * 60 * 24)))
-  );
-
-  for (let i = 0; i < maxDays; i++) {
-    const candidate = new Date(startDay);
-    candidate.setDate(candidate.getDate() + i);
-    candidate.setHours(hour, minute, 0, 0);
-    candidates.push(candidate);
-  }
-
-  // Ưu tiên 1: nằm đúng trong [event.start_time, event.end_time]
-  let matchedDate = candidates.find(
-    (candidate) => candidate >= eventStart && candidate <= eventEnd
-  );
-
-  // Ưu tiên 2: nằm trong các ngày diễn ra sự kiện (cho phép chuẩn bị trước hoặc dọn dẹp sau giờ)
-  if (!matchedDate) {
-    matchedDate = candidates.find(
-      (candidate) => candidate >= startDay && candidate <= endDay
+  // Final strict check — applies to both explicit and auto-resolved candidates
+  if (candidate < eventStart || candidate > eventEnd) {
+    throw createError(
+      `Timeline ${normalizedTime} is outside event hours (${fmt(eventStart)} – ${fmt(eventEnd)}).`,
+      400
     );
-  }
-
-  // Mặc định: ngày bắt đầu sự kiện
-  if (!matchedDate) {
-    matchedDate = new Date(eventStart);
-    matchedDate.setHours(hour, minute, 0, 0);
   }
 
   return {
     time: normalizedTime,
-    timeline_at: matchedDate,
+    timeline_at: candidate,
   };
 };
 

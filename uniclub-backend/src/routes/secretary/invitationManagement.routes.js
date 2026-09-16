@@ -11,7 +11,7 @@ const {
 
 const router = express.Router();
 
-const committeeRoles = ["president", "leader", "secretary"];
+const committeeRoles = ["president", "secretary"];
 
 router.get(
   "/:clubId/invitations",

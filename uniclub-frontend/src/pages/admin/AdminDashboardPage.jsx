@@ -193,6 +193,7 @@ function AdminDashboardPage({ onLogout }) {
   const [clubSearchQuery, setClubSearchQuery] = useState('')
   const [detailRequest, setDetailRequest] = useState(null)
   const [selectedActiveClub, setSelectedActiveClub] = useState(null)
+  const [clubToUpdate, setClubToUpdate] = useState(null)
   const [isUpdateClubModalOpen, setIsUpdateClubModalOpen] = useState(false)
   const [updatingClub, setUpdatingClub] = useState(false)
   const [clubFormData, setClubFormData] = useState({
@@ -484,6 +485,7 @@ function AdminDashboardPage({ onLogout }) {
 
   function handleOpenUpdateClubModal(club) {
     if (!club) return
+    setClubToUpdate(club)
     setClubFormData({
       name: club.clubName || club.name || '',
       category: club.category || 'Arts',
@@ -528,7 +530,8 @@ function AdminDashboardPage({ onLogout }) {
 
   async function handleUpdateClubSubmit(e) {
     e.preventDefault()
-    if (!selectedActiveClub?.id) return
+    const targetClub = selectedActiveClub || clubToUpdate
+    if (!targetClub?.id) return
 
     if (!clubFormData.name.trim()) {
       showToast({
@@ -549,7 +552,7 @@ function AdminDashboardPage({ onLogout }) {
         logo_url: clubFormData.logo_url.trim(),
       }
 
-      await updateClub(selectedActiveClub.id, payload)
+      await updateClub(targetClub.id, payload)
 
       const updatedName = payload.name
       const updatedCategory = payload.category
@@ -559,7 +562,7 @@ function AdminDashboardPage({ onLogout }) {
 
       setActiveClubs((clubs) =>
         clubs.map((club) =>
-          club.id === selectedActiveClub.id
+          club.id === targetClub.id
             ? {
                 ...club,
                 clubName: updatedName,
@@ -573,21 +576,24 @@ function AdminDashboardPage({ onLogout }) {
         )
       )
 
-      setSelectedActiveClub((prev) =>
-        prev
-          ? {
-              ...prev,
-              clubName: updatedName,
-              name: updatedName,
-              category: updatedCategory,
-              slogan: updatedSlogan,
-              description: updatedDesc,
-              logoUrl: updatedLogo,
-            }
-          : prev
-      )
+      if (selectedActiveClub?.id === targetClub.id) {
+        setSelectedActiveClub((prev) =>
+          prev
+            ? {
+                ...prev,
+                clubName: updatedName,
+                name: updatedName,
+                category: updatedCategory,
+                slogan: updatedSlogan,
+                description: updatedDesc,
+                logoUrl: updatedLogo,
+              }
+            : prev
+        )
+      }
 
       setIsUpdateClubModalOpen(false)
+      setClubToUpdate(null)
       showToast({
         type: 'success',
         title: 'Club updated',
@@ -1101,6 +1107,44 @@ function AdminDashboardPage({ onLogout }) {
                 <span className="admin-row-actions">
                   <button
                     type="button"
+                    className={`admin-toggle-status-btn admin-toggle-status-btn--${item.status === 'inactive' ? 'activate' : 'deactivate'}`}
+                    title={item.status === 'inactive' ? `Activate ${item.clubName}` : `Deactivate ${item.clubName}`}
+                    aria-label={item.status === 'inactive' ? `Activate ${item.clubName}` : `Deactivate ${item.clubName}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleToggleClubStatus(item.id, item.status || 'active')
+                    }}
+                  >
+                    {item.status === 'inactive' ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" strokeLinecap="round" />
+                      </svg>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="admin-update-btn"
+                    title={`Update ${item.clubName}`}
+                    aria-label={`Update ${item.clubName}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleOpenUpdateClubModal(item)
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+
+                  <button
+                    type="button"
                     className="admin-view-btn"
                     title={`View ${item.clubName}`}
                     aria-label={`View ${item.clubName}`}
@@ -1192,7 +1236,8 @@ function AdminDashboardPage({ onLogout }) {
   }
 
   function renderUpdateClubModal() {
-    if (!isUpdateClubModalOpen || !selectedActiveClub) return null
+    const targetClub = selectedActiveClub || clubToUpdate
+    if (!isUpdateClubModalOpen || !targetClub) return null
 
     return (
       <div
@@ -1205,7 +1250,12 @@ function AdminDashboardPage({ onLogout }) {
           type="button"
           className="admin-modal-backdrop"
           aria-label="Close modal overlay"
-          onClick={() => !updatingClub && setIsUpdateClubModalOpen(false)}
+          onClick={() => {
+            if (!updatingClub) {
+              setIsUpdateClubModalOpen(false)
+              setClubToUpdate(null)
+            }
+          }}
         />
         <div className="admin-modal-card admin-update-club-modal">
           <div className="admin-modal-header">
@@ -1218,7 +1268,7 @@ function AdminDashboardPage({ onLogout }) {
               </div>
               <div>
                 <h3 id="update-club-title">Update Club Information</h3>
-                <p>Modify details for <strong>{selectedActiveClub.clubName}</strong></p>
+                <p>Modify details for <strong>{targetClub.clubName}</strong></p>
               </div>
             </div>
             <button
@@ -1226,7 +1276,10 @@ function AdminDashboardPage({ onLogout }) {
               className="admin-modal-close"
               aria-label="Close modal"
               disabled={updatingClub}
-              onClick={() => setIsUpdateClubModalOpen(false)}
+              onClick={() => {
+                setIsUpdateClubModalOpen(false)
+                setClubToUpdate(null)
+              }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18" strokeLinecap="round" strokeLinejoin="round" />
@@ -1388,7 +1441,10 @@ function AdminDashboardPage({ onLogout }) {
                 type="button"
                 className="admin-btn-secondary"
                 disabled={updatingClub}
-                onClick={() => setIsUpdateClubModalOpen(false)}
+                onClick={() => {
+                  setIsUpdateClubModalOpen(false)
+                  setClubToUpdate(null)
+                }}
               >
                 Cancel
               </button>

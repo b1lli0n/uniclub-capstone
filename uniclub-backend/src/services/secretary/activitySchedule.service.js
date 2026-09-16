@@ -301,6 +301,9 @@ const saveActivityAttendance = async (clubId, activityId, memberAttendanceList, 
     const actualUserId = String(member.user_id);
     const status = checked ? "attended" : "absent";
 
+    const prevAtt = await ActivityAttendance.findOne({ activity_id: activityId, membership_id: member._id });
+    const wasAlreadyAttended = prevAtt && prevAtt.status === "attended";
+
     await ActivityAttendance.findOneAndUpdate(
       { activity_id: activityId, membership_id: member._id },
       {
@@ -309,14 +312,14 @@ const saveActivityAttendance = async (clubId, activityId, memberAttendanceList, 
           club_id: clubId,
           membership_id: member._id,
           status,
-          check_in_time: checked ? new Date() : null,
+          check_in_time: checked ? (prevAtt?.check_in_time || new Date()) : null,
           checked_by: checkedBy,
         },
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    if (checked) {
+    if (checked && !wasAlreadyAttended) {
       const awardRes = await awardRewardPoints({
         clubId,
         userId: actualUserId,
@@ -325,7 +328,7 @@ const saveActivityAttendance = async (clubId, activityId, memberAttendanceList, 
         presidentId: adminUserId,
       });
 
-      if (!awardRes) {
+      if (awardRes && !awardRes.success && awardRes.reason === "rule_not_found") {
         await awardRewardPoints({
           clubId,
           userId: actualUserId,

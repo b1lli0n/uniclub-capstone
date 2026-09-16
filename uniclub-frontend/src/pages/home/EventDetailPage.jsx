@@ -66,6 +66,28 @@ function parseEventEndDate(event) {
 function isEventRegistrationOpen(event) {
   if (!event) return false
   if (event.status === 'closed' || event.status === 'cancelled') return false
+
+  const now = new Date()
+
+  // 1. Check registration window [Registration_Start, Registration_End]
+  const regStart = event.registration_start || event.registrationStart
+  const regEnd = event.registration_end || event.registrationEnd
+
+  if (regStart && now < new Date(regStart)) return false
+  if (regEnd && now > new Date(regEnd)) return false
+
+  // Fallback: If no registration_end is set, cannot register after event start
+  if (!regEnd && event.start_time && now > new Date(event.start_time)) return false
+
+  // 2. Check available slots (Available_Slots > 0)
+  const availableSlots = event.availableSlots !== undefined
+    ? event.availableSlots
+    : (event.capacity !== undefined && event.registeredCount !== undefined
+        ? event.capacity - event.registeredCount
+        : 1)
+  if (availableSlots <= 0) return false
+
+  // 3. Status check
   if (event.start_time) {
     const notEnded = event.end_time ? new Date() <= new Date(event.end_time) : true
     return (event.status === 'opening' || event.status === 'coming_soon' || event.status === 'coming soon' || !event.status) && notEnded
@@ -77,8 +99,14 @@ function isEventRegistrationOpen(event) {
 
 function isBeforeEventStart(event) {
   if (!event) return false
-  if (event.start_time) return new Date() < new Date(event.start_time)
-  return new Date() < parseEventStartDate(event)
+  const now = new Date()
+  if (event.start_time) {
+    const deadline = new Date(new Date(event.start_time).getTime() - 24 * 60 * 60 * 1000)
+    return now <= deadline
+  }
+  const startDate = parseEventStartDate(event)
+  const deadline = new Date(startDate.getTime() - 24 * 60 * 60 * 1000)
+  return now <= deadline
 }
 
 function isEventFeedbackOpen(event) {
@@ -164,6 +192,11 @@ function mapEventFromApi(apiEvent) {
     organizerLogo: resolveClubLogo(apiEvent.club_id?.logo_url, apiEvent.club_id?.name),
     capacity: apiEvent.capacity,
     registeredCount: apiEvent.registeredCount || 0,
+    availableSlots: apiEvent.availableSlots !== undefined 
+      ? apiEvent.availableSlots 
+      : Math.max(0, (apiEvent.capacity || 0) - (apiEvent.registeredCount || 0)),
+    registration_start: apiEvent.registration_start || null,
+    registration_end: apiEvent.registration_end || null,
     isRegistered: apiEvent.isRegistered || false,
     registrationStatus: apiEvent.registrationStatus || null,
     registrationId: apiEvent.registrationId || null,
@@ -280,6 +313,7 @@ function EventDetailPage() {
   const [editingFeedback, setEditingFeedback] = useState(null)
   const [feedbackDraft, setFeedbackDraft] = useState('')
   const [feedbackRating, setFeedbackRating] = useState(5)
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
 
   // Timeline states from feature/fe-event-timeline
   const [timelineModalOpen, setTimelineModalOpen] = useState(false)
@@ -399,7 +433,7 @@ function EventDetailPage() {
   })
   const isOrganizerMember = Boolean(organizerMembership)
   const isDraftEvent = event?.publicationStatus === 'draft' || event?.progress_status === 'draft'
-  const canManageTimeline = isDraftEvent && organizerMembership ? canManageEventOperations(organizerMembership.role) : false
+  const canManageTimeline = organizerMembership && event?.status !== 'cancelled' ? canManageEventOperations(organizerMembership.role) : false
 
   const organizerName = event?.organizerName || 'UniClub'
   const organizerInitial = organizerName.slice(0, 1).toUpperCase()
@@ -484,8 +518,9 @@ function EventDetailPage() {
     submitEvent.preventDefault()
 
     const comment = feedbackDraft.trim()
-    if (!comment) return
+    if (!comment || isSubmittingFeedback) return
 
+    setIsSubmittingFeedback(true)
     try {
       if (editingFeedback) {
         const res = await updateEventFeedbackApi(eventId, { rating: feedbackRating, comment })
@@ -513,6 +548,8 @@ function EventDetailPage() {
         title: 'Feedback failed',
         message: err.message || 'Failed to save feedback.',
       })
+    } finally {
+      setIsSubmittingFeedback(false)
     }
   }
 
@@ -945,6 +982,20 @@ function EventDetailPage() {
                 <span>Participants</span>
                 <strong>{event.registeredCount} / {event.capacity}</strong>
               </div>
+              <div>
+                <span>Available slots</span>
+                <strong style={{ color: (event.availableSlots ?? 1) > 0 ? '#16a34a' : '#dc2626' }}>
+                  {event.availableSlots !== undefined ? `${event.availableSlots} slots` : 'Available'}
+                </strong>
+              </div>
+              {event.registration_start || event.registration_end ? (
+                <div style={{ gridColumn: 'span 2' }}>
+                  <span>Registration window</span>
+                  <strong>
+                    {event.registration_start ? formatDateVN(event.registration_start) : 'Open'} - {event.registration_end ? formatDateVN(event.registration_end) : 'Until event starts'}
+                  </strong>
+                </div>
+              ) : null}
             </div>
 
             <div className="event-detail-register-state">
@@ -963,7 +1014,15 @@ function EventDetailPage() {
               ) : null}
 
               {!registration && !isEventRegistrationOpen(event) ? (
-                <p>Registration is closed because this event has already started.</p>
+                <p>
+                  {(event.availableSlots !== undefined && event.availableSlots <= 0)
+                    ? 'Registration is closed: No available slots remaining (event is full).'
+                    : (event.registration_start && new Date() < new Date(event.registration_start))
+                    ? `Registration has not opened yet. Opens on ${new Date(event.registration_start).toLocaleString('vi-VN')}.`
+                    : (event.registration_end && new Date() > new Date(event.registration_end))
+                    ? `Registration closed on ${new Date(event.registration_end).toLocaleString('vi-VN')}.`
+                    : 'Registration is currently closed for this event.'}
+                </p>
               ) : null}
 
               {registration ? (
@@ -979,7 +1038,7 @@ function EventDetailPage() {
                   ) : registration.checkedIn ? (
                     <p>Cancellation is unavailable after check-in.</p>
                   ) : (
-                    <p>Cancellation is unavailable after the event starts.</p>
+                    <p>Cancellation is unavailable (must be cancelled at least 24 hours before event starts, BR-27).</p>
                   )}
 
                   {registration.status === 'pending' ? (
@@ -1162,20 +1221,21 @@ function EventDetailPage() {
               <button 
                 type="submit" 
                 className="event-detail-feedback-submit" 
-                disabled={!feedbackDraft.trim()}
+                disabled={!feedbackDraft.trim() || isSubmittingFeedback}
                 style={{
                   padding: '0.55rem 1.1rem',
-                  background: '#F57C00',
+                  background: isSubmittingFeedback ? '#ffb74d' : '#F57C00',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '8px',
-                  cursor: 'pointer',
+                  cursor: isSubmittingFeedback ? 'not-allowed' : 'pointer',
                   fontSize: '0.85rem',
                   fontWeight: '600',
-                  boxShadow: '0 2px 6px rgba(245, 124, 0, 0.15)'
+                  boxShadow: '0 2px 6px rgba(245, 124, 0, 0.15)',
+                  opacity: isSubmittingFeedback ? 0.7 : 1,
                 }}
               >
-                {editingFeedback ? 'Save changes' : 'Send feedback'}
+                {isSubmittingFeedback ? 'Submitting...' : (editingFeedback ? 'Save changes' : 'Send feedback')}
               </button>
             </div>
           </form>

@@ -37,7 +37,7 @@ const joinRequestSchema = Schema(
     },
 
     answers: {
-      type: [answerSchema],
+      type: [Schema.Types.Mixed],
       set: (val) => {
         if (Array.isArray(val)) {
           return val.map((ans) => {

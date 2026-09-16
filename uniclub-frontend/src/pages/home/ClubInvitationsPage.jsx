@@ -280,13 +280,8 @@ function ClubInvitationsPage({ clubId }) {
                   </div>
                   <div>
                     <h2>{invitation.recipientName}</h2>
-                    <p>{invitation.recipientEmail}</p>
                     <span>{invitation.recipientMeta}</span>
                   </div>
-                </div>
-                <div className="club-invitation-card__message">
-                  <span>Invitation message</span>
-                  <p>{invitation.message}</p>
                 </div>
                 <div className="club-invitation-card__meta">
                   <span
@@ -294,7 +289,6 @@ function ClubInvitationsPage({ clubId }) {
                   >
                     {statusLabel(invitation.status)}
                   </span>
-                  <small>Sent {invitation.sentAt}</small>
                 </div>
                 <div className="club-invitation-card__actions">
                   <button
@@ -413,7 +407,7 @@ function InvitationDetail({ invitation, canManage, onClose, onCancel, onResend }
               Cancel invitation
             </button>
           ) : null}
-          {(invitation.status === 'declined' || invitation.status === 'cancelled') && canManage ? (
+          {(invitation.status === 'declined' || invitation.status === 'cancelled' || invitation.status === 'expired') && canManage ? (
             <button type="button" className="club-invitation-modal__primary" onClick={onResend}>
               Resend invitation
             </button>

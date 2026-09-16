@@ -131,7 +131,7 @@ export const TEST_SUITES = [
     tests: [
       {
         name: 'Get My Event Creation Requests',
-        endpoint: 'GET /api/event-requests/my-requests',
+        endpoint: 'GET /api/event-manager/event-requests/my-requests',
         fn: () => getMyEventRequests()
       }
     ]

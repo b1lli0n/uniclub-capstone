@@ -273,16 +273,16 @@ export const CLUBS_PER_PAGE = 12
 // BE note: replace this membership list with the clubs/roles returned for CURRENT_USER.
 // The UI consumes MY_CLUB_ITEMS so joined clubs stay separate from the full public club list.
 export const MY_CLUB_MEMBERSHIPS = [
-  { clubId: 'basketball', role: 'Leader', joinedDate: '26/3/2026' },
+  { clubId: 'basketball', role: 'Member', joinedDate: '26/3/2026' },
   { clubId: 'startup', role: 'Member', joinedDate: '26/3/2026' },
-  { clubId: 'music', role: 'Secretary', joinedDate: '26/3/2026' },
+  { clubId: 'music', role: 'Member', joinedDate: '26/3/2026' },
   { clubId: 'dance', role: 'Member', joinedDate: '26/3/2026' },
-  { clubId: 'volunteer', role: 'Treasurer', joinedDate: '26/3/2026' },
-  { clubId: 'debate', role: 'Vice leader', joinedDate: '26/3/2026' },
+  { clubId: 'volunteer', role: 'Member', joinedDate: '26/3/2026' },
+  { clubId: 'debate', role: 'Member', joinedDate: '26/3/2026' },
   // Seeded database ObjectIds
-  { clubId: '6a3c34121f6805a34580c4ae', role: 'Leader', joinedDate: '26/3/2026' },
-  { clubId: '6a3c34121f6805a34580c4b0', role: 'Secretary', joinedDate: '26/3/2026' },
-  { clubId: '6a3c34121f6805a34580c4b2', role: 'Event management', joinedDate: '26/3/2026' },
+  { clubId: '6a3c34121f6805a34580c4ae', role: 'Member', joinedDate: '26/3/2026' },
+  { clubId: '6a3c34121f6805a34580c4b0', role: 'Member', joinedDate: '26/3/2026' },
+  { clubId: '6a3c34121f6805a34580c4b2', role: 'Member', joinedDate: '26/3/2026' },
   { clubId: '6a3c34121f6805a34580c4b4', role: 'Member', joinedDate: '26/3/2026' },
 ]
 
@@ -906,6 +906,7 @@ export const REQUEST_STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
   { value: 'approved', label: 'Approved / Accepted' },
   { value: 'rejected', label: 'Rejected' },
+  { value: 'expired', label: 'Expired' },
 ]
 
 export const MY_REQUEST_ITEMS = [

@@ -4,6 +4,35 @@ const Club = require("../../models/club.model");
 const { getStatusError } = require("../../utils/error");
 const { sendApprovedEmail, sendRejectedEmail } = require("../email.service");
 
+const normalizeAnswers = (answers, formQuestions = []) => {
+  if (!Array.isArray(answers)) return [];
+  return answers.map((ans, idx) => {
+    const qObj = Array.isArray(formQuestions) ? formQuestions[idx] : null;
+    const qId = qObj?._id || (typeof qObj === "object" ? qObj?.id : null) || null;
+
+    if (typeof ans === "string") {
+      return { question_id: qId, value: ans };
+    }
+    if (ans && typeof ans === "object") {
+      if (typeof ans.value === "string") {
+        return {
+          question_id: ans.question_id || qId,
+          value: ans.value,
+        };
+      }
+      // Reconstruct character-indexed strings { '0': 'M', '1': 'ì', ... }
+      const keys = Object.keys(ans).filter((k) => !isNaN(k)).sort((a, b) => Number(a) - Number(b));
+      if (keys.length > 0) {
+        return {
+          question_id: ans.question_id || qId,
+          value: keys.map((k) => ans[k]).join(""),
+        };
+      }
+    }
+    return { question_id: qId, value: String(ans?.value ?? ans ?? "") };
+  });
+};
+
 const getJoinRequestList = async (clubId, { status } = {}) => {
   const query = { club_id: clubId };
 
@@ -11,11 +40,19 @@ const getJoinRequestList = async (clubId, { status } = {}) => {
     query.status = status;
   }
 
-  return JoinRequest.find(query)
+  const rawList = await JoinRequest.find(query)
     .sort({ created_at: -1 })
     .populate("user_id", "_id full_name email avatar_url")
     .populate("form_id", "_id title questions")
-    .select("_id user_id form_id answers status review_note reviewed_at created_at updated_at");
+    .select("_id user_id form_id answers status review_note reviewed_at created_at updated_at")
+    .lean();
+
+  return rawList
+    .filter((item) => item.user_id && item.user_id.full_name)
+    .map((item) => ({
+      ...item,
+      answers: normalizeAnswers(item.answers, item.form_id?.questions),
+    }));
 };
 
 const getJoinRequestDetail = async (clubId, requestId) => {
@@ -28,11 +65,14 @@ const getJoinRequestDetail = async (clubId, requestId) => {
     .populate({
       path: "reviewed_by",
       populate: { path: "user_id", select: "_id full_name email avatar_url" },
-    });
+    })
+    .lean();
 
   if (!joinRequest) {
     throw getStatusError("Join request not found", 404);
   }
+
+  joinRequest.answers = normalizeAnswers(joinRequest.answers, joinRequest.form_id?.questions);
 
   return joinRequest;
 };

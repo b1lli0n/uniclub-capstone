@@ -26,6 +26,17 @@ const getActiveMembership = async (clubId, userId) => {
   return membership;
 };
 
+const calculateAvailablePoints = async (membershipId, currentRewardPoint = 0) => {
+  const pendingRedemptions = await RewardRedemption.find({
+    membership_id: membershipId,
+    status: "pending",
+  });
+  const pendingPoints = pendingRedemptions.reduce((sum, r) => sum + (r.total_point || 0), 0);
+  const memberPoints = Number(currentRewardPoint) || 0;
+  const availablePoints = Math.max(memberPoints - pendingPoints, 0);
+  return { availablePoints, pendingPoints, memberPoints };
+};
+
 const getMemberRewards = async ({ clubId, userId, search }) => {
   validateId(clubId, "clubId");
   const membership = await getActiveMembership(clubId, userId);
@@ -40,12 +51,17 @@ const getMemberRewards = async ({ clubId, userId, search }) => {
     filter.name = { $regex: keyword, $options: "i" };
   }
 
-  const rewards = await Reward.find(filter)
-    .sort({ created_at: -1 })
-    .select("_id name description points_required image_url quantity status created_at");
+  const [rewards, { availablePoints, pendingPoints, memberPoints }] = await Promise.all([
+    Reward.find(filter)
+      .sort({ created_at: -1 })
+      .select("_id name description points_required image_url quantity status created_at"),
+    calculateAvailablePoints(membership._id, membership.reward_point),
+  ]);
 
   return {
-    available_points: membership.reward_point,
+    available_points: availablePoints,
+    total_points: memberPoints,
+    pending_points: pendingPoints,
     rewards,
   };
 };
@@ -65,9 +81,16 @@ const getMemberRewardDetail = async ({ clubId, rewardId, userId }) => {
     throw getStatusError("Reward not found", 404);
   }
 
+  const { availablePoints, pendingPoints, memberPoints } = await calculateAvailablePoints(
+    membership._id,
+    membership.reward_point
+  );
+
   return {
-    available_points: membership.reward_point,
-    can_redeem: reward.quantity > 0 && membership.reward_point >= reward.points_required,
+    available_points: availablePoints,
+    total_points: memberPoints,
+    pending_points: pendingPoints,
+    can_redeem: reward.quantity > 0 && availablePoints >= reward.points_required,
     reward,
   };
 };
@@ -146,15 +169,10 @@ const redeemReward = async ({ clubId, rewardId, userId }) => {
     throw getStatusError("You are not an active member of this club", 403);
   }
 
-  // Calculate dynamic available points based on membership.reward_point and pending redemptions
-  const pendingRedemptions = await RewardRedemption.find({
-    membership_id: membership._id,
-    status: "pending",
-  });
-  
-  const pendingPoints = pendingRedemptions.reduce((sum, r) => sum + (r.total_point || 0), 0);
-  const memberPoints = membership.reward_point || 0;
-  const availablePoints = Math.max(memberPoints - pendingPoints, 0);
+  const { availablePoints } = await calculateAvailablePoints(
+    membership._id,
+    membership.reward_point
+  );
 
   const cost = reward.points_required ?? 100;
   if (availablePoints < cost) {
@@ -208,14 +226,18 @@ const getMyRedemptionHistory = async ({ clubId, userId, status }) => {
   validateId(clubId, "clubId");
   const membership = await getActiveMembership(clubId, userId);
 
-  const allowedStatuses = ["pending", "approved", "rejected"];
+  const allowedStatuses = ["pending", "approved", "rejected", "reviewed"];
   if (status && !allowedStatuses.includes(status)) {
-    throw getStatusError("Invalid status. Allowed values: pending, approved, rejected", 400);
+    throw getStatusError("Invalid status. Allowed values: pending, approved, rejected, reviewed", 400);
   }
 
   const filter = { club_id: clubId, membership_id: membership._id };
   if (status) {
-    filter.status = status;
+    if (status === "reviewed") {
+      filter.status = { $in: ["approved", "rejected"] };
+    } else {
+      filter.status = status;
+    }
   }
 
   return RewardRedemption.find(filter)

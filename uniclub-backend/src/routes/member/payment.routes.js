@@ -5,7 +5,8 @@ const {
   createPaymentUrl,
   vnpayReturn,
   vnpayIpn,
-  listFeeOfUser
+  listFeeOfUser,
+  payWithCash
 } = require('../../controllers/member/payment.controller')
 
 const { verifyToken, authorize } = require('../../middlewares/auth.middleware')
@@ -19,6 +20,7 @@ router.use(verifyToken, authorize(['student']))
 
 router.get('/fees', listFeeOfUser)
 router.post('/create-payment-url', createPaymentUrl)
+router.post('/pay-cash', payWithCash)
 router.get('/receipts/:receiptId', viewPaymentReceipt)
 
 module.exports = router

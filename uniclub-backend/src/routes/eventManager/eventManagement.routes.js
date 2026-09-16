@@ -11,7 +11,7 @@ const {
 
 const router = express.Router();
 
-const ALLOWED_EVENT_ROLES = ["president", "leader", "event_manager"];
+const ALLOWED_EVENT_ROLES = ["president", "event_manager"];
 
 const eventManagerGuard = [
   verifyToken,

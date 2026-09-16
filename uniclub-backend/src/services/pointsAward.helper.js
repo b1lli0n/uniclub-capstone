@@ -19,33 +19,35 @@ const mongoose = require("mongoose");
  */
 const awardRewardPoints = async ({ clubId, userId, actionTypeCode, eventId, presidentId }) => {
   try {
+    const resolvedClubId = clubId?._id || clubId;
+
     // 1. Resolve ActionType
     const actionType = await ActionType.findOne({ code: actionTypeCode, is_Active: true });
     if (!actionType) {
       console.log(`[Points Hook] Action type code "${actionTypeCode}" not found or inactive.`);
-      return null;
+      return { success: false, reason: "rule_not_found" };
     }
 
     // 2. Resolve Active PointRule for this club and action type
     const rule = await PointRule.findOne({
-      club_id: clubId,
+      club_id: resolvedClubId,
       action_type_id: actionType._id,
       is_active: true,
     });
     if (!rule) {
-      console.log(`[Points Hook] No active point rule set for club ${clubId} and action "${actionTypeCode}".`);
-      return null;
+      console.log(`[Points Hook] No active point rule set for club ${resolvedClubId} and action "${actionTypeCode}".`);
+      return { success: false, reason: "rule_not_found" };
     }
 
     // 3. Resolve active membership for the student in this club
     const member = await ClubMember.findOne({
       user_id: userId,
-      club_id: clubId,
+      club_id: resolvedClubId,
       status: "active",
     });
     if (!member) {
-      console.log(`[Points Hook] User ${userId} is not an active member of club ${clubId}. Cannot award points.`);
-      return null;
+      console.log(`[Points Hook] User ${userId} is not an active member of club ${resolvedClubId}. Cannot award points.`);
+      return { success: false, reason: "not_a_member" };
     }
 
     // --- ENFORCE COUNT-BASED LIMITS ---
@@ -61,7 +63,7 @@ const awardRewardPoints = async ({ clubId, userId, actionTypeCode, eventId, pres
 
       if (eventLogsCount >= rule.limit_per_event) {
         console.log(`[Points Hook] Member ${member._id} reached limit_per_event count (${rule.limit_per_event}) for event ${eventId}.`);
-        return null;
+        return { success: false, reason: "limit_reached" };
       }
     }
 
@@ -80,30 +82,46 @@ const awardRewardPoints = async ({ clubId, userId, actionTypeCode, eventId, pres
 
       if (dayLogsCount >= rule.limit_per_day) {
         console.log(`[Points Hook] Member ${member._id} reached limit_per_day count (${rule.limit_per_day}) for action "${actionTypeCode}" today.`);
-        return null;
+        return { success: false, reason: "limit_reached" };
       }
     }
 
     // --- PERFORM AWARD ---
 
-    // Update ClubMember reward_point and ranking_point cache
-    member.reward_point = (member.reward_point || 0) + pointsToAward;
-    member.ranking_point = (member.ranking_point || 0) + pointsToAward;
-    await member.save();
-
     // Calculate month_key
     const now = new Date();
     const monthKey = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // Save Contribution Log
-    const log = await ContributionLog.create({
-      membership_id: member._id,
-      event_id: eventId,
-      rule_id: rule._id,
-      action_type_id: actionType._id,
-      reward_point: pointsToAward,
-      month_key: monthKey,
-    });
+    // Save Contribution Log first (protected by unique index on { membership_id, event_id, action_type_id })
+    let log;
+    try {
+      log = await ContributionLog.create({
+        membership_id: member._id,
+        event_id: eventId,
+        rule_id: rule._id,
+        action_type_id: actionType._id,
+        reward_point: pointsToAward,
+        month_key: monthKey,
+      });
+    } catch (createErr) {
+      if (createErr.code === 11000) {
+        console.log(`[Points Hook] Duplicate contribution log prevented by unique index for member ${member._id}, event ${eventId}, action ${actionTypeCode}.`);
+        return { success: false, reason: "limit_reached" };
+      }
+      throw createErr;
+    }
+
+    // Atomically increment ClubMember reward_point and ranking_point
+    const updatedMember = await ClubMember.findByIdAndUpdate(
+      member._id,
+      {
+        $inc: {
+          reward_point: pointsToAward,
+          ranking_point: pointsToAward,
+        },
+      },
+      { new: true }
+    );
 
     // Async send email notification
     ClubMember.findById(member._id).populate("user_id").populate("club_id").then((populated) => {
@@ -114,16 +132,20 @@ const awardRewardPoints = async ({ clubId, userId, actionTypeCode, eventId, pres
           clubName: populated.club_id?.name || "Club",
           points: pointsToAward,
           reason: actionType.name || "Event Activity Points",
-          newTotal: member.reward_point,
+          newTotal: updatedMember?.reward_point || ((member.reward_point || 0) + pointsToAward),
         }).catch((err) => console.error("[Points Hook Email Error]", err));
       }
     }).catch((err) => console.error("[Points Hook Email Populate Error]", err));
 
     console.log(`[Points Hook] Successfully awarded ${pointsToAward} points to member ${member._id} (Rule: ${rule._id}).`);
-    return log;
+    return {
+      success: true,
+      log,
+      reward_point: pointsToAward,
+    };
   } catch (error) {
     console.error("[Points Hook] Error in awardRewardPoints:", error);
-    return null;
+    return { success: false, reason: "error", error: error.message };
   }
 };
 

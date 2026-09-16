@@ -2,7 +2,8 @@ const {
   listFeeOfUser: listFeeOfUserService,
   createVnpayPaymentUrl,
   handleVnpayCallback,
-  getReceiptDetail
+  getReceiptDetail,
+  payFeeWithCash
 } = require('../../services/member/payment.service')
 
 function resolveUserId(req) {
@@ -189,10 +190,37 @@ async function vnpayIpn(req, res) {
   }
 }
 
+async function payWithCash(req, res) {
+  try {
+    const userId = resolveUserId(req)
+    const clubId = resolveClubId(req)
+    const paymentId = req.body.payment_id || req.body.paymentId
+
+    const result = await payFeeWithCash({
+      clubId,
+      requesterId: userId,
+      paymentId
+    })
+
+    return res.status(200).json({
+      success: true,
+      message: 'Cash payment confirmed successfully',
+      data: result
+    })
+  } catch (err) {
+    console.error('Pay with cash error:', err)
+    return res.status(400).json({
+      success: false,
+      message: err.message || 'Failed to confirm cash payment'
+    })
+  }
+}
+
 module.exports = {
   listFeeOfUser,
   viewPaymentReceipt,
   createPaymentUrl,
   vnpayReturn,
-  vnpayIpn
+  vnpayIpn,
+  payWithCash
 }

@@ -164,6 +164,7 @@ function ProtectedLayout({
     else if (screen === 'club-detail') navigate(clubId ? `/clubs/${clubId}` : '/clubs')
     else if (screen === 'club-ranking') navigate(clubId ? `/clubs/${clubId}/ranking` : '/club-ranking')
     else if (screen === 'point-rules' && clubId) navigate(`/clubs/${clubId}/point-rules`)
+    else if (screen === 'point-rules') navigate('/my-clubs')
     else if (screen === 'rewards' && clubId) navigate(`/clubs/${clubId}/rewards`)
     else if (screen === 'activity-schedule' && clubId) navigate(`/clubs/${clubId}/activity-schedule`)
     else if (screen === 'manage-activity-schedule' && clubId) {
@@ -230,10 +231,14 @@ function ClubRoute({ pageId, guard = 'member', children }) {
         if (!active) return
         const list = res.data || []
         
-        // Find membership matching clubId (supporting both string or populated object)
+        // Find membership matching clubId (supporting ObjectId, string or club name/slug)
         const found = list.find(item => {
           const id = item.club_id?._id || item.club_id
-          return String(id) === String(clubId)
+          const name = item.club_id?.name || ''
+          return (
+            String(id) === String(clubId) ||
+            (name && name.toLowerCase().includes(String(clubId).toLowerCase()))
+          )
         })
 
         if (found) {

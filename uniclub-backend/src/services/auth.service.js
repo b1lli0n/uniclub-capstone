@@ -140,11 +140,14 @@ const devLogin = async (email) => {
 };
 
 const findOrCreateGoogleUser = async (profile) => {
-  const email = profile.emails?.[0]?.value;
+  const rawEmail =
+    profile.emails?.[0]?.value || profile.email || profile._json?.email;
 
-  if (!email) {
+  if (!rawEmail) {
     throw getStatusError("No email found", 400);
   }
+
+  const email = rawEmail.trim().toLowerCase();
 
   if (!email.endsWith("@fpt.edu.vn")) {
     throw getStatusError("Only FPT email is allowed", 400);
@@ -156,9 +159,9 @@ const findOrCreateGoogleUser = async (profile) => {
     user = await User.create({
       provider: "google",
       provider_id: profile.id,
-      full_name: profile.displayName,
+      full_name: profile.displayName || profile.name?.givenName || "FPT Student",
       email: email,
-      avatar_url: profile.photos?.[0]?.value,
+      avatar_url: profile.photos?.[0]?.value || "",
       role: "student",
     });
   }

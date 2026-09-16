@@ -6,6 +6,7 @@ const {
   createJoinForm,
   updateJoinForm,
   toggleJoinFormStatus,
+  deleteJoinForm,
 } = require("../../controllers/president/joinFormManagement.controller");
 
 const router = express.Router();
@@ -35,5 +36,9 @@ router.patch("/:clubId/join-form/:formId", ...presidentGuard, updateJoinForm);
 // → Bật/tắt form
 // Body: { status: "active" | "inactive" }
 router.patch("/:clubId/join-form/:formId/status", ...presidentGuard, toggleJoinFormStatus);
+
+// DELETE /api/president/clubs/:clubId/join-form/:formId
+// → Xóa form (chỉ cho phép khi chưa có response nào)
+router.delete("/:clubId/join-form/:formId", ...presidentGuard, deleteJoinForm);
 
 module.exports = router;

@@ -108,12 +108,16 @@ const getEventDetail = async ({ eventId, currentUser }) => {
     status: { $in: ["approved", "registered", "attended"] },
   });
 
+  const availableSlots = Math.max(0, (event.capacity || 0) - registeredCount);
+
   return {
     ...event,
     isRegistered,
     registrationStatus,
     registrationId,
     registeredCount,
+    availableSlots,
+    available_slots: availableSlots,
   };
 };
 
@@ -127,13 +131,45 @@ const registerForEvent = async ({ eventId, userId, userEmail }) => {
     throw getStatusError("Event not found", 404);
   }
 
-  // 1. Check registration status
-  if (event.status !== "opening") {
-    throw getStatusError(`Event registration is not open (status: ${event.status})`, 400);
+  // 1. Check event cancellation, closed status, or draft mode
+  if (event.status === "cancelled") {
+    throw getStatusError("Cannot register for a cancelled event", 400);
   }
 
-  // 2. Check event end time
-  if (event.end_time && new Date() > new Date(event.end_time)) {
+  if (event.status === "closed") {
+    throw getStatusError("Event registration is closed", 400);
+  }
+
+  if (event.progress_status === "draft") {
+    throw getStatusError("Event is in draft mode and not open for registration", 400);
+  }
+
+  // 2. Check registration time window [Registration_Start, Registration_End] (BR-25)
+  const now = new Date();
+  const regStart = event.registration_start;
+  const regEnd = event.registration_end;
+
+  if (regStart && now < new Date(regStart)) {
+    throw getStatusError(
+      `Registration has not opened yet. Registration window starts at ${new Date(regStart).toISOString()}`,
+      400
+    );
+  }
+
+  if (regEnd && now > new Date(regEnd)) {
+    throw getStatusError(
+      `Registration has closed. Registration window ended at ${new Date(regEnd).toISOString()}`,
+      400
+    );
+  }
+
+  // Fallback if registration_end is not set: cannot register after event start
+  if (!regEnd && event.start_time && now > new Date(event.start_time)) {
+    throw getStatusError("Cannot register because the event has already started", 400);
+  }
+
+  // Check event end time
+  if (event.end_time && now > new Date(event.end_time)) {
     throw getStatusError("Cannot register because the event has ended", 400);
   }
 
@@ -150,14 +186,15 @@ const registerForEvent = async ({ eventId, userId, userEmail }) => {
     }
   }
 
-  // 4. Check capacity
+  // 4. Check capacity (Available_Slots > 0)
   const registeredCount = await EventRegistration.countDocuments({
     event_id: eventId,
     status: { $in: ["approved", "registered", "attended"] },
   });
 
-  if (registeredCount >= event.capacity) {
-    throw getStatusError("Event capacity has been reached", 400);
+  const availableSlots = (event.capacity || 0) - registeredCount;
+  if (availableSlots <= 0) {
+    throw getStatusError("Event capacity has been reached. No available slots left.", 400);
   }
 
   // 5. Upsert registration
@@ -184,14 +221,14 @@ const registerForEvent = async ({ eventId, userId, userEmail }) => {
 
   // Points award hook
   try {
-    let awarded = await awardRewardPoints({
+    let awardRes = await awardRewardPoints({
       clubId: event.club_id,
       userId,
       actionTypeCode: "register_event",
       eventId: event._id,
     });
 
-    if (!awarded) {
+    if (awardRes && !awardRes.success && awardRes.reason === "rule_not_found") {
       await awardRewardPoints({
         clubId: event.club_id,
         userId,
@@ -240,8 +277,16 @@ const cancelEventRegistration = async ({ eventId, userId }) => {
     throw getStatusError("Event not found", 404);
   }
 
-  if (new Date() > new Date(event.start_time)) {
-    throw getStatusError("Cannot cancel registration after the event has started", 400);
+  // BR-27: Students may cancel free event registrations at least 24 hours prior to the event start time
+  const now = new Date();
+  const startTime = new Date(event.start_time);
+  const cancellationDeadline = new Date(startTime.getTime() - 24 * 60 * 60 * 1000);
+
+  if (now > cancellationDeadline) {
+    throw getStatusError(
+      "Event registration can only be cancelled at least 24 hours prior to the event start time.",
+      400
+    );
   }
 
   const reg = await EventRegistration.findOne({

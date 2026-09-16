@@ -11,3 +11,8 @@ export function removeMember(clubId, memberId) {
     method: 'PATCH',
   })
 }
+
+/** Get member profile by userId — for viewing member details in a club */
+export function getMemberProfileForPresident(clubId, userId) {
+  return apiRequest(`/club-members/user/${userId}`)
+}

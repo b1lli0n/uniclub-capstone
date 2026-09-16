@@ -63,13 +63,6 @@ router.patch(
   clubManagementController.updateClubStatus
 );
 
-router.patch(
-  "/:clubId",
-  verifyToken,
-  authorize(["student_affairs"]),
-  clubManagementController.updateClub
-);
-
 router.put(
   "/:clubId",
   verifyToken,

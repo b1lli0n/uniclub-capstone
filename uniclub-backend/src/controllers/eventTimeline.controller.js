@@ -35,6 +35,7 @@ const createEventTimeline = async (req, res) => {
       title: req.body.title,
       description: req.body.description,
       location: req.body.location,
+      action_type_id: req.body.action_type_id || req.body.actionTypeId || null,
     });
 
     return res.status(201).json({
@@ -65,6 +66,7 @@ const updateEventTimeline = async (req, res) => {
       title: req.body.title,
       description: req.body.description,
       location: req.body.location,
+      action_type_id: req.body.action_type_id || req.body.actionTypeId,
     });
 
     return res.status(200).json({

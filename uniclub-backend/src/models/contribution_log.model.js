@@ -44,7 +44,7 @@ const contributionLogSchema = Schema(
 
 // Index to optimize monthly leaderboard queries and limits checking
 contributionLogSchema.index({ membership_id: 1, month_key: 1 });
-contributionLogSchema.index({ membership_id: 1, event_id: 1, action_type_id: 1 });
+contributionLogSchema.index({ membership_id: 1, event_id: 1, action_type_id: 1 }, { unique: true });
 contributionLogSchema.index({ membership_id: 1, action_type_id: 1, created_at: 1 });
 
 module.exports = mongoose.model("ContributionLog", contributionLogSchema);

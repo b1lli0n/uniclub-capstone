@@ -1,12 +1,13 @@
 const mongoose = require("mongoose");
 const ClubMember = require("../models/club_member.model");
+const Event = require("../models/event.model");
 const { getStatusError } = require("../utils/error");
 
 /**
- * Helper to resolve club ID from request params, body, or query
+ * Helper to resolve club ID from request params, body, query, or associated event
  */
-const resolveClubId = (req, paramName = "clubId") => {
-  return (
+const resolveClubId = async (req, paramName = "clubId") => {
+  let clubId = (
     req.params?.[paramName] ||
     req.params?.clubId ||
     req.params?.club_id ||
@@ -15,6 +16,27 @@ const resolveClubId = (req, paramName = "clubId") => {
     req.query?.club_id ||
     req.query?.clubId
   );
+
+  if (!clubId) {
+    const eventId = (
+      req.params?.eventId ||
+      req.params?.event_id ||
+      req.body?.eventId ||
+      req.body?.event_id ||
+      req.query?.eventId ||
+      req.query?.event_id
+    );
+
+    if (eventId && mongoose.Types.ObjectId.isValid(eventId)) {
+      const event = await Event.findById(eventId).select("club_id");
+      if (event && event.club_id) {
+        clubId = event.club_id;
+        req.event = event;
+      }
+    }
+  }
+
+  return clubId;
 };
 
 /**
@@ -39,7 +61,7 @@ const requireClubRole = (allowedRoles = [], paramName = "clubId") => {
         return next(getStatusError("User not authenticated", 401));
       }
 
-      const clubId = resolveClubId(req, paramName);
+      const clubId = await resolveClubId(req, paramName);
 
       if (!clubId || !mongoose.Types.ObjectId.isValid(clubId)) {
         return next(getStatusError(`Invalid ${paramName}`, 400));

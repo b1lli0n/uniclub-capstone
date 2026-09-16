@@ -46,7 +46,7 @@ const paymentSchema = new Schema(
       trim: true,
       maxlength: 100,
       required: function () {
-        return this.payment_method === "vnpay";
+        return this.payment_method === "vnpay" && this.status !== "pending";
       },
     },
     vnp_response_code: {

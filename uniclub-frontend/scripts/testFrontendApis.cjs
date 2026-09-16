@@ -57,7 +57,7 @@ async function runCliTests() {
     { name: 'Manager Rewards API (President)', endpoint: `/president/reward-management/clubs/${MUSIC_CLUB_ID}/rewards`, token: presidentToken },
     { name: 'Club Weekly Activities API (Secretary)', endpoint: `/secretary/clubs/${MUSIC_CLUB_ID}/activity-schedule`, token: secretaryToken },
     { name: 'Student Fee Payments API', endpoint: '/payment/fees', token: presidentToken },
-    { name: 'My Event Creation Requests API', endpoint: '/event-requests/my-requests', token: presidentToken }
+    { name: 'My Event Creation Requests API', endpoint: '/event-manager/event-requests/my-requests', token: presidentToken }
   ]
 
   console.log('==================================================')

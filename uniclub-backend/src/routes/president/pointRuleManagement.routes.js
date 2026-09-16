@@ -19,7 +19,7 @@ router.get("/action-types", verifyToken, authorize(["student"]), getActionTypes)
 const presidentGuard = [
   verifyToken,
   authorize(["student"]),
-  requireClubRole(["president"], "clubId"),
+  requireClubRole(["president", "leader"], "clubId"),
 ];
 
 // GET    /api/president/clubs/:clubId/point-rules

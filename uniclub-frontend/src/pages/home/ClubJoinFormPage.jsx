@@ -6,6 +6,7 @@ import {
   createPresidentJoinForm,
   updatePresidentJoinForm,
   togglePresidentJoinFormStatus,
+  deletePresidentJoinForm,
 } from '../../api/joinFormManagement.api'
 import { mapClubFromApi } from '../../api/clubMappers'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
@@ -18,6 +19,8 @@ function createDraft(form) {
   return {
     title: form?.title || '',
     description: form?.description || '',
+    isLocked: Boolean(form?.isLocked),
+    responseCount: form?.responseCount || 0,
     questions: form?.questions?.map((question) => ({ ...question })) || [
       { ...emptyQuestion, id: 'q1' },
     ],
@@ -30,12 +33,16 @@ function createQuestionId() {
 
 function mapFormFromApi(apiForm) {
   if (!apiForm) return null
+  const responseCount = apiForm.response_count || 0
+  const isLocked = Boolean(apiForm.is_locked || responseCount > 0)
   return {
     id: apiForm._id || apiForm.id,
     clubId: apiForm.club_id,
     title: apiForm.title || '',
     description: apiForm.description || '',
     status: apiForm.status || 'inactive',
+    isLocked,
+    responseCount,
     updatedAt: apiForm.updated_at ? new Date(apiForm.updated_at).toLocaleDateString('en-GB') : '',
     questions: (apiForm.questions || []).map((q, idx) => ({
       id: q?._id ? String(q._id) : `q${idx + 1}`,
@@ -266,6 +273,47 @@ function ClubJoinFormPage({ clubId }) {
     }
   }
 
+  async function deleteForm(formId) {
+    const targetForm = forms.find((form) => form.id === formId)
+    if (!targetForm) return
+
+    if (targetForm.isLocked) {
+      showToast({
+        type: 'error',
+        title: 'Cannot delete form',
+        message: `This form has already received ${targetForm.responseCount} student response(s). Deletion is disallowed by BR-24.`,
+      })
+      return
+    }
+
+    const accepted = await confirm({
+      title: 'Delete Join Form?',
+      message: 'Are you sure you want to delete this form? This action cannot be undone.',
+      confirmText: 'Delete Form',
+      tone: 'danger',
+    })
+
+    if (!accepted) return
+
+    try {
+      await deletePresidentJoinForm(clubId, formId)
+      setForms((items) => items.filter((form) => form.id !== formId))
+      setDetailForm(null)
+      showToast({
+        type: 'success',
+        title: 'Form deleted',
+        message: 'The join form has been deleted successfully.',
+      })
+    } catch (error) {
+      console.error(error)
+      showToast({
+        type: 'error',
+        title: 'Deletion failed',
+        message: error.message || 'Failed to delete form.',
+      })
+    }
+  }
+
   if (loading) {
     return (
       <main className="club-join-form-page">
@@ -315,10 +363,23 @@ function ClubJoinFormPage({ clubId }) {
           {forms.map((form) => (
             <article key={form.id} className="club-join-form-card">
               <div>
-                <div className="club-join-form-card__topline">
+                <div className="club-join-form-card__topline" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                   <span className={`club-join-form-status club-join-form-status--${form.status}`}>
                     {form.status === 'active' ? 'Active' : 'Inactive'}
                   </span>
+                  {form.isLocked && (
+                    <span style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: '#d9480f',
+                      background: '#fff4e6',
+                      border: '1px solid #ffd8a8',
+                      borderRadius: '4px',
+                      padding: '0.15rem 0.45rem',
+                    }}>
+                      🔒 Locked ({form.responseCount} response{form.responseCount > 1 ? 's' : ''})
+                    </span>
+                  )}
                   <small>{form.updatedAt}</small>
                 </div>
                 <h2>{form.title}</h2>
@@ -362,7 +423,14 @@ function ClubJoinFormPage({ clubId }) {
             <div className="club-join-form-modal__header">
               <div>
                 <h2 id="join-form-detail-title">{detailForm.title}</h2>
-                <p>{detailForm.status === 'active' ? 'Active' : 'Inactive'} - {detailForm.updatedAt}</p>
+                <p>
+                  {detailForm.status === 'active' ? 'Active' : 'Inactive'} - {detailForm.updatedAt}
+                  {detailForm.isLocked && (
+                    <strong style={{ color: '#d9480f', marginLeft: '0.5rem' }}>
+                      • 🔒 Locked ({detailForm.responseCount} student response{detailForm.responseCount > 1 ? 's' : ''})
+                    </strong>
+                  )}
+                </p>
               </div>
               <button type="button" onClick={() => setDetailForm(null)}>Close</button>
             </div>
@@ -376,7 +444,7 @@ function ClubJoinFormPage({ clubId }) {
                 </div>
               ))}
             </div>
-            <div className="club-join-form-modal__actions">
+            <div className="club-join-form-modal__actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 style={{ background: '#fd7e14', color: '#ffffff', fontWeight: 800 }}
@@ -390,6 +458,19 @@ function ClubJoinFormPage({ clubId }) {
                 onClick={() => toggleFormStatus(detailForm.id)}
               >
                 {detailForm.status === 'active' ? 'Deactivate' : 'Activate'}
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteForm(detailForm.id)}
+                style={{
+                  background: detailForm.isLocked ? '#adb5bd' : '#e03131',
+                  color: '#ffffff',
+                  cursor: detailForm.isLocked ? 'not-allowed' : 'pointer',
+                  opacity: detailForm.isLocked ? 0.7 : 1,
+                }}
+                title={detailForm.isLocked ? 'Locked by BR-24: Form has received student responses' : 'Delete form'}
+              >
+                🗑️ Delete Form
               </button>
             </div>
           </section>
@@ -412,6 +493,27 @@ function ClubJoinFormPage({ clubId }) {
               </div>
               <button type="button" onClick={closeEditor}>Close</button>
             </div>
+
+            {editorMode === 'edit' && draft.isLocked && (
+              <div style={{
+                background: '#fff4e6',
+                border: '1px solid #ffd8a8',
+                color: '#d9480f',
+                padding: '0.75rem 1rem',
+                borderRadius: '8px',
+                marginBottom: '1rem',
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}>
+                <span style={{ fontSize: '1.2rem' }}>🔒</span>
+                <span>
+                  <strong>Form is locked (BR-24):</strong> This form has received {draft.responseCount} student response{draft.responseCount > 1 ? 's' : ''}.
+                  Questions cannot be modified, added, or removed. You can still update the title and description.
+                </span>
+              </div>
+            )}
 
             <label className="club-join-form-editor__field">
               <span>Form title</span>
@@ -438,13 +540,17 @@ function ClubJoinFormPage({ clubId }) {
                 <div key={question.id} className="club-join-form-editor__question">
                   <div>
                     <strong>Question {index + 1}</strong>
-                    <button type="button" onClick={() => removeDraftQuestion(question.id)}>Remove</button>
+                    {!draft.isLocked && (
+                      <button type="button" onClick={() => removeDraftQuestion(question.id)}>Remove</button>
+                    )}
                   </div>
                   <input
                     type="text"
                     value={question.label}
                     placeholder="Type the question students will answer"
                     onChange={(event) => updateDraftQuestion(question.id, 'label', event.target.value)}
+                    disabled={draft.isLocked}
+                    style={draft.isLocked ? { backgroundColor: '#f1f3f5', cursor: 'not-allowed', color: '#495057' } : {}}
                     required
                   />
                   <textarea placeholder={DEFAULT_ANSWER_PLACEHOLDER} rows={3} disabled />
@@ -453,7 +559,9 @@ function ClubJoinFormPage({ clubId }) {
             </div>
 
             <div className="club-join-form-editor__actions">
-              <button type="button" onClick={addDraftQuestion}>Add Question</button>
+              {!draft.isLocked && (
+                <button type="button" onClick={addDraftQuestion}>Add Question</button>
+              )}
               <button type="submit">{editorMode === 'create' ? 'Create' : 'Save Changes'}</button>
             </div>
           </form>

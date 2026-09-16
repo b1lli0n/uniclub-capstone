@@ -38,6 +38,14 @@ const eventCreationRequestSchema = Schema(
       type: Date,
       required: true,
     },
+    registration_start: {
+      type: Date,
+      default: null,
+    },
+    registration_end: {
+      type: Date,
+      default: null,
+    },
     location: {
       type: String,
       required: true,

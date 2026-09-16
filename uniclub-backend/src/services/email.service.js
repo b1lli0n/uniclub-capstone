@@ -434,16 +434,22 @@ const ROLE_NAMES_EN = {
   member: "Member",
 };
 
-const sendInvitationEmail = async ({ toEmail, userName, clubName, role, message }) => {
+const sendInvitationEmail = async ({ toEmail, userName, clubName, role, message, expiresAt, isResend = false }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub] 📩 Invitation to join ${clubName}`;
+    const subject = isResend
+      ? `[UniClub] 📩 [Resent] Invitation to join ${clubName}`
+      : `[UniClub] 📩 Invitation to join ${clubName}`;
     const roleDisplay = ROLE_NAMES_EN[role] || role || "Member";
+    const formattedExpires = expiresAt ? new Date(expiresAt).toLocaleDateString("en-GB") : "3 days";
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
         <h2 style="color: #2563eb;">📩 Hello ${userName}!</h2>
-        <p>The Board of <strong>${clubName}</strong> cordially invites you to join the club as a <strong>${roleDisplay}</strong>!</p>
+        <p>The Board of <strong>${clubName}</strong> ${isResend ? "has re-sent an invitation for you" : "cordially invites you"} to join the club as a <strong>${roleDisplay}</strong>!</p>
         ${message ? `<blockquote style="background: #f8fafc; padding: 12px; border-left: 4px solid #2563eb; margin: 15px 0;">"${message}"</blockquote>` : ""}
+        <div style="background: #fffbeb; padding: 10px 14px; border-radius: 6px; border-left: 4px solid #f59e0b; margin: 15px 0; font-size: 0.95em;">
+          <p style="margin: 0; color: #b45309;">⏳ <strong>Expiration Period:</strong> Default 3 days (Deadline: <strong>${formattedExpires}</strong>). The invitation will automatically transition to <strong>Expired</strong> if not responded to in time.</p>
+        </div>
         <p>Please visit <strong>UniClub</strong> ➔ <strong>My Requests</strong> to Accept or Decline this invitation.</p>
         <br/>
         <p>Best regards,</p>
@@ -457,9 +463,9 @@ const sendInvitationEmail = async ({ toEmail, userName, clubName, role, message 
       subject,
       html,
     });
-    console.log(`📧 Invitation Email sent successfully to ${toEmail}`);
+    console.log(`📧 ${isResend ? "Resend " : ""}Invitation Email sent successfully to ${toEmail}`);
   } catch (error) {
-    console.error("❌ Failed to send invitation email:", error.message);
+    console.error(`❌ Failed to send ${isResend ? "resend " : ""}invitation email:`, error.message);
   }
 };
 

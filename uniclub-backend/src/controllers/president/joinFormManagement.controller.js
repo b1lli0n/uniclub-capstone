@@ -126,9 +126,39 @@ const toggleJoinFormStatus = async (req, res, next) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────
+// UC: Delete Join Form (president xóa form khi chưa có phản hồi)
+// DELETE /api/president/clubs/:clubId/join-form/:formId
+// ─────────────────────────────────────────────────────────────
+const deleteJoinForm = async (req, res, next) => {
+  try {
+    const { clubId, formId } = req.params;
+
+    const data = await joinFormManagementService.deleteJoinForm({
+      clubId,
+      formId,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: data.message || "Join form deleted successfully",
+      data,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    next(error);
+  }
+};
+
 module.exports = {
   getJoinForm,
   createJoinForm,
   updateJoinForm,
   toggleJoinFormStatus,
+  deleteJoinForm,
 };

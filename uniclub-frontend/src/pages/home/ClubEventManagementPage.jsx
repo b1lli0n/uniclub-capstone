@@ -29,10 +29,11 @@ const OPERATIONAL_STATUS_OPTIONS = [
   { value: 'cancelled', label: 'Cancelled' },
 ]
 const EVENT_CATEGORY_OPTIONS = [
-  { value: 'workshop', label: 'Workshops' },
-  { value: 'sport', label: 'Sports' },
-  { value: 'entertainment', label: 'Entertainment' },
-  { value: 'community', label: 'Community' },
+  { value: 'Arts', label: 'Arts' },
+  { value: 'Sports', label: 'Sports' },
+  { value: 'Academic', label: 'Academic' },
+  { value: 'Event', label: 'Event' },
+  { value: 'Other', label: 'Other' },
 ]
 const MONTH_NAMES = [
   'January',
@@ -115,6 +116,8 @@ function createEmptyDraft(clubId) {
     lifecycleStatus: 'active',
     startAt: '',
     endAt: '',
+    registrationStartAt: '',
+    registrationEndAt: '',
     imageUrl: '',
     approvalDocumentUrl: '',
     gradient: 'linear-gradient(135deg, #fff1de 0%, #ffce96 100%)',
@@ -203,6 +206,8 @@ function mapEventFromApi(apiEvent) {
     lifecycleStatus: apiEvent.status || 'active',
     startAt: formatForInput(apiEvent.start_time),
     endAt: formatForInput(apiEvent.end_time),
+    registrationStartAt: formatForInput(apiEvent.registration_start),
+    registrationEndAt: formatForInput(apiEvent.registration_end),
     imageUrl: resolveEventUploadImage(apiEvent.media_uris || apiEvent.image_url || apiEvent.imageUrl, apiEvent.category),
     approvalDocumentUrl: apiEvent.approval_document_url || 'https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I/view?usp=sharing',
     gradient: 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)',
@@ -540,10 +545,12 @@ function ClubEventManagementPage({ clubId }) {
       title: draft.name.trim(),
       description: draft.details.trim() || draft.name.trim(),
       content: draft.details.trim() || draft.name.trim(),
-      category: draft.category.trim().toLowerCase() || 'community',
+      category: draft.category.trim() || 'Other',
       location: draft.location.trim() || 'Hall A101',
       start_time: draft.startAt || new Date().toISOString(),
       end_time: draft.endAt || new Date(Date.now() + 7200000).toISOString(),
+      registration_start: draft.registrationStartAt || null,
+      registration_end: draft.registrationEndAt || null,
       capacity: Number(draft.participants) || 150,
       is_public: draft.visibility === 'public',
       status: draft.lifecycleStatus || 'opening',
@@ -1026,7 +1033,7 @@ function ClubEventManagementPage({ clubId }) {
               <div className="club-event-management-editor__grid">
                 <CustomSelect
                   label="Category"
-                  value={draft.category || 'workshop'}
+                  value={draft.category || 'Other'}
                   options={EVENT_CATEGORY_OPTIONS}
                   onChange={(value) => updateDraft('category', value)}
                 />
@@ -1056,13 +1063,26 @@ function ClubEventManagementPage({ clubId }) {
 
               <div className="club-event-management-editor__grid">
                 <DateTimePicker
-                  label="Start *"
+                  label="Registration Start (Opens)"
+                  value={draft.registrationStartAt}
+                  onChange={(value) => updateDraft('registrationStartAt', value)}
+                />
+                <DateTimePicker
+                  label="Registration End (Closes)"
+                  value={draft.registrationEndAt}
+                  onChange={(value) => updateDraft('registrationEndAt', value)}
+                />
+              </div>
+
+              <div className="club-event-management-editor__grid">
+                <DateTimePicker
+                  label="Event Start *"
                   value={draft.startAt}
                   onChange={(value) => updateDraft('startAt', value)}
                   required
                 />
                 <DateTimePicker
-                  label="End *"
+                  label="Event End *"
                   value={draft.endAt}
                   onChange={(value) => updateDraft('endAt', value)}
                   required

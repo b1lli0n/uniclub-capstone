@@ -1,6 +1,8 @@
+const Club = require("../../models/club.model");
 const ClubMember = require("../../models/club_member.model");
 const Invitation = require("../../models/invitation.model");
 const User = require("../../models/user.model");
+const { sendInvitationEmail } = require("../email.service");
 const { getStatusError } = require("../../utils/error");
 
 const ALLOWED_ROLES = ["member", "president", "secretary", "treasurer", "event_manager"];
@@ -14,7 +16,29 @@ const populateInvitation = (query) =>
       populate: { path: "user_id", select: "_id full_name email avatar_url" },
     });
 
+const autoExpireInvitations = async () => {
+  try {
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    await Invitation.updateMany(
+      {
+        status: "pending",
+        $or: [
+          { expires_at: { $lte: new Date() } },
+          { expires_at: { $exists: false }, created_at: { $lte: threeDaysAgo } },
+        ],
+      },
+      {
+        $set: { status: "expired" },
+      }
+    );
+  } catch (err) {
+    console.error("Failed to auto-expire invitations:", err.message);
+  }
+};
+
 const getInvitationList = async (clubId, { status } = {}) => {
+  await autoExpireInvitations();
+
   const query = { club_id: clubId };
 
   if (status) {
@@ -24,11 +48,13 @@ const getInvitationList = async (clubId, { status } = {}) => {
   return populateInvitation(
     Invitation.find(query)
       .sort({ created_at: -1 })
-      .select("_id club_id invited_user_id invited_by role message status created_at updated_at")
+      .select("_id club_id invited_user_id invited_by role message status expires_at created_at updated_at")
   );
 };
 
 const getInvitationDetail = async (clubId, invitationId) => {
+  await autoExpireInvitations();
+
   const invitation = await populateInvitation(
     Invitation.findOne({
       _id: invitationId,
@@ -118,6 +144,9 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
 
   const defaultInvitationMessage = `The Club Board invites you to join the club as a ${roleNameDisplay}.`;
 
+  const expirationDays = 3;
+  const expiresAt = new Date(Date.now() + expirationDays * 24 * 60 * 60 * 1000);
+
   const invitation = await Invitation.create({
     club_id: clubId,
     invited_user_id: resolvedUserId,
@@ -125,12 +154,11 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
     role: invitationRole,
     message: typeof message === "string" && message.trim() ? message.trim() : defaultInvitationMessage,
     status: "pending",
+    expires_at: expiresAt,
   });
 
   // Send Email Notification to invited student
   try {
-    const Club = require("../../models/club.model");
-    const { sendInvitationEmail } = require("../email.service");
     const club = await Club.findById(clubId);
     if (invitedUser?.email && club) {
       sendInvitationEmail({
@@ -139,6 +167,8 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
         clubName: club.name || "Club",
         role: invitationRole,
         message: typeof message === "string" ? message.trim() : "",
+        expiresAt,
+        isResend: false,
       }).catch((err) => console.error("Invitation email error:", err.message));
     }
   } catch (err) {
@@ -169,6 +199,8 @@ const cancelInvitation = async (clubId, invitationId) => {
 };
 
 const resendInvitation = async (secretaryId, clubId, invitationId, { role, message } = {}) => {
+  await autoExpireInvitations();
+
   const invitation = await Invitation.findOne({
     _id: invitationId,
     club_id: clubId,
@@ -178,8 +210,8 @@ const resendInvitation = async (secretaryId, clubId, invitationId, { role, messa
     throw getStatusError("Invitation not found", 404);
   }
 
-  if (!["cancelled", "rejected"].includes(invitation.status)) {
-    throw getStatusError("Only cancelled or rejected invitations can be resent", 400);
+  if (!["cancelled", "rejected", "expired"].includes(invitation.status)) {
+    throw getStatusError("Only cancelled, rejected, or expired invitations can be resent", 400);
   }
 
   const activeMember = await ClubMember.findOne({
@@ -220,14 +252,44 @@ const resendInvitation = async (secretaryId, clubId, invitationId, { role, messa
     invitation.message = message.trim();
   }
 
+  const secretaryMember = await ClubMember.findOne({
+    club_id: clubId,
+    user_id: secretaryId,
+    status: "active",
+  });
+
+  const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
   invitation.status = "pending";
-  invitation.invited_by = secretaryId;
+  invitation.expires_at = expiresAt;
+  invitation.invited_by = secretaryMember ? secretaryMember._id : secretaryId;
   await invitation.save();
+
+  // Send Email Notification to invited student on resend
+  try {
+    const [club, invitedUser] = await Promise.all([
+      Club.findById(clubId),
+      User.findById(invitation.invited_user_id),
+    ]);
+    if (invitedUser?.email && club) {
+      sendInvitationEmail({
+        toEmail: invitedUser.email,
+        userName: invitedUser.full_name || "Student",
+        clubName: club.name || "Club",
+        role: invitation.role,
+        message: invitation.message || "",
+        expiresAt,
+        isResend: true,
+      }).catch((err) => console.error("Resend invitation email error:", err.message));
+    }
+  } catch (err) {
+    console.error("Failed to trigger resend invitation email:", err.message);
+  }
 
   return populateInvitation(Invitation.findById(invitation._id));
 };
 
 module.exports = {
+  autoExpireInvitations,
   getInvitationList,
   getInvitationDetail,
   sendInvitation,

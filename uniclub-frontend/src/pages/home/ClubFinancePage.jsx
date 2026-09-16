@@ -7,9 +7,17 @@ import {
   updateTransactionRequest,
   getTransactionDetail,
 } from '../../api/finance.api'
+import { payWithCash } from '../../api/payment.api'
 import '../../styles/club-finance.css'
 
-const EMPTY_FORM = { title: '', type: 'expense', category: '', period: '', amount: '', dateInput: '', description: '' }
+const EMPTY_FORM = {
+  title: '',
+  type: 'income',
+  period: 'FA26',
+  amount: '',
+  dateInput: new Date().toISOString().slice(0, 10),
+  description: '',
+}
 const currency = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 })
 const statusLabel = { approved: 'Approved', pending: 'Pending', rejected: 'Rejected' }
 const fallbackClub = ALL_CLUBS[0]
@@ -30,13 +38,13 @@ function mapTransactionFromApi(item) {
     id: item._id || item.id,
     title: item.title || item.description || 'New Transaction',
     type: mapTypeToText(item.type),
-    category: item.category || 'Membership Fee',
-    period: item.period || 'Q1/2026',
+    period: item.period || 'FA26',
     amount: item.amount || 0,
     date: item.transaction_date ? new Date(item.transaction_date).toLocaleDateString('en-US') : new Date().toLocaleDateString('en-US'),
     dateInput: item.transaction_date ? String(item.transaction_date).slice(0, 10) : new Date().toISOString().slice(0, 10),
     status: mapStatusToText(item.status),
-    createdBy: item.created_by?.full_name || 'Club Board',
+    createdBy: item.created_by?.user_id?.full_name || item.created_by?.full_name || 'Club Board',
+    approvedBy: item.approved_by?.user_id?.full_name || item.approved_by?.full_name || (item.status === 'approved' ? 'Club President' : '—'),
     referenceCode: `TR-${String(item._id || '000000').slice(-6).toUpperCase()}`,
     description: item.description || '',
   }
@@ -92,20 +100,19 @@ function ClubFinancePage({ clubId, userRole }) {
   const displayed = useMemo(() => transactions.filter((item) => {
     const matchesFilter = filter === 'all' || item.status === filter || item.type === filter
     const normalized = query.trim().toLowerCase()
-    return matchesFilter && (!normalized || [item.title, item.category, item.period, item.referenceCode].some((value) => value && value.toLowerCase().includes(normalized)))
+    return matchesFilter && (!normalized || [item.title, item.period, item.referenceCode, item.description, item.createdBy].some((value) => value && value.toLowerCase().includes(normalized)))
   }), [transactions, query, filter])
 
   function notify(message) { setToast(message); window.setTimeout(() => setToast(null), 3500) }
   function openCreate() { setForm(EMPTY_FORM); setFormTarget('create') }
-  function openEdit(item) { setForm({ title: item.title, type: item.type, category: item.category, period: item.period || '', amount: String(item.amount), dateInput: item.dateInput, description: item.description }); setSelected(null); setFormTarget(item) }
+  function openEdit(item) { setForm({ title: item.title, type: item.type, period: item.period || 'FA26', amount: String(item.amount), dateInput: item.dateInput, description: item.description }); setSelected(null); setFormTarget(item) }
 
   async function saveRequest(event) {
     event.preventDefault()
     const payload = {
       title: form.title.trim(),
-      type: form.type === 'income' ? 0 : 1,
-      category: form.category.trim(),
-      period: form.period ? form.period.trim() : 'Q1/2026',
+      type: form.type === 'income' ? 'income' : 'expense',
+      period: form.period ? form.period.trim().toUpperCase() : 'FA26',
       amount: Number(form.amount),
       transaction_date: form.dateInput,
       description: form.description.trim()
@@ -148,8 +155,8 @@ function ClubFinancePage({ clubId, userRole }) {
   }
 
   function exportReport() {
-    const headers = ['Reference', 'Title', 'Type', 'Category', 'Period', 'Amount', 'Date', 'Status']
-    const rows = transactions.map((item) => [item.referenceCode, item.title, item.type, item.category, item.period, item.amount, item.date, item.status])
+    const headers = ['Reference', 'Title', 'Type', 'Period', 'Amount', 'Date', 'Status', 'Requested By', 'Approved By']
+    const rows = transactions.map((item) => [item.referenceCode, item.title, item.type, item.period, item.amount, item.date, item.status, item.createdBy, item.approvedBy])
     const blob = new Blob([[headers, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `${club.id}-financial-report.csv`; link.click(); URL.revokeObjectURL(url)
     notify('Financial report exported as CSV.')
@@ -158,7 +165,7 @@ function ClubFinancePage({ clubId, userRole }) {
   return <main className="club-finance-page">
     <section className="club-finance-hero"><div><span>{club.name} · {isPresident ? 'President' : 'Treasurer'} workspace</span><h1>Financial Dashboard</h1><p>Track approved funds, manage transaction requests, and keep every club expense transparent.</p></div><div className="club-finance-hero__actions"><button type="button" onClick={exportReport}>⇩ Export report</button><button type="button" onClick={openCreate}>+ New request</button></div></section>
     <section className="club-finance-summary" aria-label="Financial overview"><SummaryCard label="Current balance" value={income - expense} accent="balance" /><SummaryCard label="Approved income" value={income} accent="income" /><SummaryCard label="Approved expenses" value={expense} accent="expense" /><div className="club-finance-summary__card club-finance-summary__card--pending"><span>Pending requests</span><strong>{transactions.filter((item) => item.status === 'pending').length}</strong><small>Awaiting review</small></div></section>
-    <section className="club-finance-transactions"><header><div><span>Transaction requests</span><h2>All transactions</h2></div><label className="club-finance-search">⌕<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, category or reference..." /></label></header><div className="club-finance-filters">{[['all', 'All'], ['income', 'Income'], ['expense', 'Expenses'], ['pending', 'Pending'], ['approved', 'Approved']].map(([value, label]) => <button key={value} type="button" className={filter === value ? 'is-active' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div><div className="club-finance-table" role="table"><div className="club-finance-table__head" role="row"><span>Transaction</span><span>Type</span><span>Amount</span><span>Status</span><span /></div>{loading ? <div className="club-finance-empty">Loading transaction records...</div> : displayed.map((item) => <div className="club-finance-table__row" role="row" key={item.id}><div><strong>{item.title}</strong><small>{item.referenceCode} · {item.period || item.date}</small></div><span className={`club-finance-type club-finance-type--${item.type}`}>{item.type === 'income' ? 'Income' : 'Expense'}</span><strong className={item.type === 'income' ? 'is-income' : 'is-expense'}>{item.type === 'income' ? '+' : '-'}{currency.format(item.amount)}</strong><span className={`club-finance-status club-finance-status--${item.status}`}>{statusLabel[item.status]}</span><div className="club-finance-table__actions"><button type="button" onClick={() => setSelected(item)}>View</button></div></div>)}{!loading && !displayed.length && <div className="club-finance-empty">No transaction requests match this filter.</div>}</div></section>
+    <section className="club-finance-transactions"><header><div><span>Transaction requests</span><h2>All transactions</h2></div><label className="club-finance-search">⌕<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, period, reference or requester..." /></label></header><div className="club-finance-filters">{[['all', 'All'], ['income', 'Income'], ['expense', 'Expenses'], ['pending', 'Pending'], ['approved', 'Approved']].map(([value, label]) => <button key={value} type="button" className={filter === value ? 'is-active' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div><div className="club-finance-table" role="table"><div className="club-finance-table__head" role="row"><span>Transaction</span><span>Type</span><span>Amount</span><span>Status</span><span /></div>{loading ? <div className="club-finance-empty">Loading transaction records...</div> : displayed.map((item) => <div className="club-finance-table__row" role="row" key={item.id}><div><strong>{item.title}</strong><small>{item.referenceCode} · {item.period || item.date}</small></div><span className={`club-finance-type club-finance-type--${item.type}`}>{item.type === 'income' ? 'Income' : 'Expense'}</span><strong className={item.type === 'income' ? 'is-income' : 'is-expense'}>{item.type === 'income' ? '+' : '-'}{currency.format(item.amount)}</strong><span className={`club-finance-status club-finance-status--${item.status}`}>{statusLabel[item.status]}</span><div className="club-finance-table__actions"><button type="button" onClick={() => setSelected(item)}>View</button></div></div>)}{!loading && !displayed.length && <div className="club-finance-empty">No transaction requests match this filter.</div>}</div></section>
     {selected && <TransactionDetail item={selected} clubId={clubId} isPresident={isPresident} handleApprove={handleApprove} handleReject={handleReject} onClose={() => setSelected(null)} onEdit={() => openEdit(selected)} />}
     {formTarget && <TransactionForm item={formTarget === 'create' ? null : formTarget} form={form} setForm={setForm} onClose={() => setFormTarget(null)} onSubmit={saveRequest} />}
     {toast && <div className="club-finance-toast" role="status">{toast}</div>}
@@ -170,6 +177,29 @@ function SummaryCard({ label, value, accent }) { return <div className={`club-fi
 function TransactionDetail({ item, clubId, isPresident, handleApprove, handleReject, onClose, onEdit }) {
   const [detailData, setDetailData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [collectingId, setCollectingId] = useState(null)
+
+  const reloadDetail = async () => {
+    try {
+      const res = await getTransactionDetail(clubId, item.id)
+      if (res?.data) setDetailData(res.data)
+    } catch (err) {
+      console.error('Error reloading transaction details:', err)
+    }
+  }
+
+  const handleCollectCash = async (paymentId, memberName) => {
+    if (!window.confirm(`Xác nhận đã thu tiền mặt từ thành viên "${memberName}"?`)) return
+    try {
+      setCollectingId(paymentId)
+      await payWithCash({ club_id: clubId, payment_id: paymentId })
+      await reloadDetail()
+    } catch (err) {
+      alert(err.message || 'Lỗi khi xác nhận thu tiền mặt')
+    } finally {
+      setCollectingId(null)
+    }
+  }
 
   useEffect(() => {
     if (item?.id && clubId) {
@@ -185,7 +215,7 @@ function TransactionDetail({ item, clubId, isPresident, handleApprove, handleRej
 
   const payments = detailData?.member_payments || []
   const totalCount = payments.length
-  const paidCount = payments.filter((p) => p.status === 1).length
+  const paidCount = payments.filter((p) => p.status === 'success' || p.status === 1).length
   const amountPerMember = item.amount || 0
   const totalExpected = totalCount * amountPerMember
   const totalCollected = paidCount * amountPerMember
@@ -207,13 +237,17 @@ function TransactionDetail({ item, clubId, isPresident, handleApprove, handleRej
         <div className="club-finance-detail__grid">
           <div><span>Reference</span><strong>{item.referenceCode}</strong></div>
           <div><span>Status</span><strong className={`club-finance-status club-finance-status--${item.status}`}>{statusLabel[item.status]}</strong></div>
-          <div><span>Category</span><strong>{item.category}</strong></div>
-          <div><span>Period</span><strong>{item.period || 'Q1/2026'}</strong></div>
+          <div><span>Type</span><strong style={{ textTransform: 'capitalize' }}>{item.type === 'income' ? 'Income (Khoản thu)' : 'Expense (Khoản chi)'}</strong></div>
+          <div><span>Period (Kỳ học)</span><strong>{item.period || 'FA26'}</strong></div>
           <div><span>Transaction date</span><strong>{item.date}</strong></div>
           <div><span>Requested by</span><strong>{item.createdBy}</strong></div>
+          <div><span>Approved by</span><strong>{item.approvedBy}</strong></div>
         </div>
 
-        <p style={{ marginTop: '0.75rem', marginBottom: '1.25rem', color: '#475569' }}>{item.description}</p>
+        <div style={{ marginTop: '0.75rem', marginBottom: '1.25rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Description</span>
+          <p style={{ marginTop: '0.25rem', color: '#334155' }}>{item.description || 'No description provided.'}</p>
+        </div>
 
         {/* Member Payment Status Checklist Section (Only for Income transactions) */}
         {item.type === 'income' && (
@@ -245,31 +279,57 @@ function TransactionDetail({ item, clubId, isPresident, handleApprove, handleRej
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: '220px', overflowY: 'auto' }}>
-                {payments.map((p) => (
-                  <div key={p.payment_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.55rem 0.75rem', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-                      <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: p.status === 1 ? '#dcfce7' : '#fef3c7', color: p.status === 1 ? '#15803d' : '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.8rem' }}>
-                        {p.full_name?.charAt(0)?.toUpperCase() || 'S'}
+                {payments.map((p) => {
+                  const isPaid = p.status === 'success' || p.status === 1
+                  return (
+                    <div key={p.payment_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.55rem 0.75rem', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                        <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: isPaid ? '#dcfce7' : '#fef3c7', color: isPaid ? '#15803d' : '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                          {p.full_name?.charAt(0)?.toUpperCase() || 'S'}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#0f172a' }}>{p.full_name}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{p.email}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#0f172a' }}>{p.full_name}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{p.email}</div>
-                      </div>
-                    </div>
 
-                    <div>
-                      {p.status === 1 ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                          ✅ Paid {p.paid_at ? `(${new Date(p.paid_at).toLocaleDateString('en-US')})` : ''}
-                        </span>
-                      ) : (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: '#fef3c7', color: '#b45309', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                          ⏳ Unpaid
-                        </span>
-                      )}
+                      <div>
+                        {isPaid ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                            ✅ Paid {p.paid_at ? `(${new Date(p.paid_at).toLocaleDateString('en-US')})` : ''}
+                          </span>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: '#fef3c7', color: '#b45309', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                              ⏳ Unpaid
+                            </span>
+                            <button
+                              type="button"
+                              style={{
+                                background: '#10b981',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '0.2rem 0.55rem',
+                                fontSize: '0.72rem',
+                                fontWeight: 'bold',
+                                cursor: collectingId === p.payment_id ? 'not-allowed' : 'pointer',
+                                opacity: collectingId === p.payment_id ? 0.6 : 1,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.2rem',
+                              }}
+                              disabled={collectingId === p.payment_id}
+                              onClick={() => handleCollectCash(p.payment_id, p.full_name)}
+                            >
+                              {collectingId === p.payment_id ? '...' : '💵 Thu tiền mặt'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -305,8 +365,94 @@ function TransactionDetail({ item, clubId, isPresident, handleApprove, handleRej
   )
 }
 
-function TransactionForm({ item, form, setForm, onClose, onSubmit }) { const change = (key, value) => setForm((current) => ({ ...current, [key]: value })); const openDatePicker = (event) => event.currentTarget.showPicker?.(); return <FinanceModal title={item ? 'Update transaction request' : 'Create transaction request'} onClose={onClose}><form className="club-finance-form" onSubmit={onSubmit}><label>Transaction title<input required value={form.title} onChange={(event) => change('title', event.target.value)} placeholder="e.g. Buy event supplies" /></label><div><label>Type<select value={form.type} onChange={(event) => change('type', event.target.value)}><option value="expense">Expense</option><option value="income">Income</option></select></label><label>Amount (VND)<input required min="1" type="number" value={form.amount} onChange={(event) => change('amount', event.target.value)} placeholder="0" /></label></div><div><label>Category<input required value={form.category} onChange={(event) => change('category', event.target.value)} placeholder="e.g. Membership Fee" /></label><label>Period<input required value={form.period} onChange={(event) => change('period', event.target.value)} placeholder="e.g. Q1/2026, Aug 2026" /></label></div><div><label>Date<input required type="date" value={form.dateInput} onClick={openDatePicker} onChange={(event) => change('dateInput', event.target.value)} /></label></div><label>Description<textarea value={form.description} rows="3" onChange={(event) => change('description', event.target.value)} placeholder="Add context for this transaction request..." /></label><footer><button type="button" onClick={onClose}>Cancel</button><button type="submit" className="is-primary">{item ? 'Save changes' : 'Create request'}</button></footer></form></FinanceModal> }
-function FinanceModal({ title, children, onClose }) { return <div className="club-finance-modal" role="dialog" aria-modal="true"><button className="club-finance-modal__backdrop" aria-label="Close dialog" onClick={onClose} /><section className="club-finance-modal__panel"><header><h2>{title}</h2><button type="button" aria-label="Close" onClick={onClose}>×</button></header>{children}</section></div> }
+function TransactionForm({ item, form, setForm, onClose, onSubmit }) {
+  const change = (key, value) => setForm((current) => ({ ...current, [key]: value }))
+  const openDatePicker = (event) => event.currentTarget.showPicker?.()
+
+  return (
+    <FinanceModal title={item ? 'Update transaction request' : 'Create transaction request'} onClose={onClose}>
+      <form className="club-finance-form" onSubmit={onSubmit}>
+        <label>
+          Transaction title
+          <input
+            required
+            value={form.title}
+            onChange={(event) => change('title', event.target.value)}
+            placeholder="e.g. Thu tien phi sinh hoat CLB"
+          />
+        </label>
+        <div>
+          <label>
+            Type
+            <select value={form.type} onChange={(event) => change('type', event.target.value)}>
+              <option value="income">Income (Khoản thu / Thu phí thành viên)</option>
+              <option value="expense">Expense (Khoản chi quỹ CLB)</option>
+            </select>
+          </label>
+          <label>
+            Amount (VND)
+            <input
+              required
+              min="1"
+              type="number"
+              value={form.amount}
+              onChange={(event) => change('amount', event.target.value)}
+              placeholder="0"
+            />
+          </label>
+        </div>
+        <div>
+          <label>
+            Period (Học kỳ)
+            <input
+              required
+              value={form.period}
+              onChange={(event) => change('period', event.target.value)}
+              placeholder="e.g. FA26, SP26, SU26"
+            />
+          </label>
+          <label>
+            Transaction date
+            <input
+              required
+              type="date"
+              value={form.dateInput}
+              onClick={openDatePicker}
+              onChange={(event) => change('dateInput', event.target.value)}
+            />
+          </label>
+        </div>
+        <label>
+          Description
+          <textarea
+            value={form.description}
+            rows="3"
+            onChange={(event) => change('description', event.target.value)}
+            placeholder="Mô tả chi tiết mục đích thu / chi của giao dịch..."
+          />
+        </label>
+        <footer>
+          <button type="button" onClick={onClose}>Cancel</button>
+          <button type="submit" className="is-primary">{item ? 'Save changes' : 'Create request'}</button>
+        </footer>
+      </form>
+    </FinanceModal>
+  )
+}
+
+function FinanceModal({ title, children, onClose }) {
+  return (
+    <div className="club-finance-modal" role="dialog" aria-modal="true">
+      <button className="club-finance-modal__backdrop" aria-label="Close dialog" onClick={onClose} />
+      <section className="club-finance-modal__panel">
+        <header>
+          <h2>{title}</h2>
+          <button type="button" aria-label="Close" onClick={onClose}>×</button>
+        </header>
+        {children}
+      </section>
+    </div>
+  )
+}
 
 export default ClubFinancePage
-1

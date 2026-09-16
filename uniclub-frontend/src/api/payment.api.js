@@ -19,6 +19,13 @@ export function createPaymentUrl(data) {
   })
 }
 
+export function payWithCash(data) {
+  return apiRequest('/payment/pay-cash', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
 export function getReceiptDetail(clubId, receiptId) {
   const query = clubId ? `?club_id=${clubId}` : ''
   return apiRequest(`/payment/receipts/${receiptId}${query}`, {

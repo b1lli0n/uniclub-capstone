@@ -96,26 +96,37 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    if (typeof propCanManagePolls === 'boolean') {
-      setCanManagePolls(propCanManagePolls)
-    }
-  }, [propCanManagePolls])
-
-  useEffect(() => {
     let cancelled = false
     async function checkRole() {
-      if (typeof propCanManagePolls === 'boolean') return
       try {
         const myClubsResponse = await getMyClubs()
         if (cancelled) return
-        const membership = (myClubsResponse.data || []).find((item) => {
+        const memberships = myClubsResponse.data || []
+        const membership = memberships.find((item) => {
           const id = item.club_id?._id || item.club_id
-          return String(id) === String(clubId)
+          const name = item.club_id?.name || ''
+          return (
+            String(id) === String(clubId) ||
+            (name && name.toLowerCase().includes(String(clubId).toLowerCase()))
+          )
         })
-        const role = membership?.role?.toLowerCase()
-        setCanManagePolls(role === 'secretary' || role === 'president' || role === 'leader')
+        if (membership) {
+          const role = (membership.role || '').toLowerCase()
+          // Only secretary, president, or leader can manage polls (create, edit, close)
+          const canManage = role === 'secretary' || role === 'president' || role === 'leader'
+          setCanManagePolls(canManage)
+        } else if (typeof propCanManagePolls === 'boolean') {
+          setCanManagePolls(propCanManagePolls)
+        } else {
+          setCanManagePolls(false)
+        }
       } catch (err) {
         console.error('Failed to resolve club role for polls:', err)
+        if (typeof propCanManagePolls === 'boolean') {
+          setCanManagePolls(propCanManagePolls)
+        } else {
+          setCanManagePolls(false)
+        }
       }
     }
     checkRole()

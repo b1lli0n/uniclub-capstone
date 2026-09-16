@@ -1,4 +1,6 @@
 const Event = require("../../models/event.model");
+const Club = require("../../models/club.model");
+const User = require("../../models/user.model");
 const Feedback = require("../../models/feedback.model");
 const { getStatusError } = require("../../utils/error");
 
@@ -56,23 +58,31 @@ const createFeedbackEvent = async (userId, eventId, { rating, comment }) => {
     throw getStatusError("You have already submitted feedback for this event", 409);
   }
 
-  const feedback = await Feedback.create({
-    event_id: eventId,
-    user_id: userId,
-    rating,
-    comment
-  });
+  let feedback;
+  try {
+    feedback = await Feedback.create({
+      event_id: eventId,
+      user_id: userId,
+      rating,
+      comment
+    });
+  } catch (err) {
+    if (err.code === 11000) {
+      throw getStatusError("You have already submitted feedback for this event", 409);
+    }
+    throw err;
+  }
 
   try {
     const event = await Event.findById(eventId).populate("club_id", "name");
-    const User = require("../../models/user.model");
     const userDoc = await User.findById(userId);
     let awardedLog = null;
     
     if (event) {
+      const resolvedClubId = event.club_id?._id || event.club_id;
       const { awardRewardPoints } = require("../pointsAward.helper");
       awardedLog = await awardRewardPoints({
-        clubId: event.club_id,
+        clubId: resolvedClubId,
         userId: userId,
         actionTypeCode: "feedback",
         eventId: eventId,
@@ -88,7 +98,7 @@ const createFeedbackEvent = async (userId, eventId, { rating, comment }) => {
         eventTitle: event?.title || "Event",
         rating,
         comment,
-        pointsAwarded: awardedLog?.reward_point || 10,
+        pointsAwarded: awardedLog?.reward_point || 0,
       });
     }
   } catch (err) {

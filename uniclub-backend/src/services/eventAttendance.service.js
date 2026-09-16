@@ -3,8 +3,6 @@ const Event = require("../models/event.model");
 const EventRegistration = require("../models/event_registration.model");
 const ClubMember = require("../models/club_member.model");
 
-const ATTENDANCE_MANAGE_ROLES = ["president", "leader", "secretary", "event_manager"];
-
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 const createError = (message, statusCode = 400) => {
@@ -35,32 +33,6 @@ const getEventById = async (eventId) => {
   return event;
 };
 
-const checkAttendanceManagePermission = async ({ event, userId }) => {
-  validateObjectId(userId, "user ID");
-
-  const isEventCreator = event.created_by.toString() === userId.toString();
-
-  if (isEventCreator) {
-    return true;
-  }
-
-  const clubMember = await ClubMember.findOne({
-    club_id: event.club_id,
-    user_id: userId,
-    status: "active",
-  });
-
-  if (!clubMember) {
-    throw createError("You are not an active member of this club", 403);
-  }
-
-  if (!ATTENDANCE_MANAGE_ROLES.includes(clubMember.role)) {
-    throw createError("You do not have permission to manage attendance", 403);
-  }
-
-  return true;
-};
-
 const buildAttendanceRow = (registration) => {
   const user = registration.user_id;
 
@@ -83,11 +55,6 @@ const buildAttendanceRow = (registration) => {
 
 const getAttendanceList = async ({ eventId, userId, search }) => {
   const event = await getEventById(eventId);
-
-  await checkAttendanceManagePermission({
-    event,
-    userId,
-  });
 
   let registrations = await EventRegistration.find({
     event_id: eventId,
@@ -156,11 +123,6 @@ const updateAttendanceStatus = async ({
 }) => {
   const event = await getEventById(eventId);
 
-  await checkAttendanceManagePermission({
-    event,
-    userId,
-  });
-
   const resolvedTarget =
     target || (check_in_status !== undefined ? "event" : "registration");
 
@@ -212,6 +174,8 @@ const updateAttendanceStatus = async ({
       throw createError("Cannot update a cancelled registration", 400);
     }
 
+    const wasAlreadyAttended = registration.status === "attended";
+
     registration.status = status;
 
     if (status === "attended") {
@@ -221,8 +185,8 @@ const updateAttendanceStatus = async ({
         status: "active",
       });
 
-      registration.check_in_time = new Date();
-      registration.checked_in_by = checkerMember ? checkerMember._id : userId;
+      registration.check_in_time = registration.check_in_time || new Date();
+      registration.checked_in_by = registration.checked_in_by || (checkerMember ? checkerMember._id : userId);
     }
 
     if (status === "registered" || status === "absent") {
@@ -232,10 +196,10 @@ const updateAttendanceStatus = async ({
 
     await registration.save();
 
-    if (status === "attended") {
+    if (status === "attended" && !wasAlreadyAttended) {
       try {
         const { awardRewardPoints } = require("./pointsAward.helper");
-        let awarded = await awardRewardPoints({
+        let awardRes = await awardRewardPoints({
           clubId: event.club_id,
           userId: registration.user_id,
           actionTypeCode: "checkin",
@@ -243,7 +207,8 @@ const updateAttendanceStatus = async ({
           presidentId: userId,
         });
 
-        if (!awarded) {
+        // Only fallback to "attendance" if "checkin" rule was NOT FOUND (not if limit reached or already awarded)
+        if (awardRes && !awardRes.success && awardRes.reason === "rule_not_found") {
           await awardRewardPoints({
             clubId: event.club_id,
             userId: registration.user_id,
@@ -269,16 +234,8 @@ const updateAttendanceStatus = async ({
 const autoMarkAbsentAfterEventEnd = async ({
   eventId,
   userId,
-  skipPermission = false,
 }) => {
   const event = await getEventById(eventId);
-
-  if (!skipPermission) {
-    await checkAttendanceManagePermission({
-      event,
-      userId,
-    });
-  }
 
   const now = new Date();
 

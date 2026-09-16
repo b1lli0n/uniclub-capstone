@@ -266,7 +266,7 @@
 
 .admin-table__row--club,
 .admin-table__row--club-head {
-  grid-template-columns: minmax(220px, 1.4fr) minmax(150px, 1fr) minmax(100px, 0.7fr) minmax(120px, 0.8fr) 120px;
+  grid-template-columns: minmax(200px, 1.4fr) minmax(140px, 1fr) minmax(95px, 0.7fr) minmax(115px, 0.8fr) 132px;
 }
 
 .admin-table__row--head {
@@ -604,6 +604,37 @@
   background: #fff8eb;
   border-color: #d97706;
   box-shadow: 0 6px 14px rgba(217, 119, 6, 0.16);
+}
+
+.admin-update-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(255, 142, 11, 0.45);
+  color: #ff8e0b;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.admin-update-btn:hover {
+  background: #fff8f2;
+  border-color: #ff8e0b;
+  box-shadow: 0 6px 14px rgba(255, 142, 11, 0.18);
+}
+
+.admin-update-btn:active {
+  transform: translateY(1px);
+}
+
+.admin-update-btn svg {
+  display: block;
+  width: 15px;
+  height: 15px;
 }
 
 .admin-pagination {

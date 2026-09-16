@@ -22,6 +22,7 @@ export const STATUS_LABELS = {
   rejected: 'Rejected',
   declined: 'Declined',
   cancelled: 'Cancelled',
+  expired: 'Expired',
   active: 'Active',
   coming_soon: 'Coming Soon',
   opening: 'Opening',
@@ -153,6 +154,7 @@ export function mapMemberInvitationFromApi(invitation) {
     category: (club.category || invitation.category || '').toUpperCase(),
     status: invitation.status || 'pending',
     sentDate: formatDate(invitation.create_at || invitation.created_at || invitation.createdAt),
+    expiresAt: invitation.expires_at ? formatDate(invitation.expires_at) : '',
     sentTime: '',
     type: invitation.is_creation_invite ? 'Founding Member Invitation' : 'Club Invitation',
     content: invitation.message || invitation.content || (invitation.is_creation_invite ? 'You received an invitation to be a founding member of this club.' : 'You received an invitation to join this club.'),
@@ -173,7 +175,22 @@ export function mapPresidentJoinRequestFromApi(request, formQuestions = []) {
     const qId = answer?.question_id || answer?.questionId
     const matchedQ = questionsList.find((q) => String(q._id || q.id) === String(qId)) || questionsList[index]
     const questionText = typeof matchedQ === 'string' ? matchedQ : (matchedQ?.content || matchedQ?.label || `Question ${index + 1}`)
-    const answerText = typeof answer === 'string' ? answer : (answer?.value || '')
+
+    let answerText = ''
+    if (typeof answer === 'string') {
+      answerText = answer
+    } else if (answer && typeof answer === 'object') {
+      if (typeof answer.value === 'string') {
+        answerText = answer.value
+      } else {
+        const numKeys = Object.keys(answer).filter((k) => !isNaN(k)).sort((a, b) => Number(a) - Number(b))
+        if (numKeys.length > 0) {
+          answerText = numKeys.map((k) => answer[k]).join('')
+        } else {
+          answerText = String(answer.value ?? '')
+        }
+      }
+    }
 
     return {
       question: questionText,
@@ -250,7 +267,7 @@ export function mapClubInvitationFromApi(invitation) {
     message: invitation.message || '',
     role: invitation.role || 'member',
     sentAt: formatDateTime(invitation.created_at),
-    expiresAt: '-',
+    expiresAt: invitation.expires_at ? formatDateTime(invitation.expires_at) : '-',
     respondedAt: invitation.updated_at && rawStatus !== 'pending'
       ? formatDateTime(invitation.updated_at)
       : undefined,

@@ -51,6 +51,27 @@ const createEventRequest = async ({ clubId, userId, userEmail, body }) => {
     throw getStatusError("start_time must be before end_time", 400);
   }
 
+  let registrationStart = null;
+  let registrationEnd = null;
+  const rawRegStart = body.registration_start || body.registration_start_time || body.registrationStartTime;
+  const rawRegEnd = body.registration_end || body.registration_end_time || body.registrationEndTime;
+
+  if (rawRegStart) {
+    registrationStart = parseDate(rawRegStart, "registration_start");
+  }
+  if (rawRegEnd) {
+    registrationEnd = parseDate(rawRegEnd, "registration_end");
+  }
+
+  if (registrationStart && registrationEnd) {
+    if (registrationStart >= registrationEnd) {
+      throw getStatusError("registration_start must be before registration_end", 400);
+    }
+    if (registrationEnd > startTime) {
+      throw getStatusError("registration_end must be before or equal to event start_time", 400);
+    }
+  }
+
   const capacity = Number(body.capacity);
   if (!Number.isInteger(capacity) || capacity <= 0) {
     throw getStatusError("capacity must be a positive integer", 400);
@@ -72,6 +93,8 @@ const createEventRequest = async ({ clubId, userId, userEmail, body }) => {
     category,
     start_time: startTime,
     end_time: endTime,
+    registration_start: registrationStart,
+    registration_end: registrationEnd,
     location,
     is_public: isPublic,
     capacity,
@@ -99,10 +122,17 @@ const createEventRequest = async ({ clubId, userId, userEmail, body }) => {
   return savedRequest;
 };
 
-const getEventRequests = async ({ status } = {}) => {
+const getEventRequests = async ({ status, sort = "status" } = {}) => {
   const filter = {};
-  if (status) {
+  if (status && status !== "all") {
     filter.status = status;
+  }
+
+  let sortOption = { created_at: -1 };
+  if (sort === "oldest") {
+    sortOption = { created_at: 1 };
+  } else if (sort === "newest") {
+    sortOption = { created_at: -1 };
   }
 
   const requests = await EventCreationRequest.find(filter)
@@ -111,8 +141,18 @@ const getEventRequests = async ({ status } = {}) => {
       path: "requested_by",
       populate: { path: "user_id", select: "full_name email avatar_url" },
     })
-    .sort({ created_at: -1 })
+    .sort(sortOption)
     .lean();
+
+  if (sort === "status") {
+    const statusPriority = { pending: 1, approved: 2, rejected: 3 };
+    requests.sort((a, b) => {
+      const pA = statusPriority[a.status] || 99;
+      const pB = statusPriority[b.status] || 99;
+      if (pA !== pB) return pA - pB;
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+  }
 
   return requests;
 };
@@ -191,6 +231,8 @@ const reviewEventRequest = async ({ requestId, status, reviewNote, reviewerId })
       category: request.category,
       start_time: request.start_time,
       end_time: request.end_time,
+      registration_start: request.registration_start || null,
+      registration_end: request.registration_end || null,
       location: request.location,
       is_public: request.is_public,
       capacity: request.capacity,

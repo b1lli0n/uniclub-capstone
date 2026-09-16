@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { getEventRequests, approveEventRequest, rejectEventRequest } from '../../api/eventRequest.api';
 import { useConfirm, useToast } from '../../components/common/notificationContext';
 
@@ -7,16 +7,91 @@ function formatStatusLabel(status = '') {
   return `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
 }
 
+const ADMIN_EVENT_SORT_OPTIONS = [
+  { value: 'status', label: 'Sort: Status (Pending first)' },
+  { value: 'all', label: 'All Requests' },
+  { value: 'pending', label: 'Status: Pending' },
+  { value: 'approved', label: 'Status: Approved' },
+  { value: 'rejected', label: 'Status: Rejected' },
+  { value: 'newest', label: 'Newest date' },
+  { value: 'oldest', label: 'Oldest date' },
+];
+
 export default function AdminEventRequestsTab() {
   const confirm = useConfirm();
   const showToast = useToast();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [detailRequest, setDetailRequest] = useState(null);
+  const [sortMode, setSortMode] = useState('status');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const sortRef = useRef(null);
 
   useEffect(() => {
     fetchRequests();
   }, []);
+
+  useEffect(() => {
+    if (!sortMenuOpen) return undefined;
+
+    function handlePointerDown(event) {
+      if (!sortRef.current?.contains(event.target)) {
+        setSortMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setSortMenuOpen(false);
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [sortMenuOpen]);
+
+  const selectedSort = ADMIN_EVENT_SORT_OPTIONS.find((opt) => opt.value === sortMode);
+
+  const visibleRequests = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    let list = requests.filter((item) => {
+      if (!query) return true;
+      const title = (item.title || '').toLowerCase();
+      const clubName = (item.club_id?.name || '').toLowerCase();
+      return title.includes(query) || clubName.includes(query);
+    });
+
+    if (sortMode === 'pending') {
+      return list.filter((item) => item.status === 'pending');
+    }
+    if (sortMode === 'approved') {
+      return list.filter((item) => item.status === 'approved');
+    }
+    if (sortMode === 'rejected') {
+      return list.filter((item) => item.status === 'rejected');
+    }
+    if (sortMode === 'newest') {
+      return [...list].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+    if (sortMode === 'oldest') {
+      return [...list].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    }
+    if (sortMode === 'status') {
+      const priority = { pending: 1, approved: 2, rejected: 3 };
+      return [...list].sort((a, b) => {
+        const pA = priority[a.status] || 99;
+        const pB = priority[b.status] || 99;
+        if (pA !== pB) return pA - pB;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+    }
+
+    return list;
+  }, [requests, searchQuery, sortMode]);
 
   const fetchRequests = async () => {
     try {
@@ -162,7 +237,61 @@ export default function AdminEventRequestsTab() {
           <h2>Event Requests List</h2>
           <p>Manage submitted event creation requests.</p>
         </div>
+        <div className="admin-sort" ref={sortRef}>
+          <button
+            type="button"
+            className="admin-sort-btn"
+            aria-haspopup="listbox"
+            aria-expanded={sortMenuOpen}
+            onClick={() => setSortMenuOpen((v) => !v)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M3 6h18M7 12h10M10 18h4" strokeLinecap="round" />
+            </svg>
+            {selectedSort?.label || 'Sort'}
+          </button>
+
+          {sortMenuOpen ? (
+            <ul className="admin-sort__menu" role="listbox">
+              {ADMIN_EVENT_SORT_OPTIONS.map((option) => (
+                <li key={option.value} role="none">
+                  <button
+                    type="button"
+                    className="admin-sort__option"
+                    role="option"
+                    aria-selected={option.value === sortMode}
+                    onClick={() => {
+                      setSortMode(option.value);
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
       </div>
+
+      <div className="admin-card__tools">
+        <label className="admin-card__search">
+          <span aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3-3" strokeLinecap="round" />
+            </svg>
+          </span>
+          <input
+            type="search"
+            placeholder="Search event title or club..."
+            aria-label="Search event requests"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </label>
+      </div>
+
       <div className="admin-table" role="table">
         <div className="admin-table__row admin-table__row--head" role="row">
           <span>Event Title</span>
@@ -173,10 +302,10 @@ export default function AdminEventRequestsTab() {
         </div>
         {loading ? (
           <p className="admin-table__empty">Loading requests...</p>
-        ) : requests.length === 0 ? (
+        ) : visibleRequests.length === 0 ? (
           <p className="admin-table__empty">No event requests found.</p>
         ) : (
-          requests.map((item) => (
+          visibleRequests.map((item) => (
             <div className="admin-table__row admin-table__row--body" role="row" key={item._id}>
               <div className="admin-club-cell">
                 <strong>{item.title}</strong>

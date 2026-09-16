@@ -37,8 +37,15 @@ const invitationSchema = Schema(
     status: {
       type: String,
       required: true,
-      enum: ["pending", "accepted", "rejected", "cancelled"],
+      enum: ["pending", "accepted", "rejected", "cancelled", "expired"],
       default: "pending",
+    },
+
+    expires_at: {
+      type: Date,
+      required: true,
+      default: () => new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      index: true,
     },
   },
   {
@@ -48,5 +55,6 @@ const invitationSchema = Schema(
 
 invitationSchema.index({ invited_user_id: 1, status: 1 });
 invitationSchema.index({ club_id: 1, invited_user_id: 1, status: 1 });
+invitationSchema.index({ status: 1, expires_at: 1 });
 
 module.exports = mongoose.model("Invitation", invitationSchema);

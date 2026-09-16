@@ -1,6 +1,6 @@
-/* ClubFeesPage Stylesheet — UniClub Aesthetics */
+/* MyEventsPage Stylesheet — UniClub Aesthetics */
 
-.club-fees-page {
+.my-events-page {
   width: min(1180px, calc(100% - 3rem));
   margin: 0 auto;
   padding: 1rem 0 2.75rem;
@@ -9,7 +9,7 @@
 }
 
 /* ── Hero Banner ───────────────────────────────────────────────────────────── */
-.club-fees-hero {
+.my-events-hero {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -25,7 +25,7 @@
   box-shadow: 0 18px 44px rgba(92, 64, 51, 0.11);
 }
 
-.club-fees-hero__eyebrow {
+.my-events-hero__eyebrow {
   display: inline-block;
   margin-bottom: 0.45rem;
   color: #a64d00;
@@ -35,7 +35,7 @@
   text-transform: uppercase;
 }
 
-.club-fees-hero__title {
+.my-events-hero__title {
   margin: 0;
   color: #1b202e;
   font-size: clamp(1.9rem, 4vw, 2.65rem);
@@ -44,7 +44,7 @@
   line-height: 1.05;
 }
 
-.club-fees-hero__subtitle {
+.my-events-hero__subtitle {
   max-width: 580px;
   margin: 0.7rem 0 0;
   color: #5f5870;
@@ -53,7 +53,7 @@
   line-height: 1.55;
 }
 
-.club-fees-hero__summary {
+.my-events-hero__summary {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -67,7 +67,7 @@
   backdrop-filter: blur(8px);
 }
 
-.club-fees-hero__summary span {
+.my-events-hero__summary span {
   color: #756351;
   font-size: 0.74rem;
   font-weight: 900;
@@ -75,14 +75,18 @@
   letter-spacing: 0.045em;
 }
 
-.club-fees-hero__summary strong {
+.my-events-hero__summary strong {
   color: #c65f00;
-  font-size: 1.85rem;
+  font-size: 2rem;
   font-weight: 950;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
-.club-fees-hero__summary-sub {
+.my-events-hero__summary strong.is-live {
+  color: #16a34a;
+}
+
+.my-events-hero__summary-sub {
   margin-top: 0.2rem;
   font-size: 0.8rem;
   color: #8c7e95;
@@ -90,14 +94,14 @@
 }
 
 /* ── Stats Grid ────────────────────────────────────────────────────────────── */
-.club-fees-stats {
+.my-events-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin-top: 1.25rem;
 }
 
-.club-fees-stat-card {
+.my-events-stat-card {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -109,13 +113,19 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.club-fees-stat-card:hover {
+.my-events-stat-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 28px rgba(92, 64, 51, 0.09);
   border-color: #fed7aa;
 }
 
-.club-fees-stat-card__icon {
+.my-events-stat-card--highlight {
+  border-color: #86efac;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  box-shadow: 0 8px 26px rgba(34, 197, 94, 0.12);
+}
+
+.my-events-stat-card__icon {
   width: 46px;
   height: 46px;
   border-radius: 14px;
@@ -124,34 +134,32 @@
   justify-content: center;
   font-size: 1.35rem;
   flex-shrink: 0;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-}
-
-.club-fees-stat-card--unpaid .club-fees-stat-card__icon {
   background: #fff7ed;
-  border-color: #fed7aa;
-  color: #c2410c;
+  border: 1px solid #fed7aa;
 }
 
-.club-fees-stat-card--paid .club-fees-stat-card__icon {
-  background: #f0fdf4;
+.my-events-stat-card--highlight .my-events-stat-card__icon {
+  background: #dcfce7;
   border-color: #bbf7d0;
-  color: #16a34a;
 }
 
-.club-fees-stat-card--failed .club-fees-stat-card__icon {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #dc2626;
-}
-
-.club-fees-stat-card__info {
+.my-events-stat-card__info {
   display: flex;
   flex-direction: column;
 }
 
-.club-fees-stat-card__label {
+.my-events-stat-card__number {
+  font-size: 1.6rem;
+  font-weight: 950;
+  color: #1b202e;
+  line-height: 1.15;
+}
+
+.my-events-stat-card--highlight .my-events-stat-card__number {
+  color: #16a34a;
+}
+
+.my-events-stat-card__label {
   font-size: 0.74rem;
   font-weight: 800;
   color: #8c7e95;
@@ -159,30 +167,15 @@
   letter-spacing: 0.04em;
 }
 
-.club-fees-stat-card__value {
-  font-size: 1.55rem;
-  font-weight: 950;
-  color: #1b202e;
-  line-height: 1.15;
-}
-
-.club-fees-stat-card__sub {
-  font-size: 0.78rem;
+.my-events-stat-card__sub {
+  font-size: 0.76rem;
   font-weight: 700;
   color: #a8a29e;
   margin-top: 0.15rem;
 }
 
-.club-fees-stat-card--unpaid .club-fees-stat-card__sub {
-  color: #ea580c;
-}
-
-.club-fees-stat-card--paid .club-fees-stat-card__sub {
-  color: #16a34a;
-}
-
 /* ── Floating Toolbar ──────────────────────────────────────────────────────── */
-.club-fees-toolbar {
+.my-events-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -197,13 +190,13 @@
   backdrop-filter: blur(10px);
 }
 
-.club-fees-tabs {
+.my-events-tabs {
   display: flex;
   gap: 0.45rem;
   flex-wrap: wrap;
 }
 
-.club-fees-tab {
+.my-events-tab {
   min-height: 40px;
   padding: 0 0.9rem;
   border: 1px solid rgba(245, 124, 0, 0.15);
@@ -220,19 +213,24 @@
   transition: all 0.2s ease;
 }
 
-.club-fees-tab:hover {
+.my-events-tab:hover {
   background: #fff1de;
   transform: translateY(-1px);
 }
 
-.club-fees-tab.is-active {
+.my-events-tab.is-active {
   border-color: transparent;
   background: linear-gradient(135deg, #ff9f2f 0%, #f57c00 100%);
   color: #fff;
   box-shadow: 0 8px 20px rgba(245, 124, 0, 0.22);
 }
 
-.club-fees-tab__badge {
+.my-events-tab.is-open-tab.is-active {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  box-shadow: 0 8px 20px rgba(34, 197, 94, 0.25);
+}
+
+.my-events-tab__badge {
   display: inline-grid;
   place-items: center;
   min-width: 18px;
@@ -245,12 +243,16 @@
   font-weight: 950;
 }
 
-.club-fees-tab.is-active .club-fees-tab__badge {
+.my-events-tab.is-active .my-events-tab__badge {
   background: #ffffff;
   color: #f57c00;
 }
 
-.club-fees-controls {
+.my-events-tab.is-open-tab.is-active .my-events-tab__badge {
+  color: #16a34a;
+}
+
+.my-events-controls {
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -258,7 +260,7 @@
 }
 
 /* Search Box */
-.club-fees-search {
+.my-events-search {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -272,12 +274,12 @@
   box-sizing: border-box;
 }
 
-.club-fees-search:focus-within {
+.my-events-search:focus-within {
   border-color: #ea580c;
   box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.12);
 }
 
-.club-fees-search__svg {
+.my-events-search__svg {
   width: 17px;
   height: 17px;
   fill: none;
@@ -286,7 +288,7 @@
   flex-shrink: 0;
 }
 
-.club-fees-search__input {
+.my-events-search__input {
   width: 100%;
   border: none;
   outline: none;
@@ -297,12 +299,12 @@
   font-weight: 700;
 }
 
-.club-fees-search__input::placeholder {
+.my-events-search__input::placeholder {
   color: #ab9a8c;
   font-weight: 600;
 }
 
-.club-fees-search__clear {
+.my-events-search__clear {
   border: none;
   background: transparent;
   color: #a8a29e;
@@ -311,18 +313,18 @@
   padding: 2px 4px;
 }
 
-.club-fees-search__clear:hover {
+.my-events-search__clear:hover {
   color: #3d2e24;
 }
 
 /* Control Select Group */
-.club-fees-control-group {
+.my-events-control-group {
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-.club-fees-control-label {
+.my-events-control-label {
   font-size: 0.69rem;
   font-weight: 900;
   color: #8c7e95;
@@ -330,7 +332,7 @@
   text-transform: uppercase;
 }
 
-.club-fees-select {
+.my-events-select {
   height: 40px;
   padding: 0 0.85rem;
   border: 1px solid #f1e1d2;
@@ -344,19 +346,19 @@
   cursor: pointer;
 }
 
-.club-fees-select:focus {
+.my-events-select:focus {
   border-color: #ea580c;
   box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.12);
 }
 
-/* ── Fee Cards List ────────────────────────────────────────────────────────── */
-.club-fees-list {
+/* ── Event Cards List ──────────────────────────────────────────────────────── */
+.my-events-list {
   display: grid;
   gap: 0.85rem;
   margin-top: 1.25rem;
 }
 
-.club-fee-card {
+.my-event-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -369,61 +371,79 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.club-fee-card:hover {
+.my-event-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(92, 64, 51, 0.1);
   border-color: #fed7aa;
 }
 
-.club-fee-card--unpaid {
-  border-left: 5px solid #ea580c;
+.my-event-card--checkin-open {
+  border-color: #86efac;
+  background: linear-gradient(90deg, #f0fdf4 0%, #ffffff 35%);
+  box-shadow: 0 10px 30px rgba(34, 197, 94, 0.1);
 }
 
-.club-fee-card__left {
+.my-event-card__left {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.15rem;
   min-width: 0;
 }
 
-.club-fee-card__icon-wrap {
-  width: 48px;
-  height: 48px;
+/* Date ribbon */
+.my-event-card__date-box {
+  width: 52px;
+  height: 54px;
   border-radius: 15px;
   background: #fff7ed;
   border: 1px solid #fed7aa;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  overflow: hidden;
+  line-height: 1;
 }
 
-.club-fee-card__club-logo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.my-event-card--checkin-open .my-event-card__date-box {
+  background: #dcfce7;
+  border-color: #bbf7d0;
 }
 
-.club-fee-card__avatar-fallback {
-  font-size: 1.4rem;
+.my-event-card__date-month {
+  font-size: 0.65rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #c2410c;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
 }
 
-.club-fee-card__details {
+.my-event-card--checkin-open .my-event-card__date-month {
+  color: #15803d;
+}
+
+.my-event-card__date-day {
+  font-size: 1.25rem;
+  font-weight: 950;
+  color: #1b202e;
+}
+
+.my-event-card__info {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   min-width: 0;
 }
 
-.club-fee-card__header-row {
+.my-event-card__title-row {
   display: flex;
   align-items: center;
   gap: 0.65rem;
   flex-wrap: wrap;
 }
 
-.club-fee-card__title {
+.my-event-card__title {
   margin: 0;
   color: #1b202e;
   font-size: 1.05rem;
@@ -431,19 +451,46 @@
   letter-spacing: -0.015em;
 }
 
-.club-fee-card__period-tag {
-  display: inline-block;
+/* Live Pulse Pill */
+.my-event-card__live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.2rem 0.55rem;
-  border-radius: 8px;
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
-  color: #c2410c;
-  font-size: 0.72rem;
-  font-weight: 850;
-  letter-spacing: 0.02em;
+  border-radius: 999px;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #15803d;
+  font-size: 0.7rem;
+  font-weight: 950;
+  letter-spacing: 0.03em;
 }
 
-.club-fee-card__meta {
+.my-event-card__live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #16a34a;
+  box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+  animation: live-pulse 1.8s infinite;
+}
+
+@keyframes live-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(22, 163, 74, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
+  }
+}
+
+.my-event-card__meta {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -453,49 +500,25 @@
   flex-wrap: wrap;
 }
 
-.club-fee-card__meta strong {
-  color: #3d2e24;
+.my-event-card__club-tag {
+  color: #c2410c;
+  font-weight: 800;
 }
 
-.club-fee-card__method-tag {
-  color: #166534;
-  background: #f0fdf4;
-  padding: 0.15rem 0.45rem;
-  border-radius: 6px;
-  font-weight: 750;
-  font-size: 0.74rem;
-  border: 1px solid #bbf7d0;
+.my-event-card__location {
+  color: #57534e;
 }
 
-/* Right Side */
-.club-fee-card__right {
+/* Right Side: Status Badge + Actions */
+.my-event-card__right {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
   flex-shrink: 0;
 }
 
-.club-fee-card__amount-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.35rem;
-  text-align: right;
-}
-
-.club-fee-card__amount {
-  font-size: 1.45rem;
-  font-weight: 950;
-  color: #1b202e;
-  letter-spacing: -0.02em;
-}
-
-.club-fee-card--unpaid .club-fee-card__amount {
-  color: #ea580c;
-}
-
 /* Badges */
-.club-fee-badge {
+.my-event-badge {
   display: inline-flex;
   align-items: center;
   padding: 0.28rem 0.65rem;
@@ -505,33 +528,46 @@
   letter-spacing: 0.02em;
 }
 
-.club-fee-badge--pending {
+.my-event-badge--registered {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.my-event-badge--pending {
   background: #fff0d7;
   color: #bd6200;
   border: 1px solid #fde0b2;
 }
 
-.club-fee-badge--success {
+.my-event-badge--attended {
   background: #dcfce7;
   color: #15803d;
   border: 1px solid #bbf7d0;
 }
 
-.club-fee-badge--failed {
+.my-event-badge--absent {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.my-event-badge--cancelled,
+.my-event-badge--rejected {
   background: #fee2e2;
   color: #b91c1c;
   border: 1px solid #fecaca;
 }
 
 /* Action Buttons */
-.club-fee-card__actions {
+.my-event-card__actions {
   display: flex;
   gap: 0.5rem;
 }
 
-.club-fee-btn {
+.my-event-btn {
   min-height: 38px;
-  padding: 0 1.05rem;
+  padding: 0 1rem;
   border-radius: 12px;
   font: inherit;
   font-size: 0.81rem;
@@ -545,44 +581,44 @@
   border: none;
 }
 
-.club-fee-btn:hover {
+.my-event-btn:hover {
   transform: translateY(-1px);
 }
 
-.club-fee-btn--pay {
-  background: linear-gradient(135deg, #ff9f2f 0%, #f57c00 100%);
+.my-event-btn--ticket {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #c2410c;
+}
+
+.my-event-btn--ticket:hover {
+  background: #ffedd5;
+}
+
+.my-event-btn--ticket-open {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: #ffffff;
-  box-shadow: 0 8px 18px rgba(245, 124, 0, 0.24);
+  box-shadow: 0 6px 18px rgba(34, 197, 94, 0.28);
 }
 
-.club-fee-btn--pay:hover {
-  background: linear-gradient(135deg, #ffa942 0%, #ea580c 100%);
-  box-shadow: 0 10px 22px rgba(245, 124, 0, 0.32);
+.my-event-btn--ticket-open:hover {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  box-shadow: 0 8px 22px rgba(34, 197, 94, 0.35);
 }
 
-.club-fee-btn--receipt {
+.my-event-btn--details {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   color: #475569;
 }
 
-.club-fee-btn--receipt:hover {
+.my-event-btn--details:hover {
   background: #f1f5f9;
   color: #1e293b;
 }
 
-.club-fee-btn--cash-confirm {
-  background: #16a34a;
-  color: #ffffff;
-  box-shadow: 0 8px 18px rgba(22, 163, 74, 0.22);
-}
-
-.club-fee-btn--cash-confirm:hover {
-  background: #15803d;
-}
-
 /* ── Empty State ───────────────────────────────────────────────────────────── */
-.club-fees-empty {
+.my-events-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -597,19 +633,19 @@
   color: #776657;
 }
 
-.club-fees-empty__icon {
+.my-events-empty__icon {
   font-size: 2.75rem;
   margin-bottom: 0.6rem;
 }
 
-.club-fees-empty__title {
+.my-events-empty__title {
   margin: 0 0 0.35rem;
   font-size: 1.2rem;
   font-weight: 900;
   color: #292637;
 }
 
-.club-fees-empty__text {
+.my-events-empty__text {
   margin: 0 0 1.25rem;
   font-size: 0.88rem;
   color: #756351;
@@ -617,7 +653,7 @@
   line-height: 1.5;
 }
 
-.club-fees-empty__btn {
+.my-events-empty__btn {
   padding: 0.55rem 1.2rem;
   border-radius: 11px;
   border: 1px solid #fed7aa;
@@ -630,13 +666,13 @@
   transition: all 0.2s ease;
 }
 
-.club-fees-empty__btn:hover {
+.my-events-empty__btn:hover {
   background: #ffedd5;
   transform: translateY(-1px);
 }
 
-/* ── Modal Dialog ──────────────────────────────────────────────────────────── */
-.club-fees-modal {
+/* ── QR Ticket Modal ───────────────────────────────────────────────────────── */
+.my-events-modal {
   position: fixed;
   inset: 0;
   z-index: 1000;
@@ -645,263 +681,150 @@
   padding: 1rem;
 }
 
-.club-fees-modal__backdrop {
+.my-events-modal__backdrop {
   position: absolute;
   inset: 0;
   border: 0;
-  background: rgba(40, 31, 29, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(40, 31, 29, 0.52);
+  backdrop-filter: blur(5px);
 }
 
-.club-fees-modal__panel {
+.my-events-modal__panel {
   position: relative;
   z-index: 1;
   box-sizing: border-box;
-  width: min(560px, 100%);
-  padding: 1.75rem;
+  width: min(390px, 100%);
+  padding: 2rem 1.75rem;
   border: 1px solid rgba(255, 255, 255, 0.95);
   border-radius: 24px;
-  background: #fffdfa;
+  background: #ffffff;
   box-shadow: 0 25px 60px rgba(48, 31, 21, 0.25);
+  text-align: center;
 }
 
-.club-fees-modal__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 1.15rem;
-  border-bottom: 1px solid #f1e4d8;
-}
-
-.club-fees-modal__eyebrow {
-  display: block;
-  margin-bottom: 0.3rem;
-  color: #a64d00;
-  font-size: 0.74rem;
-  font-weight: 950;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.club-fees-modal__title {
-  margin: 0;
-  color: #1b202e;
-  font-size: 1.35rem;
-  font-weight: 950;
-}
-
-.club-fees-modal__close {
+.my-events-modal__close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border: 0;
   border-radius: 50%;
   background: #f5f0eb;
   color: #6e6370;
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.club-fees-modal__close:hover {
+.my-events-modal__close:hover {
   background: #fed7aa;
   color: #7c2d12;
 }
 
-/* Method Selection in Modal */
-.club-fees-modal__methods {
-  margin: 1.25rem 0;
+.my-events-modal__icon {
+  font-size: 2.2rem;
+  margin-bottom: 0.35rem;
 }
 
-.club-fees-modal__method-label {
-  display: block;
-  font-size: 0.82rem;
-  font-weight: 850;
-  color: #3d2e24;
-  margin-bottom: 0.6rem;
-}
-
-.club-fees-modal__method-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-.club-fees-modal__method-btn {
-  padding: 0.85rem 0.95rem;
-  border: 1px solid #e7dfd5;
-  border-radius: 14px;
-  background: #ffffff;
-  cursor: pointer;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  transition: all 0.2s ease;
-}
-
-.club-fees-modal__method-btn:hover {
-  transform: translateY(-1px);
-  border-color: #fed7aa;
-}
-
-.club-fees-modal__method-btn.is-vnpay {
-  border: 2px solid #f57c00;
-  background: #fff7ed;
-}
-
-.club-fees-modal__method-btn.is-cash {
-  border: 2px solid #16a34a;
-  background: #f0fdf4;
-}
-
-.club-fees-modal__method-btn-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.club-fees-modal__method-name {
-  font-weight: 850;
-  font-size: 0.9rem;
+.my-events-modal__title {
+  margin: 0 0 0.3rem;
+  font-size: 1.25rem;
+  font-weight: 950;
   color: #1b202e;
 }
 
-.club-fees-modal__check {
-  color: #f57c00;
-  font-weight: 900;
-}
-
-.club-fees-modal__check.is-green {
-  color: #16a34a;
-}
-
-.club-fees-modal__method-sub {
-  font-size: 0.74rem;
-  color: #8c7e95;
-  font-weight: 600;
-}
-
-/* Summary breakdown box */
-.club-fees-summary-box {
-  background: #faf7f2;
-  border: 1px solid #f0e4d8;
-  border-radius: 16px;
-  padding: 1rem 1.15rem;
-  margin-bottom: 1.25rem;
-  display: grid;
-  gap: 0.6rem;
-}
-
-.club-fees-summary-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.84rem;
+.my-events-modal__subtitle {
+  margin: 0 0 1.2rem;
+  font-size: 0.88rem;
   color: #756351;
+  line-height: 1.4;
 }
 
-.club-fees-summary-row strong {
-  color: #292637;
-  font-weight: 800;
+.my-events-modal__qr-wrap {
+  display: inline-block;
+  padding: 0.85rem;
+  background: #fffdfa;
+  border-radius: 18px;
+  border: 2px dashed #fed7aa;
+  margin-bottom: 1.15rem;
 }
 
-.club-fees-summary-row--total {
-  padding-top: 0.6rem;
-  border-top: 1px dashed #fed7aa;
-  font-size: 0.95rem;
-  font-weight: 900;
-}
-
-.club-fees-total-amount {
-  font-size: 1.35rem;
-  font-weight: 950;
-  color: #ea580c;
-}
-
-.club-fees-cash-notice {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 14px;
-  padding: 0.85rem 1rem;
-  margin-bottom: 1.25rem;
-  display: flex;
-  gap: 0.65rem;
-  align-items: flex-start;
-}
-
-.club-fees-cash-notice__icon {
-  font-size: 1.25rem;
-  line-height: 1;
-}
-
-.club-fees-cash-notice__body {
-  font-size: 0.82rem;
-  color: #166534;
-  line-height: 1.5;
-}
-
-.club-fees-cash-notice__body small {
+.my-events-modal__qr-img {
+  width: 200px;
+  height: 200px;
   display: block;
-  margin-top: 0.2rem;
-  color: #15803d;
+  border-radius: 8px;
 }
 
-.club-fees-modal__footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
+.my-events-modal__hint {
+  font-size: 0.78rem;
+  color: #8c7e95;
+  margin: 0 0 1.35rem;
+  line-height: 1.45;
+}
+
+.my-events-modal__done-btn {
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ff9f2f 0%, #f57c00 100%);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 850;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(245, 124, 0, 0.25);
+  transition: all 0.2s;
+}
+
+.my-events-modal__done-btn:hover {
+  background: linear-gradient(135deg, #ffa942 0%, #ea580c 100%);
+  transform: translateY(-1px);
 }
 
 /* ── Responsive ────────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
-  .club-fee-card {
+  .my-event-card {
     flex-direction: column;
     align-items: stretch;
     gap: 1rem;
   }
 
-  .club-fee-card__right {
+  .my-event-card__right {
     justify-content: space-between;
-  }
-
-  .club-fee-card__amount-wrap {
-    align-items: flex-start;
   }
 }
 
 @media (max-width: 640px) {
-  .club-fees-page {
+  .my-events-page {
     width: min(100% - 1.5rem, 1180px);
   }
 
-  .club-fees-hero {
+  .my-events-hero {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .club-fees-hero__summary {
+  .my-events-hero__summary {
     align-items: stretch;
     min-width: 0;
   }
 
-  .club-fees-toolbar {
+  .my-events-toolbar {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .club-fees-controls {
+  .my-events-controls {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .club-fees-search {
+  .my-events-search {
     min-width: 0;
-  }
-
-  .club-fees-modal__method-grid {
-    grid-template-columns: 1fr;
   }
 }

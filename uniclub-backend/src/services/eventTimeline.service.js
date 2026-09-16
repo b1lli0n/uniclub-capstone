@@ -117,6 +117,7 @@ const createEventTimeline = async ({
   title,
   description,
   location,
+  action_type_id,
 }) => {
   const event = await getEventById(eventId);
 
@@ -141,6 +142,7 @@ const createEventTimeline = async ({
     description: validateRequiredText(description, "Description"),
     location: typeof location === "string" ? location.trim() : "",
     created_by: clubMember._id,
+    action_type_id: action_type_id || null,
   });
 
   return timeline;
@@ -155,6 +157,7 @@ const updateEventTimeline = async ({
   title,
   description,
   location,
+  action_type_id,
 }) => {
   const event = await getEventById(eventId);
 
@@ -191,6 +194,11 @@ const updateEventTimeline = async ({
 
   if (location !== undefined) {
     timeline.location = typeof location === "string" ? location.trim() : "";
+  }
+
+  // action_type_id: null clears it, valid ObjectId sets it
+  if (action_type_id !== undefined) {
+    timeline.action_type_id = action_type_id || null;
   }
 
   timeline.updated_by = clubMember._id;

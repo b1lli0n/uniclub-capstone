@@ -50,3 +50,15 @@ export function togglePresidentJoinFormStatus(clubId, formId, status) {
     body: JSON.stringify({ status }),
   })
 }
+
+/**
+ * DELETE /api/president/clubs/:clubId/join-form/:formId
+ * President xóa form (chỉ khi chưa có đơn nào nộp)
+ * @param {string} clubId
+ * @param {string} formId
+ */
+export function deletePresidentJoinForm(clubId, formId) {
+  return apiRequest(`${base(clubId)}/${formId}`, {
+    method: 'DELETE',
+  })
+}

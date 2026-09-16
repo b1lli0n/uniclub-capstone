@@ -8,9 +8,9 @@ import {
   awardPointsManually,
   getActionTypes,
 } from '../../api/pointRule.api'
-import { getMyClubs } from '../../api/memberClubMembership.api'
+import { getMyClubs, getClubMembers } from '../../api/memberClubMembership.api'
 import { getClubMembersForManagement } from '../../api/clubMember.api'
-import { useConfirm, useToast } from '../../components/common/notificationContext'
+import { useToast } from '../../components/common/notificationContext'
 import '../../styles/club-point-rules.css'
 
 const CLUB_FALLBACK = ALL_CLUBS[0]
@@ -159,7 +159,6 @@ function createDraft(rule) {
 }
 
 function ClubPointRulesPage({ clubId, isLeader = false }) {
-  const confirm = useConfirm()
   const showToast = useToast()
   const club = ALL_CLUBS.find((item) => item.id === clubId) || CLUB_FALLBACK
   const [isManager, setIsManager] = useState(isLeader)
@@ -205,7 +204,7 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
         setTargetClubId(actualClubId)
 
         const userRole = (mine?.role || '').toLowerCase()
-        const presidentRole = userRole === 'president'
+        const presidentRole = userRole === 'president' || userRole === 'leader' || Boolean(isLeader)
         setIsManager(presidentRole)
 
         if (typesRes.data && typesRes.data.length > 0) {
@@ -275,6 +274,12 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
           rawData = resAll.data
         } catch (e2) {
           console.warn('API getClubMembersForManagement all error:', e2)
+          try {
+            const fallbackRes = await getClubMembers(activeId)
+            rawData = fallbackRes.data
+          } catch (e3) {
+            console.warn('API getClubMembers fallback error:', e3)
+          }
         }
       }
 
@@ -578,7 +583,7 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
                 value={awardDraft.ruleId}
                 onChange={(e) => {
                   const rId = e.target.value
-                  const found = (Array.isArray(rules) ? rules : []).find(r => r.id === rId)
+                  const found = (Array.isArray(rulesList) ? rulesList : []).find(r => r.id === rId)
                   setAwardDraft({
                     ...awardDraft,
                     ruleId: rId,
@@ -587,7 +592,7 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
                 }}
               >
                 <option value="">-- Manual Custom Points --</option>
-                {(Array.isArray(rules) ? rules : []).map((r) => (
+                {(Array.isArray(rulesList) ? rulesList : []).map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.title} ({r.rewardPoints})
                   </option>

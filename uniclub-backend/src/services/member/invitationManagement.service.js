@@ -3,8 +3,11 @@ const ClubMember = require("../../models/club_member.model");
 const Invitation = require("../../models/invitation.model");
 const ClubCreationRequest = require("../../models/club_creation_requests.model");
 const { getStatusError } = require("../../utils/error");
+const { autoExpireInvitations } = require("../secretary/invitationManagement.service");
 
 const getReceivedInvitations = async (userId, clubId, { status } = {}) => {
+  await autoExpireInvitations();
+
   const query = {
     invited_user_id: userId,
   };
@@ -24,7 +27,7 @@ const getReceivedInvitations = async (userId, clubId, { status } = {}) => {
       path: "invited_by",
       populate: { path: "user_id", select: "_id full_name email avatar_url" },
     })
-    .select("_id club_id invited_by role message status created_at updated_at")
+    .select("_id club_id invited_by role message status expires_at created_at updated_at")
     .lean();
 
   const formattedRegular = regularInvitations.map((inv) => {
@@ -33,6 +36,7 @@ const getReceivedInvitations = async (userId, clubId, { status } = {}) => {
     return {
       ...inv,
       message: inv.message || `You received an invitation to join ${clubName} from ${inviterName}.`,
+      expires_at: inv.expires_at || new Date(new Date(inv.created_at).getTime() + 3 * 24 * 60 * 60 * 1000),
     };
   });
 
@@ -92,6 +96,8 @@ const getReceivedInvitations = async (userId, clubId, { status } = {}) => {
 };
 
 const getInvitationDetail = async (userId, clubId, invitationId) => {
+  await autoExpireInvitations();
+
   let invitation = null;
   if (mongoose.isValidObjectId(invitationId)) {
     invitation = await Invitation.findOne({
@@ -178,16 +184,27 @@ const getPendingInvitation = async (userId, clubId, invitationId) => {
 };
 
 const acceptInvitation = async (userId, clubId, invitationId) => {
+  await autoExpireInvitations();
+
   const query = {
     _id: invitationId,
     invited_user_id: userId,
-    status: "pending",
   };
   if (clubId) query.club_id = clubId;
 
   const invitation = await Invitation.findOne(query);
 
   if (invitation) {
+    if (invitation.status === "expired" || (invitation.expires_at && new Date() > new Date(invitation.expires_at))) {
+      invitation.status = "expired";
+      await invitation.save();
+      throw getStatusError("Lời mời đã hết hạn (quá giới hạn 3 ngày xác nhận)", 400);
+    }
+
+    if (invitation.status !== "pending") {
+      throw getStatusError("Invitation already handled", 400);
+    }
+
     let membership = await ClubMember.findOne({
       club_id: invitation.club_id,
       user_id: userId,
@@ -301,16 +318,27 @@ const acceptInvitation = async (userId, clubId, invitationId) => {
 };
 
 const rejectInvitation = async (userId, clubId, invitationId) => {
+  await autoExpireInvitations();
+
   const query = {
     _id: invitationId,
     invited_user_id: userId,
-    status: "pending",
   };
   if (clubId) query.club_id = clubId;
 
   const invitation = await Invitation.findOne(query);
 
   if (invitation) {
+    if (invitation.status === "expired" || (invitation.expires_at && new Date() > new Date(invitation.expires_at))) {
+      invitation.status = "expired";
+      await invitation.save();
+      throw getStatusError("Lời mời đã hết hạn", 400);
+    }
+
+    if (invitation.status !== "pending") {
+      throw getStatusError("Invitation already handled", 400);
+    }
+
     invitation.status = "rejected";
     await invitation.save();
 

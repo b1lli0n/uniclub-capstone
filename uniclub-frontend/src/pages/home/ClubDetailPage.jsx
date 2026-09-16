@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ClubLogo from '../../components/home/ClubLogo'
 import { getClubById } from '../../api/club.api'
-import { removeMember } from '../../api/clubMember.api'
+import { removeMember, getMemberProfileForPresident } from '../../api/clubMember.api'
 import { getClubMembers, getMyClubs, leaveClub } from '../../api/memberClubMembership.api'
 import {
   getClubJoinForm,
@@ -12,12 +12,12 @@ import {
   getPublicEvents,
   getClubEventsForMember,
 } from '../../api/event.api'
-import { getUserProfileById } from '../../api/profile.api'
 import { formatRoleLabel, mapClubFromApi, mapMemberFromApi } from '../../api/clubMappers'
 import { CLUB_DETAIL_COPY } from '../../data/mockData'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 import { formatDateVN, formatTimeRange24 } from '../../utils/dateTimeUtils'
 import '../../styles/club-detail.css'
+
 
 function EventIcon() {
   return (
@@ -89,7 +89,7 @@ function ClubDetailPage({ clubId, onBack }) {
     if (targetUserId) {
       setProfileLoading(true)
       try {
-        const res = await getUserProfileById(targetUserId)
+        const res = await getMemberProfileForPresident(clubId, targetUserId)
         if (res?.data) {
           const u = res.data.user || {}
           const p = res.data.profile || {}

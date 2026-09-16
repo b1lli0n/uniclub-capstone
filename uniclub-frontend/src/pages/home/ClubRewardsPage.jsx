@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useToast } from '../../components/common/notificationContext'
+import { useToast, useConfirm } from '../../components/common/notificationContext'
 import {
   getMemberRewards,
   getMemberRewardDetail,
@@ -82,7 +82,7 @@ function RewardEditor({ reward, onClose, onSave }) {
   )
 }
 
-function RewardDetail({ reward, isManager, points, onClose, onRedeem, onEdit }) {
+function RewardDetail({ reward, isManager, points, onClose, onRedeem, onEdit, onToggleVisibility }) {
   return (
     <div className="club-rewards-modal" role="dialog" aria-modal="true">
       <button className="club-rewards-modal__backdrop" aria-label="Close" onClick={onClose} type="button" />
@@ -101,6 +101,22 @@ function RewardDetail({ reward, isManager, points, onClose, onRedeem, onEdit }) 
             <strong>{reward.points} pts</strong>
             <p>{reward.description}</p>
             <small>Available Stock: {reward.stock}</small>
+            {isManager && onToggleVisibility && (
+              <div className="club-reward-card__visibility-toggle" style={{ marginTop: '0.75rem' }}>
+                <label className="club-rewards-switch" title={reward.isVisible ? 'Nhấn để ẩn phần thưởng' : 'Nhấn để hiển thị phần thưởng'}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(reward.isVisible)}
+                    onChange={() => onToggleVisibility(reward)}
+                    aria-label={`Trạng thái hiển thị: ${reward.isVisible ? 'Hiển thị' : 'Đang ẩn'}`}
+                  />
+                  <span className="club-rewards-switch__slider" />
+                </label>
+                <span className={`club-reward-card__visibility-text ${reward.isVisible ? 'is-visible' : 'is-hidden'}`}>
+                  {reward.isVisible ? 'Hiển thị' : 'Đang ẩn'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
         <footer>
@@ -187,11 +203,14 @@ function Status({ value }) {
 function ClubRewardsPage({ isManager = false }) {
   const { clubId } = useParams()
   const showToast = useToast()
+  const confirm = useConfirm()
   
   const [rewards, setRewards] = useState([])
   const [history, setHistory] = useState([])
   const [requests, setRequests] = useState([])
+  const [memberPendingRequests, setMemberPendingRequests] = useState([])
   const [points, setPoints] = useState(0)
+  const [pendingPoints, setPendingPoints] = useState(0)
   
   const [tab, setTab] = useState('inventory')
   const [query, setQuery] = useState('')
@@ -217,45 +236,38 @@ function ClubRewardsPage({ isManager = false }) {
 
     const fetchPromise = isManager
       ? getManagerRewards(clubId, { limit: 100 })
-      : getMemberRewards(clubId, { limit: 100 })
+      : getMemberRewards(clubId)
 
     fetchPromise
       .then((res) => {
         if (!active) return
+        const payload = res.data || {}
+        const items = payload.rewards || payload.items || (Array.isArray(payload) ? payload : [])
         
-        if (isManager) {
-          const list = res.data || []
-          setRewards(list.map(r => ({
+        setRewards(
+          items.map((r) => ({
             id: r._id,
             title: r.name,
-            type: r.type || 'Voucher',
-            club: 'Club',
-            points: r.points_required ?? 100,
-            stock: r.quantity ?? 10,
-            image: r.image_url || '🎁',
+            points: r.points_required,
+            stock: r.quantity,
+            type: r.category || 'General',
+            image: r.image_url,
+            isVisible: r.status === 'active' || r.is_active,
             description: r.description,
-            isVisible: r.status === 'active',
-          })))
-        } else {
-          const payload = res.data || {}
-          setPoints(payload.available_points || 0)
-          const list = payload.rewards || []
-          setRewards(list.map(r => ({
-            id: r._id,
-            title: r.name,
-            type: r.type || 'Voucher',
-            club: 'Club',
-            points: r.points_required ?? 100,
-            stock: r.quantity ?? 10,
-            image: r.image_url || '🎁',
-            description: r.description,
-            isVisible: r.status === 'active',
-          })))
+            club: 'UniClub'
+          }))
+        )
+
+        if (!isManager) {
+          setPoints(payload.available_points ?? payload.total_points ?? 0)
+          setPendingPoints(payload.pending_points ?? 0)
         }
-        setIsLoading(false)
       })
       .catch((err) => {
         console.error('Failed to load rewards:', err)
+        showToast({ type: 'error', message: 'Could not load rewards catalog.' })
+      })
+      .finally(() => {
         if (active) setIsLoading(false)
       })
 
@@ -270,7 +282,7 @@ function ClubRewardsPage({ isManager = false }) {
     if (isManager) {
       Promise.all([
         getManagerRedemptionHistory(clubId, { status: 'pending', limit: 100 }),
-        getManagerRedemptionHistory(clubId, { limit: 100 }),
+        getManagerRedemptionHistory(clubId, { status: 'reviewed', limit: 100 }),
       ])
         .then(([reqRes, histRes]) => {
           if (!active) return
@@ -283,6 +295,9 @@ function ClubRewardsPage({ isManager = false }) {
             item: item.reward_id?.name || 'Reward',
             points: item.total_point,
             status: item.status,
+            image: item.reward_id?.image_url,
+            description: item.reward_id?.description,
+            rejectionReason: item.rejection_reason,
           })))
 
           const hists = histRes.data || []
@@ -293,20 +308,42 @@ function ClubRewardsPage({ isManager = false }) {
             item: item.reward_id?.name || 'Reward',
             points: item.total_point,
             status: item.status,
+            image: item.reward_id?.image_url,
+            description: item.reward_id?.description,
+            rejectionReason: item.rejection_reason,
           })))
         })
         .catch(err => console.error('Failed to load redemption history:', err))
     } else {
-      getMemberRedemptionHistory(clubId, { limit: 100 })
-        .then((res) => {
+      Promise.all([
+        getMemberRedemptionHistory(clubId, { status: 'pending', limit: 100 }),
+        getMemberRedemptionHistory(clubId, { status: 'reviewed', limit: 100 }),
+      ])
+        .then(([pendingRes, reviewedRes]) => {
           if (!active) return
-          const hists = res.data || []
+
+          const pList = pendingRes.data || []
+          setMemberPendingRequests(pList.map(item => ({
+            id: item._id,
+            date: new Date(item.created_at).toLocaleDateString('en-US'),
+            item: item.reward_id?.name || 'Reward',
+            points: item.total_point || item.points_spent,
+            status: item.status,
+            image: item.reward_id?.image_url,
+            description: item.reward_id?.description,
+            rejectionReason: item.rejection_reason,
+          })))
+
+          const hists = reviewedRes.data || []
           setHistory(hists.map(item => ({
             id: item._id,
             date: new Date(item.created_at).toLocaleDateString('en-US'),
             item: item.reward_id?.name || 'Reward',
             points: item.total_point || item.points_spent,
             status: item.status,
+            image: item.reward_id?.image_url,
+            description: item.reward_id?.description,
+            rejectionReason: item.rejection_reason,
           })))
         })
         .catch(err => console.error('Failed to load member redemption history:', err))
@@ -339,8 +376,10 @@ function ClubRewardsPage({ isManager = false }) {
   }, [isManager, query, rewards, stockFilter, sortBy])
 
   const visibleHistory = useMemo(() => {
-    if (historyStatusFilter === 'all') return history
-    return history.filter((item) => String(item.status || '').toLowerCase() === historyStatusFilter.toLowerCase())
+    // Strictly contains reviewed items (approved or rejected), excluding pending
+    const reviewedHistory = history.filter((item) => String(item.status || '').toLowerCase() !== 'pending')
+    if (historyStatusFilter === 'all') return reviewedHistory
+    return reviewedHistory.filter((item) => String(item.status || '').toLowerCase() === historyStatusFilter.toLowerCase())
   }, [history, historyStatusFilter])
 
   // 3. Fetch detailed reward info on click
@@ -442,34 +481,52 @@ function ClubRewardsPage({ isManager = false }) {
   }
 
   // 7. Approve / Reject redemption request
-  function processRequest(request, status) {
+  async function processRequest(request, status) {
     if (!clubId) return
-    setIsActionLoading(true)
 
     if (status === 'APPROVED') {
+      const accepted = await confirm({
+        title: 'Xác nhận duyệt đổi thưởng?',
+        message: `Bạn có chắc chắn muốn duyệt yêu cầu đổi "${request.item}" cho thành viên "${request.member}" (${request.points} điểm)?`,
+        confirmText: 'Duyệt yêu cầu',
+        cancelText: 'Hủy',
+        tone: 'primary',
+      })
+      if (!accepted) return
+
+      setIsActionLoading(true)
       approveRedemption(clubId, request.id)
         .then(() => {
-          showToast({ type: 'success', message: 'Redemption request approved successfully!' })
-          setReloadKey(k => k + 1)
+          showToast({ type: 'success', message: 'Duyệt yêu cầu đổi thưởng thành công!' })
+          setReloadKey((k) => k + 1)
         })
         .catch((err) => {
-          showToast({ type: 'error', message: err.message || 'Failed to approve redemption.' })
+          showToast({ type: 'error', message: err.message || 'Không thể duyệt yêu cầu đổi thưởng.' })
         })
         .finally(() => setIsActionLoading(false))
     } else {
-      const reason = window.prompt('Enter rejection reason:')
-      if (reason === null) {
-        setIsActionLoading(false)
-        return
-      }
-      
-      rejectRedemption(clubId, request.id, reason || 'Rejected by club administrator')
+      const confirmResult = await confirm({
+        title: 'Từ chối yêu cầu đổi thưởng?',
+        message: `Bạn có chắc chắn muốn từ chối yêu cầu đổi "${request.item}" của thành viên "${request.member}"? Điểm đổi thưởng (${request.points} điểm) sẽ được hoàn trả cho thành viên.`,
+        confirmText: 'Từ chối',
+        cancelText: 'Hủy',
+        tone: 'danger',
+        hasInput: true,
+        inputLabel: 'Lý do từ chối (sẽ thông báo cho thành viên):',
+        inputPlaceholder: 'Nhập lý do từ chối yêu cầu đổi thưởng...',
+        inputRequired: false,
+      })
+      if (!confirmResult) return
+      const reason = typeof confirmResult === 'object' ? (confirmResult.value || '') : ''
+
+      setIsActionLoading(true)
+      rejectRedemption(clubId, request.id, reason || 'Từ chối bởi Ban chủ nhiệm CLB')
         .then(() => {
-          showToast({ type: 'success', message: 'Redemption request rejected.' })
-          setReloadKey(k => k + 1)
+          showToast({ type: 'success', message: 'Đã từ chối yêu cầu đổi thưởng.' })
+          setReloadKey((k) => k + 1)
         })
         .catch((err) => {
-          showToast({ type: 'error', message: err.message || 'Failed to reject redemption.' })
+          showToast({ type: 'error', message: err.message || 'Không thể từ chối yêu cầu đổi thưởng.' })
         })
         .finally(() => setIsActionLoading(false))
     }
@@ -487,25 +544,29 @@ function ClubRewardsPage({ isManager = false }) {
           <div className="club-rewards-balance">
             <span>Your Available Points</span>
             <strong>{points} pts</strong>
+            {pendingPoints > 0 && (
+              <small style={{ fontSize: '0.78rem', color: '#c2410c', fontWeight: 600, display: 'block', marginTop: '0.25rem' }}>
+                ({pendingPoints} pts pending approval)
+              </small>
+            )}
           </div>
         )}
       </section>
 
       <div className="club-rewards-toolbar">
-        {isManager && (
-          <div className="club-rewards-tabs">
-            <button className={tab === 'inventory' ? 'is-active' : ''} onClick={() => setTab('inventory')}>Reward Inventory</button>
-            <button className={tab === 'requests' ? 'is-active' : ''} onClick={() => setTab('requests')}>
-              Pending Requests <b>{requests.length}</b>
-            </button>
-            <button className={tab === 'history' ? 'is-active' : ''} onClick={() => setTab('history')}>Redemption History</button>
-          </div>
-        )}
-        {!isManager && (
-          <button className="club-rewards-history-link" onClick={() => setTab(tab === 'history' ? 'inventory' : 'history')}>
-            {tab === 'history' ? '← Back to Reward Store' : 'My Redemption History'}
+        <div className="club-rewards-tabs">
+          <button className={tab === 'inventory' ? 'is-active' : ''} onClick={() => setTab('inventory')}>
+            {isManager ? 'Reward Inventory' : 'Reward Store'}
           </button>
-        )}
+          <button className={tab === 'requests' ? 'is-active' : ''} onClick={() => setTab('requests')}>
+            Pending Requests {(isManager ? requests.length : memberPendingRequests.length) > 0 && (
+              <b>{isManager ? requests.length : memberPendingRequests.length}</b>
+            )}
+          </button>
+          <button className={tab === 'history' ? 'is-active' : ''} onClick={() => setTab('history')}>
+            Redemption History
+          </button>
+        </div>
 
         {tab === 'inventory' && (
           <div className="club-rewards-controls">
@@ -527,7 +588,7 @@ function ClubRewardsPage({ isManager = false }) {
                 value={stockFilter}
                 onChange={(e) => setStockFilter(e.target.value)}
               >
-                <option value="all">All Stock</option>
+                <option value="all">All Rewards</option>
                 <option value="in_stock">In Stock</option>
                 <option value="out_of_stock">Out of Stock</option>
               </select>
@@ -543,7 +604,7 @@ function ClubRewardsPage({ isManager = false }) {
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
-                <option value="default">Default Order</option>
+                <option value="default">Default</option>
                 <option value="points_asc">Points: Low to High</option>
                 <option value="points_desc">Points: High to Low</option>
                 <option value="name_asc">Name: A - Z</option>
@@ -564,10 +625,9 @@ function ClubRewardsPage({ isManager = false }) {
                 value={historyStatusFilter}
                 onChange={(e) => setHistoryStatusFilter(e.target.value)}
               >
-                <option value="all">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
+                <option value="all">All Reviewed (Approved & Rejected)</option>
+                <option value="approved">Approved Only</option>
+                <option value="rejected">Rejected Only</option>
               </select>
             </div>
           </div>
@@ -592,15 +652,25 @@ function ClubRewardsPage({ isManager = false }) {
                 <h2>{reward.title}</h2>
                 <p>{reward.club}</p>
                 <strong>{reward.points} pts</strong>
-                <small>In Stock: {reward.stock}</small>
+                <small>Available Stock: {reward.stock}</small>
                 {isManager ? (
-                  <label className="club-reward-visibility" onClick={(event) => event.stopPropagation()}>
-                    <input type="checkbox" checked={reward.isVisible} onChange={() => handleToggleVisibility(reward)} />
-                    {reward.isVisible ? 'Visible' : 'Hidden'}
-                  </label>
+                  <div className="club-reward-card__visibility-toggle" onClick={(event) => event.stopPropagation()}>
+                    <label className="club-rewards-switch" title={reward.isVisible ? 'Nhấn để ẩn phần thưởng' : 'Nhấn để hiển thị phần thưởng'}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(reward.isVisible)}
+                        onChange={() => handleToggleVisibility(reward)}
+                        aria-label={`Trạng thái hiển thị: ${reward.isVisible ? 'Hiển thị' : 'Đang ẩn'}`}
+                      />
+                      <span className="club-rewards-switch__slider" />
+                    </label>
+                    <span className={`club-reward-card__visibility-text ${reward.isVisible ? 'is-visible' : 'is-hidden'}`}>
+                      {reward.isVisible ? 'Hiển thị' : 'Đang ẩn'}
+                    </span>
+                  </div>
                 ) : (
                   <button type="button" disabled={points < reward.points || !reward.stock} onClick={(event) => { event.stopPropagation(); setConfirmReward(reward) }}>
-                    Redeem
+                    Redeem Reward
                   </button>
                 )}
               </div>
@@ -651,9 +721,66 @@ function ClubRewardsPage({ isManager = false }) {
         </section>
       )}
 
+      {tab === 'requests' && !isManager && (
+        <section className="club-rewards-table-card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <h2 style={{ margin: 0 }}>My Pending Redemption Requests</h2>
+            <span style={{ fontSize: '0.85rem', color: '#b45309', background: '#fef3c7', border: '1px solid #fde68a', padding: '0.3rem 0.75rem', borderRadius: '999px', fontWeight: 700 }}>
+              ⏳ Awaiting Club Board Review
+            </span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Reward</th>
+                <th>Cost</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {memberPendingRequests.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.date}</td>
+                  <td><strong>{item.item}</strong></td>
+                  <td style={{ color: '#ea580c', fontWeight: 700 }}>-{item.points} pts</td>
+                  <td><Status value="pending" /></td>
+                  <td>
+                    <button
+                      type="button"
+                      style={{
+                        padding: '0.4rem 0.85rem',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        borderRadius: '10px',
+                        background: '#fff7ed',
+                        color: '#c2410c',
+                        border: '1px solid #fed7aa',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => setDetailHistory(item)}
+                    >
+                      👁️ View Details
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {!memberPendingRequests.length && (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '2.5rem', color: '#8c7e95' }}>
+                    You have no pending redemption requests awaiting approval.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </section>
+      )}
+
       {tab === 'history' && (
         <section className="club-rewards-table-card">
-          <h2>{isManager ? 'Redemption History Log' : 'My Redemption History'}</h2>
+          <h2>{isManager ? 'Reviewed History Log (Approved / Rejected)' : 'Redemption History (Approved / Rejected)'}</h2>
           <table>
             <thead>
               <tr>
@@ -716,6 +843,10 @@ function ClubRewardsPage({ isManager = false }) {
           onClose={() => setDetailReward(null)}
           onRedeem={() => setConfirmReward(detailReward)}
           onEdit={() => { setEditorReward(detailReward); setDetailReward(null); setEditorOpen(true) }}
+          onToggleVisibility={(r) => {
+            handleToggleVisibility(r)
+            setDetailReward((prev) => (prev ? { ...prev, isVisible: !prev.isVisible } : prev))
+          }}
         />
       )}
 
