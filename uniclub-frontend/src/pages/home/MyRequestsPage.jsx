@@ -136,6 +136,15 @@ function MyRequestsPage() {
             : item,
         ),
       )
+      setDetailTarget((prev) =>
+        prev && prev.id === inviteActionTarget.item.id
+          ? {
+              ...prev,
+              status: inviteActionTarget.action === 'accept' ? 'accepted' : 'rejected',
+              responseTime: new Date().toLocaleDateString('en-GB'),
+            }
+          : prev,
+      )
       setInviteActionTarget(null)
       showToast({
         type: 'success',
@@ -308,24 +317,7 @@ function MyRequestsPage() {
             </dl>
 
             <div className="my-request-card__actions">
-              {activeTab === 'received' && isPendingStatus(item.status) ? (
-                <>
-                  <button
-                    type="button"
-                    className="my-request-card__accept"
-                    onClick={() => setInviteActionTarget({ action: 'accept', item })}
-                  >
-                    Accept
-                  </button>
-                  <button
-                    type="button"
-                    className="my-request-card__cancel"
-                    onClick={() => setInviteActionTarget({ action: 'reject', item })}
-                  >
-                    Decline
-                  </button>
-                </>
-              ) : activeTab === 'sent' && isPendingStatus(item.status) ? (
+              {activeTab === 'sent' && isPendingStatus(item.status) ? (
                 <button
                   type="button"
                   className="my-request-card__cancel"
@@ -349,66 +341,6 @@ function MyRequestsPage() {
           <p>{activeTab === 'received' ? 'No invitations found.' : 'No requests found.'}</p>
         ) : null}
       </section>
-
-      {cancelTarget ? (
-        <div className="request-cancel-modal" role="dialog" aria-modal="true" aria-labelledby="request-cancel-title">
-          <button
-            type="button"
-            className="request-cancel-modal__backdrop"
-            aria-label="Close confirmation"
-            onClick={closeCancelModal}
-          />
-          <section className="request-cancel-modal__panel">
-            <h2 id="request-cancel-title">Cancel Request Confirmation</h2>
-            <p>Are you sure you want to cancel your join request for {cancelTarget.club}?</p>
-            <div className="request-cancel-modal__actions">
-              <button type="button" className="request-cancel-modal__confirm" onClick={handleConfirmCancel}>
-                Confirm Cancel
-              </button>
-              <button type="button" className="request-cancel-modal__dismiss" onClick={closeCancelModal}>
-                Close
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
-
-      {inviteActionTarget ? (
-        <div className="request-cancel-modal" role="dialog" aria-modal="true" aria-labelledby="invitation-action-title">
-          <button
-            type="button"
-            className="request-cancel-modal__backdrop"
-            aria-label="Close confirmation"
-            onClick={() => setInviteActionTarget(null)}
-          />
-          <section className="request-cancel-modal__panel">
-            <h2 id="invitation-action-title">
-              {inviteActionTarget.action === 'accept' ? 'Accept Invitation' : 'Decline Invitation'}
-            </h2>
-            <p>
-              Are you sure you want to {inviteActionTarget.action === 'accept' ? 'accept' : 'decline'} the invitation from {inviteActionTarget.item.club}?
-            </p>
-            <div className="request-cancel-modal__actions">
-              <button
-                type="button"
-                className={inviteActionTarget.action === 'accept' ? 'request-cancel-modal__accept' : 'request-cancel-modal__confirm'}
-                onClick={handleInvitationAction}
-                disabled={actionLoading}
-              >
-                {actionLoading ? 'Processing...' : 'Confirm'}
-              </button>
-              <button
-                type="button"
-                className="request-cancel-modal__dismiss"
-                onClick={() => setInviteActionTarget(null)}
-                disabled={actionLoading}
-              >
-                Cancel
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
 
       {detailTarget ? (
         <div className="request-detail-modal" role="dialog" aria-modal="true" aria-labelledby="request-detail-title">
@@ -477,6 +409,85 @@ function MyRequestsPage() {
                   </strong>
                 </div>
               ) : null}
+            </div>
+
+            {activeTab === 'received' && isPendingStatus(detailTarget.status) ? (
+              <div className="request-detail-modal__actions">
+                <button
+                  type="button"
+                  className="request-detail-modal__accept"
+                  onClick={() => setInviteActionTarget({ action: 'accept', item: detailTarget })}
+                >
+                  Accept
+                </button>
+                <button
+                  type="button"
+                  className="request-detail-modal__cancel"
+                  onClick={() => setInviteActionTarget({ action: 'reject', item: detailTarget })}
+                >
+                  Decline
+                </button>
+              </div>
+            ) : null}
+          </section>
+        </div>
+      ) : null}
+
+      {cancelTarget ? (
+        <div className="request-cancel-modal" role="dialog" aria-modal="true" aria-labelledby="request-cancel-title">
+          <button
+            type="button"
+            className="request-cancel-modal__backdrop"
+            aria-label="Close confirmation"
+            onClick={closeCancelModal}
+          />
+          <section className="request-cancel-modal__panel">
+            <h2 id="request-cancel-title">Cancel Request Confirmation</h2>
+            <p>Are you sure you want to cancel your join request for {cancelTarget.club}?</p>
+            <div className="request-cancel-modal__actions">
+              <button type="button" className="request-cancel-modal__confirm" onClick={handleConfirmCancel}>
+                Confirm Cancel
+              </button>
+              <button type="button" className="request-cancel-modal__dismiss" onClick={closeCancelModal}>
+                Close
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {inviteActionTarget ? (
+        <div className="request-cancel-modal" role="dialog" aria-modal="true" aria-labelledby="invitation-action-title">
+          <button
+            type="button"
+            className="request-cancel-modal__backdrop"
+            aria-label="Close confirmation"
+            onClick={() => setInviteActionTarget(null)}
+          />
+          <section className="request-cancel-modal__panel">
+            <h2 id="invitation-action-title">
+              {inviteActionTarget.action === 'accept' ? 'Accept Invitation' : 'Decline Invitation'}
+            </h2>
+            <p>
+              Are you sure you want to {inviteActionTarget.action === 'accept' ? 'accept' : 'decline'} the invitation from {inviteActionTarget.item.club}?
+            </p>
+            <div className="request-cancel-modal__actions">
+              <button
+                type="button"
+                className={inviteActionTarget.action === 'accept' ? 'request-cancel-modal__accept' : 'request-cancel-modal__confirm'}
+                onClick={handleInvitationAction}
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Processing...' : 'Confirm'}
+              </button>
+              <button
+                type="button"
+                className="request-cancel-modal__dismiss"
+                onClick={() => setInviteActionTarget(null)}
+                disabled={actionLoading}
+              >
+                Cancel
+              </button>
             </div>
           </section>
         </div>

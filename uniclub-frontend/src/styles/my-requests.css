@@ -321,6 +321,7 @@
 }
 
 .my-request-card__details {
+  flex: 1;
   background: #ff8e0b;
   box-shadow: 0 8px 18px rgba(255, 142, 11, 0.22);
 }
@@ -329,10 +330,54 @@
   background: #e67f00;
 }
 
+.request-detail-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 206, 150, 0.55);
+}
+
+.request-detail-modal__actions button {
+  min-height: 38px;
+  padding: 0.5rem 1.4rem;
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(31, 36, 48, 0.14);
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.request-detail-modal__actions button:hover {
+  transform: translateY(-1px);
+}
+
+.request-detail-modal__accept {
+  background: #16a34a;
+  box-shadow: 0 8px 18px rgba(22, 163, 74, 0.25);
+}
+
+.request-detail-modal__accept:hover {
+  background: #15803d;
+}
+
+.request-detail-modal__cancel {
+  background: #ee4035;
+  box-shadow: 0 8px 18px rgba(238, 64, 53, 0.25);
+}
+
+.request-detail-modal__cancel:hover {
+  background: #dc2626;
+}
+
 .request-cancel-modal {
   position: fixed;
   inset: 0;
-  z-index: 230;
+  z-index: 350;
   display: flex;
   align-items: center;
   justify-content: center;

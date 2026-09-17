@@ -41,6 +41,48 @@ const normalizePagination = (page, limit) => {
 };
 
 /**
+ * Helper to resolve reviewer ClubMember ID from reviewerId (could be ClubMember._id or User._id)
+ */
+const resolveReviewerMemberId = async ({ clubId, reviewerId }) => {
+  if (!reviewerId) return null;
+  const existingMember = await ClubMember.findOne({
+    _id: reviewerId,
+    club_id: clubId,
+  });
+  if (existingMember) return existingMember._id;
+
+  const memberByUser = await ClubMember.findOne({
+    user_id: reviewerId,
+    club_id: clubId,
+    status: "active",
+  });
+  if (memberByUser) return memberByUser._id;
+
+  return reviewerId;
+};
+
+/**
+ * Format redemption document to ensure backward compatibility for reviewed_by
+ */
+const formatRedemption = (redemption) => {
+  if (!redemption) return redemption;
+  const doc = typeof redemption.toObject === "function" ? redemption.toObject() : { ...redemption };
+  if (doc.reviewed_by && doc.reviewed_by.user_id) {
+    const user = doc.reviewed_by.user_id;
+    doc.reviewed_by = {
+      _id: doc.reviewed_by._id,
+      membership_id: doc.reviewed_by._id,
+      role: doc.reviewed_by.role,
+      user_id: user._id,
+      full_name: user.full_name || "",
+      email: user.email || "",
+      avatar_url: user.avatar_url || "",
+    };
+  }
+  return doc;
+};
+
+/**
  * UC-View Rewards
  * President xem danh sách phần thưởng thuộc câu lạc bộ.
  */
@@ -440,10 +482,14 @@ const getRedemptionHistory = async ({
           select: "full_name email avatar_url",
         },
       })
-      .populate(
-        "reviewed_by",
-        "full_name email avatar_url"
-      )
+      .populate({
+        path: "reviewed_by",
+        select: "club_id user_id role status",
+        populate: {
+          path: "user_id",
+          select: "full_name email avatar_url",
+        },
+      })
       .sort({
         created_at: -1,
         _id: -1,
@@ -456,7 +502,7 @@ const getRedemptionHistory = async ({
   ]);
 
   return {
-    redemptions,
+    redemptions: redemptions.map(formatRedemption),
     pagination: {
       current_page: pagination.page,
       page_size: pagination.limit,
@@ -548,6 +594,8 @@ const approveRewardRedemption = async ({
   validateObjectId(redemptionId, "redemption ID");
   validateObjectId(reviewerId, "reviewer ID");
 
+  const reviewerMemberId = await resolveReviewerMemberId({ clubId, reviewerId });
+
   const redemption = await RewardRedemption.findOne({
     _id: redemptionId,
     club_id: clubId,
@@ -596,7 +644,7 @@ const approveRewardRedemption = async ({
       $set: {
         status: "approved",
         rejection_reason: "",
-        reviewed_by: reviewerId,
+        reviewed_by: reviewerMemberId,
         reviewed_at: new Date(),
       },
     },
@@ -626,7 +674,14 @@ const approveRewardRedemption = async ({
         { path: "club_id", select: "name" },
       ],
     })
-    .populate("reviewed_by", "full_name email avatar_url")
+    .populate({
+      path: "reviewed_by",
+      select: "club_id user_id role status",
+      populate: {
+        path: "user_id",
+        select: "full_name email avatar_url",
+      },
+    })
     .lean();
 
   try {
@@ -647,7 +702,7 @@ const approveRewardRedemption = async ({
     console.error("[Approve Redeem Email Error]", emailErr);
   }
 
-  return resultDoc;
+  return formatRedemption(resultDoc);
 };
 
 /**
@@ -677,6 +732,8 @@ const rejectRewardRedemption = async ({
     );
   }
 
+  const reviewerMemberId = await resolveReviewerMemberId({ clubId, reviewerId });
+
   const redemption = await RewardRedemption.findOneAndUpdate(
     {
       _id: redemptionId,
@@ -687,7 +744,7 @@ const rejectRewardRedemption = async ({
       $set: {
         status: "rejected",
         rejection_reason: rejectionReason.trim(),
-        reviewed_by: reviewerId,
+        reviewed_by: reviewerMemberId,
         reviewed_at: new Date(),
       },
     },
@@ -705,18 +762,24 @@ const rejectRewardRedemption = async ({
         { path: "club_id", select: "name" },
       ],
     })
-    .populate("reviewed_by", "full_name email avatar_url")
+    .populate({
+      path: "reviewed_by",
+      select: "club_id user_id role status",
+      populate: {
+        path: "user_id",
+        select: "full_name email avatar_url",
+      },
+    })
     .lean();
 
   if (!redemption) {
-
     throw getStatusError(
       "Only pending redemption can be rejected",
       400
     );
   }
 
-  return redemption;
+  return formatRedemption(redemption);
 };
 
 /**

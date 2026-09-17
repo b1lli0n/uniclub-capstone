@@ -15,10 +15,22 @@ const formatPoll = (poll, viewerId) => {
     ? (doc.votes || []).find((vote) => String(vote.user_id?._id || vote.user_id) === String(viewerId))
     : null;
 
+  let createdBy = doc.created_by;
+  if (createdBy && typeof createdBy === "object") {
+    const user = createdBy.user_id && typeof createdBy.user_id === "object" ? createdBy.user_id : createdBy;
+    createdBy = {
+      _id: createdBy._id,
+      full_name: user.full_name || createdBy.full_name || "Club Leader",
+      avatar_url: user.avatar_url || createdBy.avatar_url || "",
+      email: user.email || createdBy.email || "",
+      role: createdBy.role || "",
+    };
+  }
+
   return {
     _id: doc._id,
     club_id: doc.club_id,
-    created_by: doc.created_by,
+    created_by: createdBy,
     title: doc.title,
     description: doc.description,
     status: doc.status,

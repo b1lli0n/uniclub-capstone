@@ -8,6 +8,7 @@ import {
   createEventTimeline,
   updateEventTimeline,
   deleteEventTimeline,
+  updateEvent as updateEventApi,
 } from '../../api/event.api'
 import { getMyProfile } from '../../api/profile.api'
 import { resolveEventUploadImage, resolveClubLogo } from '../../utils/imageUtils'
@@ -317,6 +318,24 @@ function EventDetailPage() {
   const [editingTimeline, setEditingTimeline] = useState(null)
   const [timelineDraft, setTimelineDraft] = useState(() => createTimelineDraft(eventId || ''))
   const [eventTimelines, setEventTimelines] = useState([])
+
+  // Update Event states
+  const [editEventModalOpen, setEditEventModalOpen] = useState(false)
+  const [isUpdatingEvent, setIsUpdatingEvent] = useState(false)
+  const [editDraft, setEditDraft] = useState({
+    title: '',
+    description: '',
+    category: 'Other',
+    location: '',
+    capacity: 100,
+    is_public: true,
+    status: 'opening',
+    start_time: '',
+    end_time: '',
+    registration_start: '',
+    registration_end: '',
+    approval_document_url: '',
+  })
 
   async function loadEventData() {
     setLoading(true)
@@ -683,6 +702,96 @@ function EventDetailPage() {
         title: 'Error',
         message: err.message || 'Failed to delete timeline item',
       })
+    }
+  }
+
+  function toLocalInputDate(dateStr) {
+    if (!dateStr) return ''
+    const d = new Date(dateStr)
+    if (Number.isNaN(d.getTime())) return ''
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
+  function openEditEventModal() {
+    if (!event) return
+    const rawCat = event.categoryLabel || 'Other'
+    const formattedCat = rawCat.charAt(0).toUpperCase() + rawCat.slice(1).toLowerCase()
+    setEditDraft({
+      title: event.name || '',
+      description: event.content || event.description || '',
+      category: ['Arts', 'Sports', 'Academic', 'Event', 'Other'].includes(formattedCat) ? formattedCat : 'Other',
+      location: event.location || '',
+      capacity: event.capacity || 100,
+      is_public: event.visibility === 'public',
+      status: event.status || 'opening',
+      start_time: toLocalInputDate(event.start_time),
+      end_time: toLocalInputDate(event.end_time),
+      registration_start: toLocalInputDate(event.registration_start),
+      registration_end: toLocalInputDate(event.registration_end),
+      approval_document_url: event.approvalDocumentUrl || '',
+    })
+    setEditEventModalOpen(true)
+  }
+
+  async function handleSaveEventUpdate(e) {
+    e.preventDefault()
+    if (!editDraft.title.trim()) {
+      showToast({ type: 'error', title: 'Validation', message: 'Event title is required.' })
+      return
+    }
+    if (!editDraft.start_time || !editDraft.end_time) {
+      showToast({ type: 'error', title: 'Validation', message: 'Start time and end time are required.' })
+      return
+    }
+    if (new Date(editDraft.start_time) >= new Date(editDraft.end_time)) {
+      showToast({ type: 'error', title: 'Validation', message: 'Start time must be before end time.' })
+      return
+    }
+    if (editDraft.registration_start && editDraft.registration_end) {
+      if (new Date(editDraft.registration_start) >= new Date(editDraft.registration_end)) {
+        showToast({ type: 'error', title: 'Validation', message: 'Registration start must be before registration end.' })
+        return
+      }
+      if (new Date(editDraft.registration_end) > new Date(editDraft.start_time)) {
+        showToast({ type: 'error', title: 'Validation', message: 'Registration must close before event starts.' })
+        return
+      }
+    }
+
+    try {
+      setIsUpdatingEvent(true)
+      const payload = {
+        title: editDraft.title.trim(),
+        description: editDraft.description.trim(),
+        category: editDraft.category,
+        location: editDraft.location.trim() || 'Campus',
+        capacity: Number(editDraft.capacity) || 100,
+        is_public: Boolean(editDraft.is_public),
+        status: editDraft.status,
+        start_time: new Date(editDraft.start_time).toISOString(),
+        end_time: new Date(editDraft.end_time).toISOString(),
+        registration_start: editDraft.registration_start ? new Date(editDraft.registration_start).toISOString() : null,
+        registration_end: editDraft.registration_end ? new Date(editDraft.registration_end).toISOString() : null,
+        approval_document_url: editDraft.approval_document_url.trim(),
+      }
+
+      await updateEventApi(eventId, payload, organizerClubId)
+      showToast({
+        type: 'success',
+        title: 'Event updated!',
+        message: 'The event details have been updated successfully.',
+      })
+      setEditEventModalOpen(false)
+      await loadEventData()
+    } catch (error) {
+      showToast({
+        type: 'error',
+        title: 'Update failed',
+        message: error.message || 'Failed to update event',
+      })
+    } finally {
+      setIsUpdatingEvent(false)
     }
   }
 
@@ -1069,6 +1178,53 @@ function EventDetailPage() {
                       View registration info
                     </button>
                   ) : null}
+
+                  {canManageTimeline ? (
+                    <div style={{ marginTop: '1.2rem', paddingTop: '1.2rem', borderTop: '1px dashed #cbd5e1' }}>
+                      <span style={{ display: 'block', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', fontWeight: '700', marginBottom: '0.6rem' }}>
+                        Organizer Controls
+                      </span>
+                      <button
+                        type="button"
+                        onClick={openEditEventModal}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem',
+                          width: '100%',
+                          padding: '0.7rem 1rem',
+                          background: '#2563eb',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          marginBottom: '0.5rem',
+                          boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
+                        }}
+                      >
+                        ✏️ Update Event Details
+                      </button>
+                      <Link
+                        to={`/clubs/${organizerClubId}/manage-events`}
+                        style={{
+                          display: 'block',
+                          textAlign: 'center',
+                          textDecoration: 'none',
+                          padding: '0.6rem 1rem',
+                          background: '#f8fafc',
+                          color: '#334155',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '8px',
+                          fontWeight: '600',
+                          fontSize: '0.9rem',
+                        }}
+                      >
+                        ⚙️ Manage Events Dashboard
+                      </Link>
+                    </div>
+                  ) : null}
                 </>
               ) : null}
             </div>
@@ -1361,6 +1517,209 @@ function EventDetailPage() {
                 disabled={!timelineDraft.time.trim() || !timelineDraft.title.trim() || !timelineDraft.description.trim()}
               >
                 {editingTimeline ? 'Save changes' : 'Create item'}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {editEventModalOpen ? (
+        <div className="event-feedback-modal" role="dialog" aria-modal="true" aria-labelledby="edit-event-modal-title" style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            className="event-feedback-modal__backdrop"
+            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)' }}
+            onClick={() => !isUpdatingEvent && setEditEventModalOpen(false)}
+          />
+          <form
+            onSubmit={handleSaveEventUpdate}
+            style={{
+              position: 'relative',
+              zIndex: 1051,
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '2rem',
+              width: '100%',
+              maxWidth: '620px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.8rem' }}>
+              <div>
+                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>Event Management</span>
+                <h2 id="edit-event-modal-title" style={{ margin: 0, fontSize: '1.4rem', color: '#1e293b' }}>Update Event Details</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditEventModalOpen(false)}
+                style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
+                <span>Event Name *</span>
+                <input
+                  type="text"
+                  required
+                  value={editDraft.title}
+                  onChange={(e) => setEditDraft({ ...editDraft, title: e.target.value })}
+                  style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+                />
+              </label>
+
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
+                <span>Description & Agenda *</span>
+                <textarea
+                  rows={4}
+                  required
+                  value={editDraft.description}
+                  onChange={(e) => setEditDraft({ ...editDraft, description: e.target.value })}
+                  style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem', resize: 'vertical' }}
+                />
+              </label>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
+                  <span>Category</span>
+                  <select
+                    value={editDraft.category}
+                    onChange={(e) => setEditDraft({ ...editDraft, category: e.target.value })}
+                    style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem', background: '#fff' }}
+                  >
+                    <option value="Arts">Arts</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Academic">Academic</option>
+                    <option value="Event">Event</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
+                  <span>Location *</span>
+                  <input
+                    type="text"
+                    required
+                    value={editDraft.location}
+                    onChange={(e) => setEditDraft({ ...editDraft, location: e.target.value })}
+                    style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+                  />
+                </label>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
+                  <span>Max Capacity *</span>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={editDraft.capacity}
+                    onChange={(e) => setEditDraft({ ...editDraft, capacity: e.target.value })}
+                    style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+                  />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
+                  <span>Status</span>
+                  <select
+                    value={editDraft.status}
+                    onChange={(e) => setEditDraft({ ...editDraft, status: e.target.value })}
+                    style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem', background: '#fff' }}
+                  >
+                    <option value="opening">Opening</option>
+                    <option value="coming_soon">Coming Soon</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                </label>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
+                  <span>Event Start *</span>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={editDraft.start_time}
+                    onChange={(e) => setEditDraft({ ...editDraft, start_time: e.target.value })}
+                    style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+                  />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
+                  <span>Event End *</span>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={editDraft.end_time}
+                    onChange={(e) => setEditDraft({ ...editDraft, end_time: e.target.value })}
+                    style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+                  />
+                </label>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
+                  <span>Registration Start</span>
+                  <input
+                    type="datetime-local"
+                    value={editDraft.registration_start}
+                    onChange={(e) => setEditDraft({ ...editDraft, registration_start: e.target.value })}
+                    style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+                  />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
+                  <span>Registration End</span>
+                  <input
+                    type="datetime-local"
+                    value={editDraft.registration_end}
+                    onChange={(e) => setEditDraft({ ...editDraft, registration_end: e.target.value })}
+                    style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+                  />
+                </label>
+              </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.95rem', fontWeight: '600', color: '#334155', cursor: 'pointer', padding: '0.4rem 0' }}>
+                <input
+                  type="checkbox"
+                  checked={editDraft.is_public}
+                  onChange={(e) => setEditDraft({ ...editDraft, is_public: e.target.checked })}
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <span>Public Visibility (Allow all students to view and register)</span>
+              </label>
+
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
+                <span>School Approval / Contract Document URL (Google Drive)</span>
+                <input
+                  type="url"
+                  value={editDraft.approval_document_url}
+                  onChange={(e) => setEditDraft({ ...editDraft, approval_document_url: e.target.value })}
+                  placeholder="https://drive.google.com/file/d/..."
+                  style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+                />
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.8rem', marginTop: '1.8rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+              <button
+                type="button"
+                onClick={() => setEditEventModalOpen(false)}
+                disabled={isUpdatingEvent}
+                style={{ padding: '0.6rem 1.2rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isUpdatingEvent}
+                style={{ padding: '0.6rem 1.4rem', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
+              >
+                {isUpdatingEvent ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </form>

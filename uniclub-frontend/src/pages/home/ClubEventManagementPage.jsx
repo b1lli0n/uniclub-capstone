@@ -197,13 +197,13 @@ function mapEventFromApi(apiEvent) {
     name: apiEvent.title || '',
     description: apiEvent.description || '',
     details: apiEvent.description || '',
-    category: apiEvent.category || 'community',
-    categoryLabel: (apiEvent.category || 'COMMUNITY').toUpperCase(),
+    category: apiEvent.category || 'Other',
+    categoryLabel: (apiEvent.category || 'OTHER').toUpperCase(),
     location: apiEvent.location || 'Campus',
     participants: apiEvent.capacity ?? apiEvent.max_participants ?? 150,
     visibility: apiEvent.is_public ? 'public' : 'private',
     publicationStatus: apiEvent.progress_status === 'draft' ? 'draft' : 'complete',
-    lifecycleStatus: apiEvent.status || 'active',
+    lifecycleStatus: apiEvent.status === 'active' ? 'opening' : (apiEvent.status || 'opening'),
     startAt: formatForInput(apiEvent.start_time),
     endAt: formatForInput(apiEvent.end_time),
     registrationStartAt: formatForInput(apiEvent.registration_start),
@@ -572,39 +572,56 @@ function ClubEventManagementPage({ clubId }) {
           message: 'Event creation request with contract link has been submitted for Admin approval!',
         })
       } else {
-        await updateManagedEvent(targetClubId, draft.id, payload).catch((err) => {
-          console.warn("Update API notice:", err)
-        })
+        const res = await updateManagedEvent(targetClubId, draft.id, payload)
+        const updatedApiEvent = res?.data || res
+
         showToast({
           type: 'success',
           title: 'Event updated',
-          message: 'The event information has been updated.',
+          message: 'The event information has been updated successfully.',
         })
 
         // Update local state immediately for instant UI responsiveness
+        const updatedEventMapped = updatedApiEvent?._id
+          ? mapApiEventToManagedEvent(updatedApiEvent)
+          : {
+              ...draft,
+              name: draft.name,
+              description: draft.details,
+              details: draft.details,
+              category: draft.category,
+              categoryLabel: (draft.category || 'OTHER').toUpperCase(),
+              location: draft.location,
+              participants: Number(draft.participants) || 150,
+              visibility: draft.visibility,
+              publicationStatus: draft.publicationStatus,
+              lifecycleStatus: draft.lifecycleStatus || 'opening',
+              startAt: draft.startAt,
+              endAt: draft.endAt,
+              registrationStartAt: draft.registrationStartAt,
+              registrationEndAt: draft.registrationEndAt,
+              imageUrl: draft.imageUrl,
+              updatedAt: new Date().toLocaleDateString('en-GB'),
+            }
+
         setEvents((prevItems) =>
           prevItems.map((item) =>
-            item.id === draft.id
-              ? {
-                  ...item,
-                  name: draft.name,
-                  description: draft.description,
-                  details: draft.details,
-                  category: draft.category,
-                  categoryLabel: (draft.category || 'COMMUNITY').toUpperCase(),
-                  location: draft.location,
-                  participants: Number(draft.participants) || 150,
-                  visibility: draft.visibility,
-                  publicationStatus: draft.publicationStatus,
-                  lifecycleStatus: draft.lifecycleStatus || 'opening',
-                  startAt: draft.startAt,
-                  endAt: draft.endAt,
-                  imageUrl: draft.imageUrl || item.imageUrl,
-                  updatedAt: new Date().toLocaleDateString('en-GB'),
-                }
-              : item
+            item.id === draft.id ? updatedEventMapped : item
           )
         )
+
+        if (detailEvent && detailEvent.id === draft.id) {
+          setDetailEvent(updatedEventMapped)
+        }
+
+        // Fetch fresh events list from backend to ensure data consistency
+        getClubEventsForManager(targetClubId)
+          .then((fresh) => {
+            if (Array.isArray(fresh)) {
+              setEvents(fresh.map(mapApiEventToManagedEvent))
+            }
+          })
+          .catch(() => {})
       }
 
       closeEditor()

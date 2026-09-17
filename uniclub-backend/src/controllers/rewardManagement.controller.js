@@ -161,7 +161,7 @@ const reviewRewardRedemption = async (req, res, next) => {
     const redemption = await rewardService.reviewRewardRedemption({
       clubId: req.params.clubId,
       redemptionId: req.params.redemptionId,
-      reviewerId: req.user.id,
+      reviewerId: req.clubMember?._id || req.clubMembership?._id || req.user.id,
       status,
       rejectionReason: reason,
     });

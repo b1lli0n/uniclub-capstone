@@ -4,7 +4,6 @@ const ClubMember = require("../models/club_member.model");
 const Event = require("../models/event.model");
 const ClubCreationRequest = require("../models/club_creation_requests.model");
 const User = require("../models/user.model");
-const { uploadClubLogo } = require("../utils/cloudinary.util");
 
 const buildClubQuery = ({ category, search }) => {
   const filter = { status: "active" };
@@ -55,7 +54,7 @@ const getAllClubs = async ({ category, sortBy, search }) => {
 
   const clubIds = clubs.map((c) => c._id);
 
-  const [memberCounts, eventCounts, presidentMembers] = await Promise.all([
+  const [memberCounts, eventCounts] = await Promise.all([
     ClubMember.aggregate([
       { $match: { club_id: { $in: clubIds }, status: "active" } },
       { $group: { _id: "$club_id", count: { $sum: 1 } } },
@@ -64,13 +63,6 @@ const getAllClubs = async ({ category, sortBy, search }) => {
       { $match: { club_id: { $in: clubIds } } },
       { $group: { _id: "$club_id", count: { $sum: 1 } } },
     ]),
-    ClubMember.find({
-      club_id: { $in: clubIds },
-      role: { $in: ["president", "leader"] },
-      status: "active",
-    })
-      .populate("user_id", "full_name email avatar_url student_code")
-      .lean(),
   ]);
 
   const memberCountMap = new Map(
@@ -79,28 +71,12 @@ const getAllClubs = async ({ category, sortBy, search }) => {
   const eventCountMap = new Map(
     eventCounts.map((item) => [String(item._id), item.count])
   );
-  const presidentMap = new Map();
-  for (const pm of presidentMembers) {
-    if (pm.user_id && !presidentMap.has(String(pm.club_id))) {
-      presidentMap.set(String(pm.club_id), pm.user_id);
-    }
-  }
 
-  return clubs.map((club) => {
-    const leaderUser = club.president_id || presidentMap.get(String(club._id)) || null;
-
-    if (!club.president_id && leaderUser?._id) {
-      Club.updateOne({ _id: club._id }, { president_id: leaderUser._id }).catch(() => {});
-    }
-
-    return {
-      ...club,
-      president_id: leaderUser,
-      leader: leaderUser ? leaderUser.full_name : "Unknown",
-      member_count: memberCountMap.get(String(club._id)) || 0,
-      event_count: eventCountMap.get(String(club._id)) || 0,
-    };
-  });
+  return clubs.map((club) => ({
+    ...club,
+    member_count: memberCountMap.get(String(club._id)) || 0,
+    event_count: eventCountMap.get(String(club._id)) || 0,
+  }));
 };
 
 
@@ -122,22 +98,6 @@ const getClubById = async (id) => {
     throw error;
   }
 
-  let leaderUser = club.president_id;
-  if (!leaderUser) {
-    const presidentMember = await ClubMember.findOne({
-      club_id: id,
-      role: { $in: ["president", "leader"] },
-      status: "active",
-    })
-      .populate("user_id", "full_name email avatar_url student_code")
-      .lean();
-
-    if (presidentMember?.user_id) {
-      leaderUser = presidentMember.user_id;
-      Club.updateOne({ _id: id }, { president_id: leaderUser._id }).catch(() => {});
-    }
-  }
-
   const [memberCount, eventCount] = await Promise.all([
     ClubMember.countDocuments({ club_id: id, status: "active" }),
     Event.countDocuments({ club_id: id }),
@@ -145,8 +105,6 @@ const getClubById = async (id) => {
 
   return {
     ...club,
-    president_id: leaderUser,
-    leader: leaderUser ? leaderUser.full_name : "Unknown",
     member_count: memberCount,
     event_count: eventCount,
   };
@@ -234,18 +192,13 @@ const requestCreateClub = async ({
 
   const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
-  let finalLogoUrl = logo_url ? logo_url.trim() : "";
-  if (finalLogoUrl) {
-    finalLogoUrl = await uploadClubLogo(finalLogoUrl);
-  }
-
   const request = await ClubCreationRequest.create({
     club_name: club_name.trim(),
     slogan: slogan ? slogan.trim() : "",
     category: normalizeCategory(category),
     description: description || "",
     reason: reason.trim(),
-    logo_url: finalLogoUrl,
+    logo_url: logo_url.trim(),
     requested_by,
     members: membersList,
     member_ids: uniqueMemberIds,

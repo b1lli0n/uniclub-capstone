@@ -130,6 +130,10 @@ const updateEvent = async (clubId, eventId, payload) => {
     throw getStatusError("Event not found", 404);
   }
 
+  if (clubId && event.club_id.toString() !== clubId.toString()) {
+    throw getStatusError("Event does not belong to this club", 403);
+  }
+
   if (event.status === "cancelled") {
     throw getStatusError("Cannot update cancelled event", 400);
   }
@@ -167,7 +171,7 @@ const updateEvent = async (clubId, eventId, payload) => {
     .populate("club_id", "_id name logo_url category status")
     .populate(CREATED_BY_POPULATE)
     .select(
-      "_id club_id created_by title description category start_time end_time registration_start registration_end location is_public capacity status progress_status check_in_status media_uris created_at updated_at"
+      "_id club_id created_by title description category start_time end_time registration_start registration_end location is_public capacity status progress_status check_in_status media_uris approval_document_url created_at updated_at"
     );
 };
 

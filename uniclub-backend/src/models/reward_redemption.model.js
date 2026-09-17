@@ -56,7 +56,7 @@ const rewardRedemptionSchema = Schema(
 
     reviewed_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       required: false,
       default: null,
     },

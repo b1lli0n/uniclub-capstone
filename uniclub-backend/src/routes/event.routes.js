@@ -8,6 +8,9 @@ const {
   getMyRegistrations,
 } = require("../controllers/event.controller");
 
+const { requireClubRole } = require("../middlewares/club.middleware");
+const { updateEvent } = require("../controllers/eventManager/eventManagement.controller");
+
 const router = express.Router();
 
 // 1. View Public Events
@@ -24,5 +27,14 @@ router.post("/:eventId/register", verifyToken, authorize(["student"]), registerF
 
 // 5. Cancel Event Registration
 router.post("/:eventId/cancel", verifyToken, authorize(["student"]), cancelEventRegistration);
+
+// 6. Update Event (President or Event Manager)
+router.patch(
+  "/:eventId",
+  verifyToken,
+  authorize(["student"]),
+  requireClubRole(["president", "event_manager"]),
+  updateEvent
+);
 
 module.exports = router;

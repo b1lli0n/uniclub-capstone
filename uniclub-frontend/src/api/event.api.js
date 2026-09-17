@@ -70,13 +70,20 @@ export function createEvent(clubId, payload) {
 
 /**
  * Update Managed Event (Publish/Edit Draft)
- * PATCH /api/event-manager/event-management/:clubId/events/:eventId
+ * PATCH /api/event-manager/event-management/:clubId/events/:eventId or /api/events/:eventId
  */
 export function updateManagedEvent(clubId, eventId, payload) {
-  return apiRequest(`/event-manager/event-management/${clubId}/events/${eventId}`, {
+  const endpoint = clubId
+    ? `/event-manager/event-management/${clubId}/events/${eventId}`
+    : `/events/${eventId}`
+  return apiRequest(endpoint, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   })
+}
+
+export function updateEvent(eventId, payload, clubId) {
+  return updateManagedEvent(clubId, eventId, payload)
 }
 
 /**

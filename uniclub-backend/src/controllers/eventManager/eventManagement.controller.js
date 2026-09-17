@@ -23,6 +23,9 @@ const parseDate = (value, fieldName) => {
   return date;
 };
 
+const ALLOWED_EVENT_CATEGORIES = ["Arts", "Sports", "Academic", "Event", "Other"];
+const ALLOWED_LIFECYCLE_STATUS = ["coming_soon", "opening", "closed", "cancelled"];
+
 const parseUpdateEventPayload = (body) => {
   const updates = {};
 
@@ -32,10 +35,16 @@ const parseUpdateEventPayload = (body) => {
 
   if (body.description !== undefined) {
     updates.description = parseRequiredString(body.description, "description");
+  } else if (body.content !== undefined) {
+    updates.description = parseRequiredString(body.content, "content");
   }
 
   if (body.category !== undefined) {
-    updates.category = parseRequiredString(body.category, "category");
+    const rawCat = parseRequiredString(body.category, "category");
+    const matched = ALLOWED_EVENT_CATEGORIES.find(
+      (c) => c.toLowerCase() === rawCat.toLowerCase()
+    );
+    updates.category = matched || "Other";
   }
 
   if (body.location !== undefined) {
@@ -48,6 +57,18 @@ const parseUpdateEventPayload = (body) => {
 
   if (body.end_time !== undefined) {
     updates.end_time = parseDate(body.end_time, "end_time");
+  }
+
+  if (body.registration_start !== undefined) {
+    updates.registration_start = body.registration_start
+      ? parseDate(body.registration_start, "registration_start")
+      : null;
+  }
+
+  if (body.registration_end !== undefined) {
+    updates.registration_end = body.registration_end
+      ? parseDate(body.registration_end, "registration_end")
+      : null;
   }
 
   if (body.capacity !== undefined) {
@@ -69,7 +90,16 @@ const parseUpdateEventPayload = (body) => {
   }
 
   if (body.status !== undefined) {
-    updates.status = parseRequiredString(body.status, "status");
+    let rawStatus = parseRequiredString(body.status, "status").toLowerCase();
+    if (rawStatus === "active") rawStatus = "opening";
+    if (rawStatus === "coming soon") rawStatus = "coming_soon";
+    if (!ALLOWED_LIFECYCLE_STATUS.includes(rawStatus)) {
+      throw getStatusError(
+        `Invalid status. Allowed values: ${ALLOWED_LIFECYCLE_STATUS.join(", ")}`,
+        400
+      );
+    }
+    updates.status = rawStatus;
   }
 
   if (body.progress_status !== undefined) {
@@ -78,6 +108,13 @@ const parseUpdateEventPayload = (body) => {
     }
 
     updates.progress_status = body.progress_status;
+  }
+
+  if (body.approval_document_url !== undefined) {
+    updates.approval_document_url =
+      typeof body.approval_document_url === "string"
+        ? body.approval_document_url.trim()
+        : "";
   }
 
   if (body.media_uris !== undefined) {
@@ -245,13 +282,20 @@ const createEvent = async (req, res, next) => {
 
 const updateEvent = async (req, res, next) => {
   try {
-    const { clubId, eventId } = req.params;
+    let { clubId, eventId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(clubId)) {
+    if (!clubId && req.clubMembership?.club_id) {
+      clubId = req.clubMembership.club_id.toString();
+    }
+    if (!clubId && req.event?.club_id) {
+      clubId = req.event.club_id.toString();
+    }
+
+    if (!clubId || !mongoose.Types.ObjectId.isValid(clubId)) {
       return next(getStatusError("Invalid clubId", 400));
     }
 
-    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+    if (!eventId || !mongoose.Types.ObjectId.isValid(eventId)) {
       return next(getStatusError("Invalid eventId", 400));
     }
 

@@ -45,7 +45,7 @@ const pollSchema = new Schema(
     },
     created_by: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ClubMember",
       required: true,
     },
     title: {

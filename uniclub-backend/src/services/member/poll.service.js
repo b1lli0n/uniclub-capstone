@@ -2,6 +2,11 @@ const Poll = require("../../models/poll.model");
 const { getStatusError } = require("../../utils/error");
 const { formatPoll } = require("../pollFormatter.service");
 
+const POLL_CREATED_BY_POPULATE = {
+  path: "created_by",
+  populate: { path: "user_id", select: "_id full_name email avatar_url" },
+};
+
 const parsePositiveInt = (value, fallback) => {
   const parsed = parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -49,7 +54,7 @@ const getPollList = async (clubId, userId, filters = {}) => {
 
   const [polls, total] = await Promise.all([
     Poll.find(query)
-      .populate("created_by", "_id full_name avatar_url")
+      .populate(POLL_CREATED_BY_POPULATE)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit),
@@ -71,7 +76,7 @@ const getPollDetail = async (clubId, pollId, userId) => {
   await closeExpiredPolls(clubId);
 
   const poll = await Poll.findOne({ _id: pollId, club_id: clubId })
-    .populate("created_by", "_id full_name email avatar_url")
+    .populate(POLL_CREATED_BY_POPULATE)
     .populate("club_id", "_id name logo_url");
 
   if (!poll) {
@@ -134,7 +139,7 @@ const votePoll = async (clubId, pollId, userId, optionId) => {
   await poll.save();
 
   const updatedPoll = await Poll.findById(poll._id)
-    .populate("created_by", "_id full_name email avatar_url")
+    .populate(POLL_CREATED_BY_POPULATE)
     .populate("club_id", "_id name logo_url");
 
   return formatPoll(updatedPoll, userId);

@@ -314,6 +314,21 @@ function ClubAttendancePage({ clubId }) {
     }
   }
 
+  async function handleManualCheckin(attendanceId) {
+    const target = attendanceItems.find((item) => item.id === attendanceId)
+    const memberName = target?.memberName || 'this member'
+
+    const accepted = await confirm({
+      title: 'Confirm Manual Check-in',
+      message: `Check in ${memberName} for "${selectedEvent?.name}"? This action cannot be undone.`,
+      confirmText: 'Check in',
+      tone: 'warning',
+    })
+
+    if (!accepted) return
+    await updateCheckinStatus(attendanceId)
+  }
+
   async function toggleCheckinOpen() {
     if (!selectedEvent) return
     const nextOpen = !checkinOpen
@@ -469,7 +484,7 @@ function ClubAttendancePage({ clubId }) {
           <button
             type="button"
             disabled={!checkinOpen || !manualMemberId}
-            onClick={() => updateCheckinStatus(manualMemberId)}
+            onClick={() => handleManualCheckin(manualMemberId)}
           >
             Check in
           </button>
@@ -562,7 +577,7 @@ function ClubAttendancePage({ clubId }) {
                     {item.checkedIn ? (
                       <span className="club-attendance-complete">Complete</span>
                     ) : checkinOpen ? (
-                      <button type="button" className="club-attendance-row-action" onClick={() => updateCheckinStatus(item.id)}>
+                      <button type="button" className="club-attendance-row-action" onClick={() => handleManualCheckin(item.id)}>
                         Check in
                       </button>
                     ) : (

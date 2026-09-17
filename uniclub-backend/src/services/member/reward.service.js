@@ -159,12 +159,6 @@ const redeemReward = async ({ clubId, rewardId, userId }) => {
     throw getStatusError("Reward is out of stock", 409);
   }
 
-  const membership = await ClubMember.findOne({
-    club_id: clubId,
-    user_id: userId,
-    status: "active",
-  });
-
   if (!membership) {
     throw getStatusError("You are not an active member of this club", 403);
   }
