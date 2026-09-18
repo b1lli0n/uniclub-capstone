@@ -4,6 +4,7 @@ const Reward = require("../models/reward.model");
 const RewardRedemption = require("../models/reward_redemption.model");
 const ContributionLog = require("../models/contribution_log.model");
 const ClubMember = require("../models/club_member.model");
+const Profile = require("../models/profile.model");
 const { uploadRewardImage } = require("../utils/cloudinary.util");
 const { getStatusError } = require("../utils/error");
 
@@ -472,7 +473,7 @@ const getRedemptionHistory = async ({
     RewardRedemption.find(filter)
       .populate(
         "reward_id",
-        "name image_url points_required quantity status"
+        "name image_url points_required quantity status description"
       )
       .populate({
         path: "membership_id",
@@ -500,6 +501,26 @@ const getRedemptionHistory = async ({
 
     RewardRedemption.countDocuments(filter),
   ]);
+
+  const userIds = redemptions
+    .map((r) => r.membership_id?.user_id?._id)
+    .filter(Boolean);
+
+  if (userIds.length > 0) {
+    const profiles = await Profile.find({ user_id: { $in: userIds } })
+      .select("user_id student_code phone")
+      .lean();
+    const profileMap = new Map(profiles.map((p) => [String(p.user_id), p]));
+    for (const r of redemptions) {
+      if (r.membership_id?.user_id?._id) {
+        const prof = profileMap.get(String(r.membership_id.user_id._id));
+        if (prof) {
+          r.membership_id.user_id.student_code = prof.student_code || "";
+          r.membership_id.user_id.phone = prof.phone || "";
+        }
+      }
+    }
+  }
 
   return {
     redemptions: redemptions.map(formatRedemption),

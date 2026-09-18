@@ -134,9 +134,11 @@ function RewardDetail({ reward, isManager, points, onClose, onRedeem, onEdit, on
   )
 }
 
-function HistoryDetailModal({ item, onClose }) {
+function HistoryDetailModal({ item, onClose, isManager = false, onApprove, onReject }) {
+  if (!item) return null
   const isApproved = item.status?.toLowerCase() === 'approved'
   const isRejected = item.status?.toLowerCase() === 'rejected'
+  const isPending = item.status?.toLowerCase() === 'pending'
   const pickupCode = `REDEEM-${item.id?.substring(item.id.length - 8).toUpperCase()}`
 
   return (
@@ -144,28 +146,49 @@ function HistoryDetailModal({ item, onClose }) {
       <button className="club-rewards-modal__backdrop" aria-label="Close" onClick={onClose} type="button" />
       <section className="club-rewards-modal__panel club-rewards-detail">
         <header>
-          <h2>Redemption Voucher Details</h2>
+          <h2>{isManager ? 'Club Redemption Request Detail' : 'Redemption Voucher Details'}</h2>
           <button type="button" onClick={onClose}>×</button>
         </header>
         <div className="club-rewards-detail__body">
           <div className="club-rewards-detail__emoji-container" style={{ width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f7', borderRadius: '12px', fontSize: '2.5rem', overflow: 'hidden' }}>
             <RewardImage src={item.image} alt={item.item} className="club-rewards-detail__emoji" />
           </div>
-          <div>
+          <div style={{ flex: 1 }}>
             <p className="club-rewards-eyebrow">Voucher Code: <strong>{pickupCode}</strong></p>
             <h3>{item.item}</h3>
             <strong style={{ color: '#ea580c' }}>-{item.points} pts</strong>
             <p style={{ marginTop: '0.4rem', color: '#475569', fontSize: '0.9rem' }}>
               {item.description || 'Exclusive club reward redemption on UniClub.'}
             </p>
-            <p style={{ marginTop: '0.4rem', fontSize: '0.85rem', color: '#64748b' }}>📅 Date: {item.date}</p>
+            {item.stock !== null && item.stock !== undefined && (
+              <p style={{ marginTop: '0.25rem', fontSize: '0.85rem', color: '#64748b' }}>
+                📦 Current Available Inventory: <strong>{item.stock} item(s)</strong>
+              </p>
+            )}
+            <p style={{ marginTop: '0.25rem', fontSize: '0.85rem', color: '#64748b' }}>📅 Date Requested: {item.date}</p>
             <div style={{ marginTop: '0.6rem' }}>
               <Status value={item.status} />
             </div>
+
+            {/* Requester Information if member info is present */}
+            {(item.member || item.studentCode || item.email || item.phone) && (
+              <div style={{ marginTop: '0.85rem', padding: '0.75rem 0.9rem', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.85rem', lineHeight: 1.6 }}>
+                <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  👤 Requester Information
+                </div>
+                {item.member && <div><strong>Name:</strong> {item.member}</div>}
+                {item.studentCode && <div><strong>Student ID (MSSV):</strong> <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{item.studentCode}</span></div>}
+                {item.email && <div><strong>Email:</strong> {item.email}</div>}
+                {item.phone && <div><strong>Phone:</strong> {item.phone}</div>}
+              </div>
+            )}
+
             {isApproved && (
               <div style={{ marginTop: '0.8rem', padding: '0.7rem 0.9rem', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0', fontSize: '0.84rem', color: '#166534', lineHeight: 1.5 }}>
                 🎉 <strong>APPROVED!</strong><br />
-                Please present voucher code <strong>{pickupCode}</strong> at the Club Board office to receive your reward directly.
+                {isManager
+                  ? `This request has been approved. The member can redeem voucher code ${pickupCode} at the Club Board office.`
+                  : `Please present voucher code ${pickupCode} at the Club Board office to receive your reward directly.`}
               </div>
             )}
             {isRejected && (
@@ -176,9 +199,30 @@ function HistoryDetailModal({ item, onClose }) {
             )}
           </div>
         </div>
-        <footer>
-          <button type="button" onClick={onClose}>Close</button>
-        </footer>
+        {isManager && isPending && onApprove && onReject && (
+          <footer>
+            <button
+              type="button"
+              className="is-danger"
+              onClick={() => {
+                onClose()
+                onReject(item)
+              }}
+            >
+              Reject
+            </button>
+            <button
+              type="button"
+              style={{ background: '#16a34a', color: '#fff' }}
+              onClick={() => {
+                onClose()
+                onApprove(item)
+              }}
+            >
+              Approve
+            </button>
+          </footer>
+        )}
       </section>
     </div>
   )
@@ -206,17 +250,14 @@ function ClubRewardsPage({ isManager = false }) {
   const confirm = useConfirm()
   
   const [rewards, setRewards] = useState([])
-  const [history, setHistory] = useState([])
-  const [requests, setRequests] = useState([])
-  const [memberPendingRequests, setMemberPendingRequests] = useState([])
+  const [redemptions, setRedemptions] = useState([])
   const [points, setPoints] = useState(0)
-  const [pendingPoints, setPendingPoints] = useState(0)
   
   const [tab, setTab] = useState('inventory')
   const [query, setQuery] = useState('')
   const [stockFilter, setStockFilter] = useState('all')
   const [sortBy, setSortBy] = useState('default')
-  const [historyStatusFilter, setHistoryStatusFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
 
   const [isLoading, setIsLoading] = useState(true)
   const [isActionLoading, setIsActionLoading] = useState(false)
@@ -277,7 +318,7 @@ function ClubRewardsPage({ isManager = false }) {
     return () => { active = false }
   }, [clubId, isManager, reloadKey])
 
-  // 2. Fetch history and request redemptions
+  // 2. Fetch redemption requests (both pending and reviewed)
   useEffect(() => {
     if (!clubId) return
     let active = true
@@ -290,33 +331,36 @@ function ClubRewardsPage({ isManager = false }) {
         .then(([reqRes, histRes]) => {
           if (!active) return
           
-          const reqs = reqRes.data || []
-          setRequests(reqs.map(item => ({
-            id: item._id,
-            date: new Date(item.created_at).toLocaleDateString('en-US'),
-            member: item.membership_id?.user_id?.full_name || 'Member',
-            item: item.reward_id?.name || 'Reward',
-            points: item.total_point,
-            status: item.status,
-            rejectionReason: item.rejection_reason || '',
-            image: item.reward_id?.image_url || '🎁',
-            description: item.reward_id?.description || '',
-          })))
+          const rawItems = [
+            ...(reqRes.data || []),
+            ...(histRes.data || []),
+          ]
+          const map = new Map()
+          for (const item of rawItems) {
+            map.set(String(item._id), item)
+          }
+          const sorted = Array.from(map.values()).sort(
+            (a, b) => new Date(b.created_at) - new Date(a.created_at)
+          )
 
-          const hists = histRes.data || []
-          setHistory(hists.map(item => ({
+          setRedemptions(sorted.map(item => ({
             id: item._id,
             date: new Date(item.created_at).toLocaleDateString('en-US'),
+            created_at: item.created_at,
             member: item.membership_id?.user_id?.full_name || 'Member',
+            studentCode: item.membership_id?.user_id?.student_code || '',
+            email: item.membership_id?.user_id?.email || '',
+            phone: item.membership_id?.user_id?.phone || '',
             item: item.reward_id?.name || 'Reward',
             points: item.total_point,
             status: item.status,
             rejectionReason: item.rejection_reason || '',
             image: item.reward_id?.image_url || '🎁',
             description: item.reward_id?.description || '',
+            stock: item.reward_id?.quantity ?? null,
           })))
         })
-        .catch(err => console.error('Failed to load redemption history:', err))
+        .catch(err => console.error('Failed to load redemption requests:', err))
     } else {
       Promise.all([
         getMemberRedemptionHistory(clubId, { status: 'pending', limit: 100 }),
@@ -325,35 +369,53 @@ function ClubRewardsPage({ isManager = false }) {
         .then(([pendingRes, reviewedRes]) => {
           if (!active) return
 
-          const pList = pendingRes.data || []
-          setMemberPendingRequests(pList.map(item => ({
-            id: item._id,
-            date: new Date(item.created_at).toLocaleDateString('en-US'),
-            item: item.reward_id?.name || 'Reward',
-            points: item.total_point || item.points_spent,
-            status: item.status,
-            image: item.reward_id?.image_url,
-            description: item.reward_id?.description,
-            rejectionReason: item.rejection_reason,
-          })))
+          const rawItems = [
+            ...(pendingRes.data || []),
+            ...(reviewedRes.data || []),
+          ]
+          const map = new Map()
+          for (const item of rawItems) {
+            map.set(String(item._id), item)
+          }
+          const sorted = Array.from(map.values()).sort(
+            (a, b) => new Date(b.created_at) - new Date(a.created_at)
+          )
 
-          const hists = reviewedRes.data || []
-          setHistory(hists.map(item => ({
+          setRedemptions(sorted.map(item => ({
             id: item._id,
             date: new Date(item.created_at).toLocaleDateString('en-US'),
+            created_at: item.created_at,
             item: item.reward_id?.name || 'Reward',
             points: item.total_point || item.points_spent,
             status: item.status,
-            rejectionReason: item.rejection_reason || '',
             image: item.reward_id?.image_url || '🎁',
             description: item.reward_id?.description || '',
+            stock: item.reward_id?.quantity ?? null,
+            rejectionReason: item.rejection_reason || '',
           })))
         })
-        .catch(err => console.error('Failed to load member redemption history:', err))
+        .catch(err => console.error('Failed to load member redemption requests:', err))
     }
 
     return () => { active = false }
   }, [clubId, isManager, reloadKey, tab])
+
+  const pendingCount = useMemo(() => {
+    return redemptions.filter((r) => String(r.status || '').toLowerCase() === 'pending').length
+  }, [redemptions])
+
+  const pendingPoints = useMemo(() => {
+    return redemptions
+      .filter((r) => String(r.status || '').toLowerCase() === 'pending')
+      .reduce((sum, r) => sum + (r.points || 0), 0)
+  }, [redemptions])
+
+  const visibleRequests = useMemo(() => {
+    if (statusFilter === 'all') return redemptions
+    return redemptions.filter(
+      (item) => String(item.status || '').toLowerCase() === statusFilter.toLowerCase()
+    )
+  }, [redemptions, statusFilter])
 
   const visibleRewards = useMemo(() => {
     let result = rewards.filter((reward) => {
@@ -377,13 +439,6 @@ function ClubRewardsPage({ isManager = false }) {
 
     return result
   }, [isManager, query, rewards, stockFilter, sortBy])
-
-  const visibleHistory = useMemo(() => {
-    // Strictly contains reviewed items (approved or rejected), excluding pending
-    const reviewedHistory = history.filter((item) => String(item.status || '').toLowerCase() !== 'pending')
-    if (historyStatusFilter === 'all') return reviewedHistory
-    return reviewedHistory.filter((item) => String(item.status || '').toLowerCase() === historyStatusFilter.toLowerCase())
-  }, [history, historyStatusFilter])
 
   // 3. Fetch detailed reward info on click
   function fetchDetail(reward) {
@@ -550,12 +605,7 @@ function ClubRewardsPage({ isManager = false }) {
             {isManager ? 'Reward Inventory' : 'Reward Store'}
           </button>
           <button className={tab === 'requests' ? 'is-active' : ''} onClick={() => setTab('requests')}>
-            Pending Requests {(isManager ? requests.length : memberPendingRequests.length) > 0 && (
-              <b>{isManager ? requests.length : memberPendingRequests.length}</b>
-            )}
-          </button>
-          <button className={tab === 'history' ? 'is-active' : ''} onClick={() => setTab('history')}>
-            Redemption History
+            Redemption Requests {pendingCount > 0 && <b>{pendingCount}</b>}
           </button>
         </div>
 
@@ -604,19 +654,20 @@ function ClubRewardsPage({ isManager = false }) {
           </div>
         )}
 
-        {tab === 'history' && (
+        {tab === 'requests' && (
           <div className="club-rewards-controls">
             <div className="club-rewards-control-group">
-              <label htmlFor="history-status" className="club-rewards-control-label">
+              <label htmlFor="requests-status" className="club-rewards-control-label">
                 STATUS
               </label>
               <select
-                id="history-status"
+                id="requests-status"
                 className="club-rewards-select"
-                value={historyStatusFilter}
-                onChange={(e) => setHistoryStatusFilter(e.target.value)}
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
               >
-                <option value="all">All Reviewed (Approved & Rejected)</option>
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending Only</option>
                 <option value="approved">Approved Only</option>
                 <option value="rejected">Rejected Only</option>
               </select>
@@ -676,102 +727,9 @@ function ClubRewardsPage({ isManager = false }) {
         </section>
       )}
 
-      {tab === 'requests' && isManager && (
+      {tab === 'requests' && (
         <section className="club-rewards-table-card">
-          <h2>Pending Redemption Requests</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Member</th>
-                <th>Reward</th>
-                <th>Points</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requests.map((request) => (
-                <tr key={request.id}>
-                  <td>{request.date}</td>
-                  <td>{request.member}</td>
-                  <td>{request.item}</td>
-                  <td>{request.points} pts</td>
-                  <td>
-                    <button onClick={() => setApproveConfirmRequest(request)} disabled={isActionLoading}>Approve</button>
-                    <button className="is-danger" onClick={() => { setRejectRequestModal(request); setRejectReason('') }} disabled={isActionLoading}>Reject</button>
-                  </td>
-                </tr>
-              ))}
-              {!requests.length && (
-                <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>No pending redemption requests.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </section>
-      )}
-
-      {tab === 'requests' && !isManager && (
-        <section className="club-rewards-table-card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <h2 style={{ margin: 0 }}>My Pending Redemption Requests</h2>
-            <span style={{ fontSize: '0.85rem', color: '#b45309', background: '#fef3c7', border: '1px solid #fde68a', padding: '0.3rem 0.75rem', borderRadius: '999px', fontWeight: 700 }}>
-              ⏳ Awaiting Club Board Review
-            </span>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Reward</th>
-                <th>Cost</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {memberPendingRequests.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.date}</td>
-                  <td><strong>{item.item}</strong></td>
-                  <td style={{ color: '#ea580c', fontWeight: 700 }}>-{item.points} pts</td>
-                  <td><Status value="pending" /></td>
-                  <td>
-                    <button
-                      type="button"
-                      style={{
-                        padding: '0.4rem 0.85rem',
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        borderRadius: '10px',
-                        background: '#fff7ed',
-                        color: '#c2410c',
-                        border: '1px solid #fed7aa',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => setDetailHistory(item)}
-                    >
-                      👁️ View Details
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {!memberPendingRequests.length && (
-                <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '2.5rem', color: '#8c7e95' }}>
-                    You have no pending redemption requests awaiting approval.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </section>
-      )}
-
-      {tab === 'history' && (
-        <section className="club-rewards-table-card">
-          <h2>{isManager ? 'Reviewed History Log (Approved / Rejected)' : 'Redemption History (Approved / Rejected)'}</h2>
+          <h2>{isManager ? 'Club Redemption Requests' : 'My Redemption Requests'}</h2>
           <table>
             <thead>
               <tr>
@@ -784,12 +742,21 @@ function ClubRewardsPage({ isManager = false }) {
               </tr>
             </thead>
             <tbody>
-              {visibleHistory.map((item) => (
+              {visibleRequests.map((item) => (
                 <tr key={item.id}>
                   <td>{item.date}</td>
-                  {isManager && <td>{item.member}</td>}
+                  {isManager && (
+                    <td>
+                      <div>
+                        <strong>{item.member}</strong>
+                        {item.studentCode && (
+                          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{item.studentCode}</div>
+                        )}
+                      </div>
+                    </td>
+                  )}
                   <td>{item.item}</td>
-                  <td>{item.points} pts</td>
+                  <td><strong style={{ color: '#ea580c' }}>-{item.points} pts</strong></td>
                   <td>
                     <Status value={item.status} />
                   </td>
@@ -814,9 +781,11 @@ function ClubRewardsPage({ isManager = false }) {
                   </td>
                 </tr>
               ))}
-              {!visibleHistory.length && (
+              {!visibleRequests.length && (
                 <tr>
-                  <td colSpan={isManager ? 6 : 5} style={{ textAlign: 'center', padding: '2rem' }}>No redemption records found.</td>
+                  <td colSpan={isManager ? 6 : 5} style={{ textAlign: 'center', padding: '2.5rem', color: '#8c7e95' }}>
+                    No redemption requests found.
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -901,7 +870,18 @@ function ClubRewardsPage({ isManager = false }) {
         </div>
       )}
 
-      {detailHistory && <HistoryDetailModal item={detailHistory} onClose={() => setDetailHistory(null)} />}
+      {detailHistory && (
+        <HistoryDetailModal
+          item={detailHistory}
+          isManager={isManager}
+          onClose={() => setDetailHistory(null)}
+          onApprove={(req) => setApproveConfirmRequest(req)}
+          onReject={(req) => {
+            setRejectRequestModal(req)
+            setRejectReason('')
+          }}
+        />
+      )}
     </main>
   )
 }

@@ -45,7 +45,7 @@ const authorize = (allowedRoles = []) => {
     }
 
     if (allowedRoles.length > 0 && !allowedRoles.includes(req.user.role)) {
-      if (req.user.email === "uniclub2402@gmail.com") {
+      if (req.user.role === "student_affairs") {
         return next();
       }
       return res.status(403).json({

@@ -36,7 +36,7 @@ import ApiTestPage from '../pages/ApiTestPage'
 import LogoutConfirmModal from '../components/common/LogoutConfirmModal'
 
 
-import { CURRENT_USER, MY_CLUB_MEMBERSHIPS } from '../data/mockData'
+import { MY_CLUB_MEMBERSHIPS } from '../data/mockData'
 import { getMyProfile } from '../api/profile.api'
 import { getMyClubs } from '../api/memberClubMembership.api'
 import { apiRequest } from '../api/api'
@@ -561,7 +561,7 @@ function AppRouter() {
         path="/profile"
         element={
           <ProtectedLayout pageId="profile">
-            <MyProfilePage currentUser={CURRENT_USER} />
+            <MyProfilePage currentUser={null} />
           </ProtectedLayout>
         }
       />
@@ -697,7 +697,7 @@ function AppRouter() {
 
       <Route path="/test-api" element={<ApiTestPage />} />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />} />
     </Routes>
 
       <LogoutConfirmModal

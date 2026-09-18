@@ -501,6 +501,18 @@
   box-shadow: none;
 }
 
+.club-rewards-table-card .is-secondary {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  box-shadow: none;
+}
+
+.club-rewards-table-card .is-secondary:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
 .club-rewards-status {
   display: inline-flex;
   min-height: 28px;
