@@ -49,16 +49,16 @@ export default function LoginPage() {
     }
   }, [searchParams, setSearchParams, showToast])
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:5000/api'
+
   function handleLogin1() {
-    window.location.href =
-    'https://localhost:5000/api/auth/google'
+    window.location.href = `${API_BASE_URL}/auth/google`
   }
   function handleLogin2() {
-    window.location.href =
-    'https://localhost:5000/api/auth/feid'
+    window.location.href = `${API_BASE_URL}/auth/feid`
   }
   function handleDevLogin() {
-    window.location.href = `https://localhost:5000/api/auth/dev-login?email=${selectedEmail}`
+    window.location.href = `${API_BASE_URL}/auth/dev-login?email=${selectedEmail}`
   }
 
   return (
