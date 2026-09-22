@@ -44,9 +44,22 @@ const env = require("./config/env");
 
 const app = express();
 
+const allowedOrigins = [
+  env.frontendURL,
+  "https://uniclub.club",
+  "https://www.uniclub.club",
+  "https://uniclub-capstone.vercel.app",
+  "http://localhost:5173",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: env.frontendURL,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.some((o) => origin.startsWith(o))) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   })
 );
