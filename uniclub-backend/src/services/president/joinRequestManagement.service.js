@@ -1,6 +1,8 @@
 const ClubMember = require("../../models/club_member.model");
 const JoinRequest = require("../../models/join_request.model");
 const Club = require("../../models/club.model");
+const Transaction = require("../../models/transaction.model");
+const Payment = require("../../models/payment.model");
 const { getStatusError } = require("../../utils/error");
 const { sendApprovedEmail, sendRejectedEmail } = require("../email.service");
 
@@ -125,7 +127,7 @@ const reviewJoinRequest = async (presidentId, clubId, requestId, { status, revie
     });
 
     if (!membership) {
-      await ClubMember.create({
+      membership = await ClubMember.create({
         user_id: joinRequest.user_id,
         club_id: clubId,
         role: "member",
@@ -137,6 +139,36 @@ const reviewJoinRequest = async (presidentId, clubId, requestId, { status, revie
       membership.joined_at = new Date();
       membership.left_at = null;
       await membership.save();
+    }
+
+    // Auto-create pending payments for member for all active fee collection transactions
+    try {
+      const activeIncomeTransList = await Transaction.find({
+        club_id: clubId,
+        type: "income",
+        status: "approved",
+      });
+
+      for (const trans of activeIncomeTransList) {
+        const existingPayment = await Payment.findOne({
+          membership_id: membership._id,
+          transaction_id: trans._id,
+        });
+
+        if (!existingPayment) {
+          await Payment.create({
+            membership_id: membership._id,
+            transaction_id: trans._id,
+            period: trans.period,
+            amount: trans.amount || 0,
+            status: "pending",
+            payment_method: "vnpay",
+            order_info: `Payment for ${trans.period}`,
+          });
+        }
+      }
+    } catch (payErr) {
+      console.error("[Join Approval Fee Hook] Error creating payment:", payErr);
     }
 
     joinRequest.status = "approved";

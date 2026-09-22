@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 function getClubInitials(name = '') {
   return name
     .split(' ')
@@ -9,21 +11,27 @@ function getClubInitials(name = '') {
 }
 
 function ClubLogo({ club, className = '' }) {
-  const initials = getClubInitials(club?.name)
+  const [imgError, setImgError] = useState(false)
+  const initials = getClubInitials(club?.name || club?.title || club?.clubName || '') || 'CL'
   const style = {
     '--club-logo-gradient': club?.gradient,
     '--club-logo-fit': club?.logoFit === 'contain' ? 'contain' : 'cover',
   }
-  const hasImage = Boolean(club?.logoUrl)
+  const hasImage = Boolean(club?.logoUrl) && !imgError
 
   return (
     <div
       className={`club-logo${hasImage ? ' club-logo--image' : ''} ${className}`.trim()}
       style={style}
-      aria-label={`Logo ${club?.name || ''}`}
+      aria-label={`Logo ${club?.name || club?.title || ''}`}
+      title={club?.name || club?.title || ''}
     >
       {hasImage ? (
-        <img src={club.logoUrl} alt="" />
+        <img
+          src={club.logoUrl}
+          alt={club?.name || 'Club logo'}
+          onError={() => setImgError(true)}
+        />
       ) : (
         <span>{initials}</span>
       )}
@@ -32,3 +40,4 @@ function ClubLogo({ club, className = '' }) {
 }
 
 export default ClubLogo
+

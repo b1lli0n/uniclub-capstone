@@ -26,40 +26,36 @@ describe("BR-25 Event Registration Window and Available Slots Rule", () => {
     jest.clearAllMocks();
   });
 
-  test("blocks registration when now < registration_start (Registration not open yet)", async () => {
-    const futureStart = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000); // 2 days in future
-    const futureEnd = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
-
+  test("blocks registration when status is not coming_soon (e.g. opening)", async () => {
     Event.findById.mockResolvedValue({
       _id: eventId,
-      status: "coming_soon",
+      status: "opening",
       progress_status: "completed",
-      registration_start: futureStart,
-      registration_end: futureEnd,
       is_public: true,
       capacity: 50,
+      start_time: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
     });
 
     await expect(
       eventService.registerForEvent({ eventId, userId, userEmail: "test@fpt.edu.vn" })
     ).rejects.toMatchObject({
       statusCode: 400,
-      message: expect.stringContaining("Registration has not opened yet"),
+      message: expect.stringContaining("Registration is only open when event status is coming soon"),
     });
 
     expect(EventRegistration.create).not.toHaveBeenCalled();
   });
 
-  test("blocks registration when now > registration_end (Registration has closed)", async () => {
-    const pastStart = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000); // 5 days ago
-    const pastEnd = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000); // 1 day ago
+  test("blocks registration when event has already started (now >= start_time)", async () => {
+    const pastStart = new Date(Date.now() - 1 * 60 * 60 * 1000); // 1 hour ago
+    const futureEnd = new Date(Date.now() + 2 * 60 * 60 * 1000);
 
     Event.findById.mockResolvedValue({
       _id: eventId,
       status: "coming_soon",
       progress_status: "completed",
-      registration_start: pastStart,
-      registration_end: pastEnd,
+      start_time: pastStart,
+      end_time: futureEnd,
       is_public: true,
       capacity: 50,
     });
@@ -68,22 +64,22 @@ describe("BR-25 Event Registration Window and Available Slots Rule", () => {
       eventService.registerForEvent({ eventId, userId, userEmail: "test@fpt.edu.vn" })
     ).rejects.toMatchObject({
       statusCode: 400,
-      message: expect.stringContaining("Registration has closed"),
+      message: expect.stringContaining("Cannot register because the event has already started"),
     });
 
     expect(EventRegistration.create).not.toHaveBeenCalled();
   });
 
   test("blocks registration when available slots <= 0 (Capacity reached)", async () => {
-    const pastStart = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000); // 1 day ago
-    const futureEnd = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000); // 2 days in future
+    const futureStart = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000); // 2 days in future
+    const futureEnd = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
     Event.findById.mockResolvedValue({
       _id: eventId,
       status: "coming_soon",
       progress_status: "completed",
-      registration_start: pastStart,
-      registration_end: futureEnd,
+      start_time: futureStart,
+      end_time: futureEnd,
       is_public: true,
       capacity: 30,
     });
@@ -131,9 +127,7 @@ describe("BR-25 Event Registration Window and Available Slots Rule", () => {
     });
   });
 
-  test("successfully registers student within [registration_start, registration_end] and availableSlots > 0 even when status is coming_soon", async () => {
-    const pastStart = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000); // 1 day ago
-    const futureEnd = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000); // 2 days in future
+  test("successfully registers student when status is coming_soon, progress_status is completed, now < start_time, and availableSlots > 0", async () => {
     const eventStart = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
     const eventEnd = new Date(Date.now() + 4 * 24 * 60 * 60 * 1000);
 
@@ -143,8 +137,6 @@ describe("BR-25 Event Registration Window and Available Slots Rule", () => {
       title: "Orientation Music Fest",
       status: "coming_soon",
       progress_status: "completed",
-      registration_start: pastStart,
-      registration_end: futureEnd,
       start_time: eventStart,
       end_time: eventEnd,
       is_public: true,

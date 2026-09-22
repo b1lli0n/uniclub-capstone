@@ -59,18 +59,6 @@ const parseUpdateEventPayload = (body) => {
     updates.end_time = parseDate(body.end_time, "end_time");
   }
 
-  if (body.registration_start !== undefined) {
-    updates.registration_start = body.registration_start
-      ? parseDate(body.registration_start, "registration_start")
-      : null;
-  }
-
-  if (body.registration_end !== undefined) {
-    updates.registration_end = body.registration_end
-      ? parseDate(body.registration_end, "registration_end")
-      : null;
-  }
-
   if (body.capacity !== undefined) {
     const capacity = Number(body.capacity);
 

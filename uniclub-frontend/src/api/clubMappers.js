@@ -6,13 +6,15 @@ const CATEGORY_GRADIENTS = {
 }
 
 const ROLE_LABELS = {
-  president: 'Leader',
-  leader: 'Leader',
-  member: 'Member',
+  president: 'President',
   secretary: 'Secretary',
   treasurer: 'Treasurer',
   event_manager: 'Event Manager',
+  member: 'Member',
+  leader: 'President',
+  'vice leader': 'Member',
 }
+
 
 export const STATUS_LABELS = {
   pending: 'Pending',
@@ -304,12 +306,15 @@ export function mapReceivedInvitationFromApi(invitation) {
 }
 
 const ADMIN_ROLE_TO_BE = {
-  Leader: 'president',
-  'Vice leader': 'president',
+  President: 'president',
   Secretary: 'secretary',
   Treasurer: 'treasurer',
+  'Event Manager': 'event_manager',
   Member: 'member',
+  Leader: 'president',
+  'Vice leader': 'president',
 }
+
 
 export function mapAdminRoleToApi(role) {
   return ADMIN_ROLE_TO_BE[role] || role.toLowerCase().replace(/\s+/g, '_')

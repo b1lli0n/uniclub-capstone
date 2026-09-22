@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import ClubLogo from '../../components/home/ClubLogo'
-import { ALL_CLUBS } from '../../data/mockData'
+import { getClubById } from '../../api/club.api'
+import { getMyProfile } from '../../api/profile.api'
 import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getClubLeaderboard, getMyContributionLogs } from '../../api/pointRule.api'
+import { resolveClubLogo } from '../../utils/imageUtils'
 import '../../styles/club-ranking.css'
+
 
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -79,9 +82,12 @@ function mapApiLeaderboardToRank(m, idx) {
   const points = m.total_points ?? m.monthly_points ?? 0
   return {
     id: m.membership_id || user._id || `rank-${idx}`,
+    userId: String(user._id || ''),
+    email: user.email || '',
     name: user.full_name || 'Club Member',
     avatarUrl: user.avatar_url || '',
     contribution: points,
+    rank: idx + 1,
     tone: ['#ff9f2f', '#3b82f6', '#ec4899', '#8b5cf6', '#10b981'][idx % 5],
   }
 }
@@ -92,6 +98,7 @@ function ClubRankingPage({ clubId }) {
   const [calendarMonth, setCalendarMonth] = useState(startOfMonth(today))
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [clubObj, setClubObj] = useState(null)
+  const [currentUser, setCurrentUser] = useState(null)
   const [rankedMembers, setRankedMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const periodRef = useRef(null)
@@ -107,8 +114,16 @@ function ClubRankingPage({ clubId }) {
     async function loadRankingData() {
       setLoading(true)
       try {
-        const myClubsRes = await getMyClubs().catch(() => ({ data: [] }))
+        const [myClubsRes, clubRes, profileRes] = await Promise.all([
+          getMyClubs().catch(() => ({ data: [] })),
+          clubId ? getClubById(clubId).catch(() => null) : Promise.resolve(null),
+          getMyProfile().catch(() => null),
+        ])
         const memberships = myClubsRes.data || []
+
+        if (profileRes?.data?.user) {
+          setCurrentUser(profileRes.data.user)
+        }
 
         const mine = memberships.find(
           (m) =>
@@ -116,28 +131,33 @@ function ClubRankingPage({ clubId }) {
             (m.club_id?.name && m.club_id.name.toLowerCase().includes(String(clubId || '').toLowerCase()))
         )
 
-        const matchedMock = ALL_CLUBS.find(
-          (item) =>
-            item.id === clubId ||
-            item.title?.toLowerCase().includes('guitar') ||
-            item.name?.toLowerCase().includes('guitar')
-        )
+        const fetchedClub = clubRes?.data || mine?.club_id
+        const clubName = fetchedClub?.name || 'Guitar Club'
+        const actualClubId = mine ? (mine.club_id?._id || mine.club_id) : (fetchedClub?._id || clubId)
 
-        const clubName = mine?.club_id?.name || matchedMock?.title || matchedMock?.name || 'Guitar Club'
-        const actualClubId = mine ? mine.club_id?._id || mine.club_id : clubId
+        const logoText = clubName
+          ? clubName.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
+          : 'GC'
 
         setClubObj({
           id: actualClubId,
           name: clubName,
           title: clubName,
-          logoText: matchedMock?.logoText || 'GC',
-          logoUrl: matchedMock?.logoUrl || mine?.club_id?.logo_url,
+          logoText,
+          logoUrl: resolveClubLogo(fetchedClub?.logo_url, clubName),
         })
+
 
         if (actualClubId) {
           const lbRes = await getClubLeaderboard(actualClubId).catch(() => ({ data: [] }))
           if (!cancelled && lbRes.data && lbRes.data.length > 0) {
-            setRankedMembers(lbRes.data.map((m, idx) => mapApiLeaderboardToRank(m, idx)))
+            const sortedList = [...lbRes.data].sort((a, b) => {
+              const ptsA = a.total_points ?? a.monthly_points ?? 0
+              const ptsB = b.total_points ?? b.monthly_points ?? 0
+              if (ptsB !== ptsA) return ptsB - ptsA
+              return (b.monthly_points || 0) - (a.monthly_points || 0)
+            })
+            setRankedMembers(sortedList.map((m, idx) => mapApiLeaderboardToRank(m, idx)))
           }
         }
       } catch (err) {
@@ -201,13 +221,28 @@ function ClubRankingPage({ clubId }) {
   // Table members starting from Rank #4 (Index 3 onwards)
   const tableMembers = useMemo(() => rankedMembers.slice(3), [rankedMembers])
 
+  const myRankInfo = useMemo(() => {
+    if (!currentUser || !rankedMembers.length) return null
+    const currentUserId = String(currentUser._id || currentUser.id || '')
+    const currentUserEmail = (currentUser.email || '').toLowerCase()
+
+    const found = rankedMembers.find((m) =>
+      (m.userId && String(m.userId) === currentUserId) ||
+      (m.email && m.email.toLowerCase() === currentUserEmail)
+    )
+
+    return found || null
+  }, [currentUser, rankedMembers])
+
   const calendarDays = useMemo(() => buildCalendarDays(calendarMonth), [calendarMonth])
 
   const displayClub = clubObj || {
     name: 'Guitar Club',
     title: 'Guitar Club',
     logoText: 'GC',
+    logoUrl: resolveClubLogo('', 'Guitar Club'),
   }
+
 
   return (
     <div className="club-ranking-page">
@@ -384,21 +419,52 @@ function ClubRankingPage({ clubId }) {
                     {rankedMembers.length > 0 ? 'All members are currently on the Top 3 Podium' : 'No members ranked yet'}
                   </p>
                 ) : (
-                  tableMembers.map((member, index) => (
-                    <article key={member.id} className="club-ranking-row">
-                      <span className="club-ranking-row__rank">{String(index + 4).padStart(2, '0')}</span>
-                      <div className="club-ranking-row__member">
-                        <RankingAvatar member={member} />
-                        <strong>{member.name}</strong>
-                      </div>
-                      <div className="club-ranking-row__stat">
-                        <strong>{member.contribution}</strong>
-                        <small>points</small>
-                      </div>
-                    </article>
-                  ))
+                  tableMembers.map((member) => {
+                    const isMe = myRankInfo && (member.id === myRankInfo.id || member.userId === myRankInfo.userId)
+                    return (
+                      <article
+                        key={member.id}
+                        className={`club-ranking-row ${isMe ? 'club-ranking-row--my-rank' : ''}`}
+                        style={isMe ? { border: '2px solid #ea580c', background: '#fffaf5' } : {}}
+                      >
+                        <span className="club-ranking-row__rank">{String(member.rank).padStart(2, '0')}</span>
+                        <div className="club-ranking-row__member">
+                          <RankingAvatar member={member} />
+                          <strong>
+                            {member.name}
+                            {isMe && <span className="club-ranking-row__you-badge" style={{ marginLeft: '8px' }}>YOU</span>}
+                          </strong>
+                        </div>
+                        <div className="club-ranking-row__stat">
+                          <strong style={isMe ? { color: '#ea580c' } : {}}>{member.contribution}</strong>
+                          <small>points</small>
+                        </div>
+                      </article>
+                    )
+                  })
                 )}
               </div>
+
+              {myRankInfo && !tableMembers.some(m => m.id === myRankInfo.id || m.userId === myRankInfo.userId) && !podium.some(m => m.id === myRankInfo.id || m.userId === myRankInfo.userId) && (
+                <div className="club-ranking-table__footer">
+                  <article className="club-ranking-row club-ranking-row--my-rank" title="Your current standing">
+                    <span className="club-ranking-row__rank">
+                      {String(myRankInfo.rank).padStart(2, '0')}
+                    </span>
+                    <div className="club-ranking-row__member">
+                      <RankingAvatar member={myRankInfo} />
+                      <strong>
+                        {myRankInfo.name}
+                        <span className="club-ranking-row__you-badge">YOU</span>
+                      </strong>
+                    </div>
+                    <div className="club-ranking-row__stat">
+                      <strong style={{ color: '#ea580c' }}>{myRankInfo.contribution}</strong>
+                      <small>points</small>
+                    </div>
+                  </article>
+                </div>
+              )}
             </div>
           </section>
         </div>
@@ -406,12 +472,81 @@ function ClubRankingPage({ clubId }) {
 
       {/* My Contribution Logs Modal */}
       {logsModalOpen ? (
-        <div className="club-point-rules-modal" role="dialog" aria-modal="true">
-          <button type="button" className="club-point-rules-modal__backdrop" onClick={() => setLogsModalOpen(false)} />
-          <div className="club-point-rules-modal__panel" style={{ width: 'min(580px, 100%)' }}>
-            <div className="club-point-rules-modal__header">
-              <h2>📋 My Point History</h2>
-              <button type="button" onClick={() => setLogsModalOpen(false)}>Close</button>
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+            }}
+            onClick={() => setLogsModalOpen(false)}
+          />
+          <div
+            style={{
+              position: 'relative',
+              width: 'min(580px, 100%)',
+              maxHeight: 'calc(100vh - 60px)',
+              overflowY: 'auto',
+              borderRadius: '24px',
+              background: '#ffffff',
+              color: '#0f172a',
+              padding: '28px',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.35)',
+              border: '1px solid #e2e8f0',
+              zIndex: 1,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '20px',
+                paddingBottom: '14px',
+                borderBottom: '1px solid #f1f5f9',
+              }}
+            >
+              <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>📋</span> My Point History
+              </h2>
+              <button
+                type="button"
+                onClick={() => setLogsModalOpen(false)}
+                style={{
+                  border: 'none',
+                  borderRadius: '10px',
+                  background: '#f1f5f9',
+                  color: '#475569',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  padding: '7px 16px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = '#e2e8f0'
+                  e.currentTarget.style.color = '#0f172a'
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = '#f1f5f9'
+                  e.currentTarget.style.color = '#475569'
+                }}
+              >
+                ✕ Close
+              </button>
             </div>
 
             {loadingLogs ? (
@@ -419,9 +554,9 @@ function ClubRankingPage({ clubId }) {
                 Loading point history...
               </p>
             ) : myLogs.length === 0 ? (
-              <div style={{ padding: '30px 15px', textAlign: 'center', color: '#64748b' }}>
-                <p style={{ fontSize: '1.05rem', fontWeight: '700', marginBottom: '4px' }}>No point history records yet</p>
-                <p style={{ fontSize: '0.88rem' }}>You have not participated in any point-earning activities in this club yet.</p>
+              <div style={{ padding: '35px 15px', textAlign: 'center', color: '#64748b' }}>
+                <p style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '6px', color: '#334155' }}>No point history records yet</p>
+                <p style={{ fontSize: '0.9rem' }}>You have not participated in any point-earning activities in this club yet.</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto' }}>
@@ -434,15 +569,15 @@ function ClubRankingPage({ clubId }) {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        justify: 'space-between',
-                        padding: '14px 16px',
+                        justifyContent: 'space-between',
+                        padding: '14px 18px',
                         background: '#f8fafc',
                         borderRadius: '14px',
                         border: '1px solid #e2e8f0',
                       }}
                     >
                       <div>
-                        <strong style={{ display: 'block', fontSize: '0.95rem', color: '#0f172a', marginBottom: '2px' }}>
+                        <strong style={{ display: 'block', fontSize: '0.95rem', color: '#0f172a', marginBottom: '3px' }}>
                           {actName}
                         </strong>
                         <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
@@ -453,11 +588,11 @@ function ClubRankingPage({ clubId }) {
                         style={{
                           padding: '6px 14px',
                           borderRadius: '20px',
-                          background: 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)',
+                          background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
                           color: '#ffffff',
                           fontWeight: '800',
                           fontSize: '0.9rem',
-                          boxShadow: '0 4px 10px rgba(46, 125, 50, 0.2)',
+                          boxShadow: '0 4px 10px rgba(22, 163, 74, 0.25)',
                         }}
                       >
                         +{points} pts

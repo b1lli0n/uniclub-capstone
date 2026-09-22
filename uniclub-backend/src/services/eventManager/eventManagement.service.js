@@ -5,7 +5,7 @@ const { uploadEventMedia } = require("../../utils/cloudinary.util");
 const { getStatusError } = require("../../utils/error");
 
 const EVENT_SELECT =
-  "_id club_id title description category start_time end_time registration_start registration_end location status progress_status is_public capacity media_uris approval_document_url created_at updated_at";
+  "_id club_id title description category start_time end_time location status progress_status is_public capacity media_uris approval_document_url created_at updated_at";
 
 const CLUB_POPULATE = {
   path: "club_id",
@@ -66,7 +66,7 @@ const getEventDetail = async (clubId, eventId) => {
   })
     .populate("club_id", "_id name logo_url category status description")
     .populate(CREATED_BY_POPULATE)
-    .select("_id club_id created_by title description category start_time end_time registration_start registration_end location is_public capacity status progress_status check_in_status media_uris feedback_summary created_at updated_at");
+    .select("_id club_id created_by title description category start_time end_time location is_public capacity status progress_status check_in_status media_uris feedback_summary created_at updated_at");
 
   if (!event) {
     throw getStatusError("Event not found", 404);
@@ -119,7 +119,7 @@ const createEvent = async (clubId, userId, payload) => {
     .populate("club_id", "_id name logo_url category status")
     .populate(CREATED_BY_POPULATE)
     .select(
-      "_id club_id created_by title description category start_time end_time registration_start registration_end location is_public capacity status progress_status check_in_status media_uris created_at updated_at"
+      "_id club_id created_by title description category start_time end_time location is_public capacity status progress_status check_in_status media_uris created_at updated_at"
     );
 };
 
@@ -138,23 +138,20 @@ const updateEvent = async (clubId, eventId, payload) => {
     throw getStatusError("Cannot update cancelled event", 400);
   }
 
+  if (payload.progress_status === "draft" && event.progress_status === "completed") {
+    if (event.status !== "coming_soon") {
+      throw getStatusError(
+        "Cannot revert completed event back to draft when operational status is not 'coming_soon'",
+        400
+      );
+    }
+  }
+
   const startTime = payload.start_time ?? event.start_time;
   const endTime = payload.end_time ?? event.end_time;
 
   if (startTime >= endTime) {
     throw getStatusError("start_time must be before end_time", 400);
-  }
-
-  const regStart = payload.registration_start !== undefined ? payload.registration_start : event.registration_start;
-  const regEnd = payload.registration_end !== undefined ? payload.registration_end : event.registration_end;
-
-  if (regStart && regEnd) {
-    if (new Date(regStart) >= new Date(regEnd)) {
-      throw getStatusError("registration_start must be before registration_end", 400);
-    }
-    if (new Date(regEnd) > new Date(startTime)) {
-      throw getStatusError("registration_end must be before or equal to event start_time", 400);
-    }
   }
 
   const processedPayload = { ...payload };
@@ -171,7 +168,7 @@ const updateEvent = async (clubId, eventId, payload) => {
     .populate("club_id", "_id name logo_url category status")
     .populate(CREATED_BY_POPULATE)
     .select(
-      "_id club_id created_by title description category start_time end_time registration_start registration_end location is_public capacity status progress_status check_in_status media_uris approval_document_url created_at updated_at"
+      "_id club_id created_by title description category start_time end_time location is_public capacity status progress_status check_in_status media_uris approval_document_url created_at updated_at"
     );
 };
 

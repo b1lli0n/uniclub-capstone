@@ -4,6 +4,8 @@ const querystring = require('querystring')
 const ClubMember = require('../../models/club_member.model')
 const Payment = require('../../models/payment.model')
 const Transaction = require('../../models/transaction.model')
+const Club = require('../../models/club.model')
+const User = require('../../models/user.model')
 
 const PAYMENT_STATUS = {
   PENDING: "pending",

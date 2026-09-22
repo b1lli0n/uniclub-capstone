@@ -132,13 +132,20 @@ export default function ActivityAttendancePage() {
         checked: Boolean(m.checked),
       }))
 
-      await saveSecretaryActivityAttendance(clubId, activityId, payload)
+      const res = await saveSecretaryActivityAttendance(clubId, activityId, payload)
 
-      const attendedCount = members.filter((m) => m.checked).length
-      showToast({
-        type: 'success',
-        message: `Attendance saved successfully! Added +30 pts for ${attendedCount} member(s).`,
-      })
+      const awardedCount = res?.data?.awardedCount ?? 0
+      if (awardedCount > 0) {
+        showToast({
+          type: 'success',
+          message: `Attendance saved successfully! Awarded points for ${awardedCount} member(s).`,
+        })
+      } else {
+        showToast({
+          type: 'success',
+          message: `Attendance saved successfully! (Note: Points already awarded or daily limit reached for this activity).`,
+        })
+      }
     } catch (err) {
       console.error('Save attendance error:', err)
       showToast({
@@ -241,7 +248,7 @@ export default function ActivityAttendancePage() {
               <polyline points="17 21 17 13 7 13 7 21" />
               <polyline points="7 3 7 8 15 8" />
             </svg>
-            {saving ? 'Saving...' : 'Save Attendance & Award Points (+30 pts)'}
+            {saving ? 'Saving...' : 'Save Attendance & Award Points'}
           </button>
         </div>
       </div>

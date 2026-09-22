@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ALL_CLUBS } from '../../data/mockData'
 import {
   getPointRules,
   createPointRule,
@@ -8,12 +7,12 @@ import {
   awardPointsManually,
   getActionTypes,
 } from '../../api/pointRule.api'
+import { getClubById } from '../../api/club.api'
 import { getMyClubs, getClubMembers } from '../../api/memberClubMembership.api'
 import { getClubMembersForManagement } from '../../api/clubMember.api'
 import { useToast } from '../../components/common/notificationContext'
 import '../../styles/club-point-rules.css'
 
-const CLUB_FALLBACK = ALL_CLUBS[0]
 const RULE_COLORS = ['blue', 'indigo', 'purple', 'pink']
 
 const DEFAULT_ACTION_OPTIONS = [
@@ -160,7 +159,7 @@ function createDraft(rule) {
 
 function ClubPointRulesPage({ clubId, isLeader = false }) {
   const showToast = useToast()
-  const club = ALL_CLUBS.find((item) => item.id === clubId) || CLUB_FALLBACK
+  const [club, setClub] = useState(null)
   const [isManager, setIsManager] = useState(isLeader)
   const [rulesList, setRulesList] = useState([])
   const [loading, setLoading] = useState(true)
@@ -187,9 +186,10 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
     async function initPage() {
       setLoading(true)
       try {
-        const [myClubsRes, typesRes] = await Promise.all([
-          getMyClubs(),
+        const [myClubsRes, typesRes, clubRes] = await Promise.all([
+          getMyClubs().catch(() => ({ data: [] })),
           getActionTypes().catch(() => ({ data: [] })),
+          clubId ? getClubById(clubId).catch(() => null) : Promise.resolve(null),
         ])
 
         if (cancelled) return
@@ -202,6 +202,11 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
 
         const actualClubId = mine ? (mine.club_id?._id || mine.club_id) : clubId
         setTargetClubId(actualClubId)
+
+        const fetchedClub = clubRes?.data || mine?.club_id
+        if (fetchedClub) {
+          setClub(fetchedClub)
+        }
 
         const userRole = (mine?.role || '').toLowerCase()
         const presidentRole = userRole === 'president' || userRole === 'leader' || Boolean(isLeader)
@@ -439,7 +444,7 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
     <main className="club-point-rules-page">
       <section className="club-point-rules-hero">
         <div>
-          <span>{club.name}</span>
+          <span>{club?.name || 'Club'}</span>
           <h1>Point Rules</h1>
           <p>View point earning rules and manage how club activities award reward points.</p>
         </div>

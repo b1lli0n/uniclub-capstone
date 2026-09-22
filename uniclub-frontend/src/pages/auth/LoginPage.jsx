@@ -6,17 +6,15 @@ import heroGroup from '../../assets/hero-group.png'
 import '../../styles/login.css'
 
 const MOCK_ACCOUNTS = [
-  { email: 'tynce181041@fpt.edu.vn', label: '👑 Nguyen Ty – President (Music Club)' },
-  { email: 'demo32@fpt.edu.vn',      label: '👑 Bui Van Em (Demo 32) – President (Guitar Club)' },
+  { email: 'tynce181041@fpt.edu.vn', label: '👑 Nguyen Ty – Club President / Creator' },
+  { email: 'uniclub2402@gmail.com',  label: '🛡 Admin Student Affairs (uniclub2402@gmail.com)' },
+  { email: 'admin@fpt.edu.vn',       label: '🛡 Nguyen Van Admin – Student Affairs' },
+  { email: 'bangdreamer01@gmail.com', label: '👑 Bui Van Em (bangdreamer01@gmail.com) – President (Guitar Club)' },
   { email: 'demo35@fpt.edu.vn',      label: '🎪 Nguyen Quoc Khanh (Demo 35) – Event Manager (Guitar Club)' },
   { email: 'demo33@fpt.edu.vn',      label: '📝 Do Thi Giang (Demo 33) – Secretary (Guitar Club)' },
   { email: 'demo34@fpt.edu.vn',      label: '💰 Ho Minh Hung (Demo 34) – Treasurer (Guitar Club)' },
   { email: 'demo36@fpt.edu.vn',      label: '🎸 Tran Thanh Linh (Demo 36) – Member (Guitar Club)' },
-  { email: 'demo1@fpt.edu.vn',       label: '📝 Le Bich Minh (Demo 1) – Secretary (Music Club)' },
-  { email: 'demo2@fpt.edu.vn',       label: '💰 Pham Duc Nam (Demo 2) – Treasurer (Music Club)' },
-  { email: 'demo3@fpt.edu.vn',       label: '🎪 Hoang Lan Phong (Demo 3) – Event Manager (Music Club)' },
-  { email: 'demo4@fpt.edu.vn',       label: '🎵 Phan Mai Quan (Demo 4) – Member (Music Club)' },
-  { email: 'admin@fpt.edu.vn',       label: '🛡 Nguyen Van Admin – Student Affairs' },
+  { email: 'demo4@fpt.edu.vn',       label: '🎵 Phan Mai Quan (Demo 4) – Member / Applicant' },
 ]
 
 function FptLogo() {

@@ -682,6 +682,43 @@ const sendClubDeactivatedEmailToLeader = async ({ toEmail, leaderName, clubName,
   }
 };
 
+const sendNewJoinRequestEmailToPresident = async ({ presidentEmail, presidentName, applicantName, applicantEmail, clubName, answers }) => {
+  try {
+    const mailer = getTransporter();
+    const subject = `[UniClub] 📬 New Membership Application: ${applicantName} has applied to ${clubName}`;
+    const answersHtml = (answers || []).map((ans, idx) => `
+      <p style="margin: 4px 0;"><strong>Question ${idx + 1}:</strong> ${ans.value}</p>
+    `).join("");
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 16px;">
+        <div style="background: #ffffff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <h2 style="color: #ea580c; margin-top: 0;">📬 New Membership Application</h2>
+          <p>Hello <strong>${presidentName || "Club President"}</strong>,</p>
+          <p>Student <strong>${applicantName}</strong> (${applicantEmail}) has just submitted an application to join <strong>${clubName}</strong> on UniClub!</p>
+          <div style="background: #fff7ed; padding: 16px; border-radius: 8px; border-left: 4px solid #ea580c; margin: 16px 0;">
+            <h4 style="margin-top: 0; color: #c2410c;">Applicant's Answers:</h4>
+            ${answersHtml || "<p>None</p>"}
+          </div>
+          <p>Please log in to <strong>UniClub ➔ Member Approval</strong> to review and approve or reject this application.</p>
+          <br/>
+          <p style="color: #64748b; font-size: 0.9em;">Best regards,<br/><strong>UniClub Management System</strong></p>
+        </div>
+      </div>
+    `;
+
+    await mailer.sendMail({
+      from: `"UniClub System" <${process.env.EMAIL_USER || "uniclub2402@gmail.com"}>`,
+      to: presidentEmail,
+      subject,
+      html,
+    });
+    console.log(`📧 New Join Request Email sent to President: ${presidentEmail}`);
+  } catch (error) {
+    console.error("❌ Failed to send new join request email to president:", error.message);
+  }
+};
+
 module.exports = {
   sendApprovedEmail,
   sendRejectedEmail,
@@ -701,4 +738,5 @@ module.exports = {
   sendClubCreationMemberInviteEmail,
   sendClubCreationSubmittedEmailToRequester,
   sendClubDeactivatedEmailToLeader,
+  sendNewJoinRequestEmailToPresident,
 };

@@ -32,21 +32,27 @@ function HomeLayout({
     : undefined
 
   useEffect(() => {
+    let rafId = null
     const handleScroll = () => {
-      if (mainRef.current) {
-        setShowScrollTop(mainRef.current.scrollTop > 300)
-      }
+      if (rafId) return
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        if (mainRef.current) {
+          setShowScrollTop(mainRef.current.scrollTop > 300)
+        }
+      })
     }
 
     const container = mainRef.current
     if (container) {
-      container.addEventListener('scroll', handleScroll)
+      container.addEventListener('scroll', handleScroll, { passive: true })
     }
 
     return () => {
       if (container) {
         container.removeEventListener('scroll', handleScroll)
       }
+      if (rafId) cancelAnimationFrame(rafId)
     }
   }, [])
 

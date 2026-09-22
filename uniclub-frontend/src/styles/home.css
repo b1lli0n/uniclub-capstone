@@ -32,7 +32,6 @@ body:has(.home-shell) #root {
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  transition: background-color 0.2s, background-image 0.2s;
   box-sizing: border-box;
   scrollbar-width: thin;
   scrollbar-color: #e58330 #fff1de;

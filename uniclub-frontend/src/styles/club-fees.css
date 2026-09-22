@@ -905,3 +905,192 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Club Payment Receipt Styles ─────────────────────────────────────────── */
+.club-receipt-container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+.club-receipt-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.club-receipt-paper {
+  position: relative;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.06), 0 5px 15px rgba(0, 0, 0, 0.03);
+  padding: 2.5rem 2.25rem;
+  overflow: hidden;
+}
+
+.club-receipt-paper::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, #F57C00, #ff9f2f, #ea580c);
+}
+
+.club-receipt-header {
+  text-align: center;
+  padding-bottom: 1.75rem;
+  border-bottom: 1px dashed #e2e8f0;
+  margin-bottom: 1.75rem;
+}
+
+.club-receipt-header__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid #c8e6c9;
+  margin-bottom: 1rem;
+}
+
+.club-receipt-header__title {
+  margin: 0 0 0.4rem 0;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.club-receipt-header__subtitle {
+  margin: 0 0 0.6rem 0;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.club-receipt-header__id {
+  margin: 0;
+  display: inline-block;
+  background: #f8fafc;
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.82rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.club-receipt-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 2rem;
+}
+
+.club-receipt-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  transition: background 0.15s;
+}
+
+.club-receipt-field:nth-child(even) {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.club-receipt-field__label {
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.club-receipt-field__value {
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: right;
+  max-width: 65%;
+  word-break: break-word;
+}
+
+.club-receipt-total-box {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border: 1.5px solid #fed7aa;
+  border-radius: 16px;
+  padding: 1.25rem 1.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.club-receipt-total-box__label {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #9a3412;
+}
+
+.club-receipt-total-box__amount {
+  font-size: 1.85rem;
+  font-weight: 900;
+  color: #ea580c;
+  letter-spacing: -0.02em;
+}
+
+.club-receipt-footer {
+  text-align: center;
+  padding-top: 1.5rem;
+  border-top: 1px dashed #e2e8f0;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.club-receipt-footer p {
+  margin: 0 0 0.35rem 0;
+}
+
+.club-receipt-footer p:last-child {
+  margin: 0;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+  .no-print,
+  .home-sidebar,
+  .home-topbar,
+  header,
+  nav {
+    display: none !important;
+  }
+  .club-fees-container,
+  .club-receipt-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .club-receipt-paper {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    border-radius: 0 !important;
+    padding: 2cm !important;
+  }
+}
+

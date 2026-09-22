@@ -12,7 +12,9 @@ import {
   updateSecretaryActivity,
 } from '../../api/secretaryActivitySchedule.api'
 import { useToast } from '../../components/common/notificationContext'
+import DateTimePicker, { toDateTimeInputValue } from '../../components/common/DateTimePicker'
 import '../../styles/schedule.css'
+import '../../styles/club-event-management.css'
 
 const WEEK_DAYS = [
   { id: 'mon', label: 'Monday', short: 'Mon' },
@@ -40,7 +42,6 @@ const STATUS_META = {
 const EMPTY_FORM = {
   id: null,
   title: '',
-  date: '',
   startTime: '',
   endTime: '',
   location: '',
@@ -134,6 +135,7 @@ function mapActivityFromApi(apiActivity) {
     type: meta.cardType,
     statusLabel: meta.label,
     statusEmoji: meta.emoji,
+    isAttended: Boolean(apiActivity.is_attended),
     createdBy: apiActivity.created_by?.user_id || apiActivity.created_by || null,
     club: apiActivity.club_id || null,
   }
@@ -245,9 +247,15 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
 
   const handleOpenCreate = () => {
     setIsEditing(false)
+    const defaultStart = new Date(monday)
+    defaultStart.setHours(9, 0, 0, 0)
+    const defaultEnd = new Date(monday)
+    defaultEnd.setHours(11, 0, 0, 0)
+
     setFormData({
       ...EMPTY_FORM,
-      date: toDateInputValue(monday),
+      startTime: toDateTimeInputValue(defaultStart),
+      endTime: toDateTimeInputValue(defaultEnd),
     })
     setShowFormModal(true)
   }
@@ -258,9 +266,8 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
     setFormData({
       id: activity.id,
       title: activity.title || '',
-      date: toDateInputValue(activity.startTime),
-      startTime: toTimeInputValue(activity.startTime),
-      endTime: toTimeInputValue(activity.endTime),
+      startTime: activity.startTime ? toDateTimeInputValue(new Date(activity.startTime)) : '',
+      endTime: activity.endTime ? toDateTimeInputValue(new Date(activity.endTime)) : '',
       location: activity.location || '',
       description: activity.description || '',
       status: activity.status || 'coming_soon',
@@ -301,8 +308,8 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
     const title = formData.title.trim()
     const description = formData.description.trim()
     const location = formData.location.trim()
-    const startTime = toIsoDateTime(formData.date, formData.startTime)
-    const endTime = toIsoDateTime(formData.date, formData.endTime)
+    const startTime = formData.startTime ? new Date(formData.startTime).toISOString() : null
+    const endTime = formData.endTime ? new Date(formData.endTime).toISOString() : null
 
     if (!title || !description || !location || !startTime || !endTime) {
       showToast({
@@ -442,69 +449,16 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                         <span className="activity-card__time">{activity.time}</span>
-                        {isSecretary ? (
-                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
-                            <button
-                              type="button"
-                              title="Take Attendance"
-                              onClick={() =>
-                                navigate(`/clubs/${clubId}/manage-activity-schedule/${activity.id}/attendance`)
-                              }
-                              style={{
-                                background: 'rgba(16, 185, 129, 0.12)',
-                                border: 'none',
-                                padding: '4px 8px',
-                                borderRadius: '6px',
-                                color: '#10b981',
-                                cursor: 'pointer',
-                                fontSize: '11px',
-                                fontWeight: '700',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                              }}
-                            >
-                              <span>📋</span>
-                              <span>Attendance</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => handleOpenEdit(e, activity)}
-                              style={{
-                                background: 'rgba(253, 126, 20, 0.1)',
-                                border: 'none',
-                                padding: '4px',
-                                borderRadius: '6px',
-                                color: '#fd7e14',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              <svg style={{ width: '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                              </svg>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => handleOpenDelete(e, activity)}
-                              style={{
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                border: 'none',
-                                padding: '4px',
-                                borderRadius: '6px',
-                                color: '#ef4444',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              <svg style={{ width: '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
-                              </svg>
-                            </button>
-                          </div>
-                        ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
                           <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>
                             {activity.statusLabel}
                           </span>
-                        )}
+                          {activity.isAttended && (
+                            <span style={{ fontSize: '10px', fontWeight: 800, color: '#16a34a', background: '#dcfce7', padding: '1px 6px', borderRadius: '4px' }}>
+                              ✓ Attended
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <h3 className="activity-card__title">{activity.title}</h3>
                       <div className="activity-card__pts" style={{ opacity: 0.85 }}>
@@ -546,9 +500,16 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
               ) : (
                 <>
                   <div className="activity-detail-hero">{selectedActivity.statusEmoji}</div>
-                  <h2 style={{ fontSize: '24px', fontWeight: '900', marginBottom: '8px', color: '#0f172a' }}>
-                    {selectedActivity.title}
-                  </h2>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h2 style={{ fontSize: '24px', fontWeight: '900', margin: 0, color: '#0f172a' }}>
+                      {selectedActivity.title}
+                    </h2>
+                    {selectedActivity.isAttended && (
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#16a34a', background: '#dcfce7', padding: '3px 10px', borderRadius: '6px' }}>
+                        ✓ Attended
+                      </span>
+                    )}
+                  </div>
                   <div
                     className="activity-card__pts"
                     style={{ fontSize: '13px', padding: '6px 12px', borderRadius: '12px', marginBottom: '24px' }}
@@ -654,10 +615,80 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                 </>
               )}
             </div>
-            <div className="points-modal__footer" style={{ marginTop: '20px' }}>
+            <div className="points-modal__footer" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+              {isSecretary && (
+                <>
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      height: '46px',
+                      background: 'rgba(253, 126, 20, 0.1)',
+                      color: '#ea580c',
+                      border: '1px solid rgba(253, 126, 20, 0.3)',
+                      borderRadius: '14px',
+                      fontWeight: '700',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                    onClick={(e) => {
+                      const act = selectedActivity
+                      setSelectedActivity(null)
+                      handleOpenEdit(e, act)
+                    }}
+                  >
+                    <svg style={{ width: '16px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      height: '46px',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      color: '#ef4444',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: '14px',
+                      fontWeight: '700',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                    onClick={(e) => {
+                      const act = selectedActivity
+                      setSelectedActivity(null)
+                      handleOpenDelete(e, act)
+                    }}
+                  >
+                    <svg style={{ width: '16px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+                    </svg>
+                    Delete
+                  </button>
+                </>
+              )}
               <button
                 className="btn-primary"
-                style={{ width: '100%', height: '46px', background: '#fd7e14', fontSize: '15px', fontWeight: '700', borderRadius: '14px' }}
+                style={{
+                  flex: 1,
+                  height: '46px',
+                  background: isSecretary ? '#64748b' : '#fd7e14',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  borderRadius: '14px',
+                  border: 'none',
+                  color: 'white',
+                  cursor: 'pointer',
+                }}
                 onClick={() => setSelectedActivity(null)}
                 type="button"
               >
@@ -685,30 +716,29 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
           <div
             className="points-modal shadow-2xl"
             style={{
-              maxWidth: '520px',
+              maxWidth: '680px',
               width: '100%',
-              maxHeight: '90vh',
               padding: '0',
-              borderRadius: '32px',
+              borderRadius: '28px',
               border: 'none',
               background: 'white',
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
-              overflow: 'hidden',
+              overflow: 'visible',
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div
               style={{
-                padding: '32px 40px 20px',
+                padding: '28px 36px 18px',
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'flex-start',
+                alignItems: 'center',
                 flexShrink: 0,
               }}
             >
-              <h2 style={{ fontSize: '28px', fontWeight: '800', color: '#1e293b', margin: 0 }}>
+              <h2 style={{ fontSize: '26px', fontWeight: '800', color: '#1e293b', margin: 0 }}>
                 {isEditing ? 'Update Activity' : 'Create New Activity'}
               </h2>
               <button
@@ -732,8 +762,8 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
               </button>
             </div>
 
-            <div style={{ padding: '0 40px 20px', overflowY: 'auto', flex: 1 }}>
-              <div style={{ marginBottom: '24px' }}>
+            <div style={{ padding: '0 36px 16px', overflow: 'visible' }}>
+              <div style={{ marginBottom: '18px' }}>
                 <label style={labelStyle}>Title *</label>
                 <input
                   type="text"
@@ -744,14 +774,42 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '18px' }}>
+                <DateTimePicker
+                  label="Start Time *"
+                  value={formData.startTime}
+                  onChange={(val) => {
+                    setFormData((prev) => {
+                      const next = { ...prev, startTime: val }
+                      if (val && (!prev.endTime || new Date(prev.endTime) <= new Date(val))) {
+                        const d = new Date(val)
+                        d.setHours(d.getHours() + 2)
+                        next.endTime = toDateTimeInputValue(d)
+                      }
+                      return next
+                    })
+                  }}
+                  required
+                />
+                <DateTimePicker
+                  label="End Time *"
+                  value={formData.endTime}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, endTime: val }))}
+                  required
+                  popoverAlign="right"
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '18px' }}>
                 <div>
-                  <label style={labelStyle}>Date *</label>
+                  <label style={labelStyle}>Location *</label>
                   <input
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="e.g. Room A1, Main Hall"
                     style={inputStyle}
+                    required
                   />
                 </div>
                 <div>
@@ -781,53 +839,19 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-                <div>
-                  <label style={labelStyle}>Start Time *</label>
-                  <input
-                    type="time"
-                    value={formData.startTime}
-                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                    style={inputStyle}
-                  />
-                </div>
-                <div>
-                  <label style={labelStyle}>End Time *</label>
-                  <input
-                    type="time"
-                    value={formData.endTime}
-                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                    style={inputStyle}
-                  />
-                </div>
-              </div>
-
-
-
-              <div style={{ marginBottom: '24px' }}>
-                <label style={labelStyle}>Location *</label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="e.g. Room A1, Main Hall"
-                  style={inputStyle}
-                />
-              </div>
-
-              <div style={{ marginBottom: '10px' }}>
+              <div style={{ marginBottom: '16px' }}>
                 <label style={labelStyle}>Description *</label>
                 <textarea
                   rows="3"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Describe the activity..."
-                  style={{ ...inputStyle, resize: 'none' }}
+                  style={{ ...inputStyle, resize: 'none', minHeight: '76px' }}
                 />
               </div>
             </div>
 
-            <div style={{ padding: '0 40px 40px', display: 'flex', gap: '16px', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ padding: '8px 36px 32px', display: 'flex', gap: '16px', justifyContent: 'center', flexShrink: 0 }}>
               <button
                 type="button"
                 style={secondaryBtnStyle}

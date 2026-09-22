@@ -36,7 +36,8 @@ const ADMIN_CLUB_SORT_OPTIONS = [
 ]
 
 const ADMIN_PAGE_SIZE = 10
-const MEMBER_ROLE_OPTIONS = ['Leader', 'Vice leader', 'Secretary', 'Treasurer', 'Member']
+const MEMBER_ROLE_OPTIONS = ['President', 'Secretary', 'Treasurer', 'Event Manager', 'Member']
+
 
 function formatStatusLabel(status = '') {
   if (!status) return 'Pending'
@@ -695,7 +696,7 @@ function AdminDashboardPage({ onLogout }) {
         )
       }
 
-      const isNewLeader = nextRole === 'Leader'
+      const isNewLeader = nextRole === 'President' || nextRole === 'Leader'
 
       setActiveClubs((clubs) =>
         clubs.map((club) => {
@@ -708,7 +709,7 @@ function AdminDashboardPage({ onLogout }) {
               if (member.id === memberId) {
                 return { ...member, role: nextRole }
               }
-              if (isNewLeader && (member.role === 'Leader' || member.role === 'president')) {
+              if (isNewLeader && (member.role === 'President' || member.role === 'Leader' || member.role === 'president')) {
                 return { ...member, role: 'Member' }
               }
               return member
@@ -724,12 +725,13 @@ function AdminDashboardPage({ onLogout }) {
           if (member.id === memberId) {
             return { ...member, role: nextRole }
           }
-          if (isNewLeader && (member.role === 'Leader' || member.role === 'president')) {
+          if (isNewLeader && (member.role === 'President' || member.role === 'Leader' || member.role === 'president')) {
             return { ...member, role: 'Member' }
           }
           return member
         }),
       }))
+
 
       showToast({
         type: 'success',
@@ -959,9 +961,20 @@ function AdminDashboardPage({ onLogout }) {
               <button
                 type="button"
                 className="admin-members-section__view-all"
-                onClick={() => {
+                onClick={async () => {
                   setMemberRoleFilter('all')
                   setIsManagingMembers(true)
+                  if (selectedActiveClub?.id) {
+                    try {
+                      const res = await getClubMembers(selectedActiveClub.id, { limit: 1000 })
+                      const fetched = (res.data?.members || []).map((m, idx) => mapMemberFromApi(m, idx))
+                      if (fetched.length > 0) {
+                        setSelectedActiveClub((prev) => (prev ? { ...prev, memberList: fetched } : prev))
+                      }
+                    } catch (e) {
+                      console.error('Failed to reload full members on view-all:', e)
+                    }
+                  }
                 }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -1147,7 +1160,7 @@ function AdminDashboardPage({ onLogout }) {
                       try {
                         const [detailRes, membersRes] = await Promise.allSettled([
                           getAdminClubDetail(item.id),
-                          getClubMembers(item.id),
+                          getClubMembers(item.id, { limit: 1000 }),
                         ])
 
                         let updatedDetail = item
@@ -1162,8 +1175,9 @@ function AdminDashboardPage({ onLogout }) {
                         }
 
                         const leaderFromMembers = fetchedMembers.find(
-                          (m) => m.role === 'Leader' || m.rawRole === 'president' || m.rawRole === 'leader'
+                          (m) => m.role === 'President' || m.role === 'Leader' || m.rawRole === 'president' || m.rawRole === 'leader'
                         )?.name
+
 
                         const finalLeader =
                           updatedDetail.leader && updatedDetail.leader !== 'Unknown'

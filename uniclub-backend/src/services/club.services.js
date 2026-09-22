@@ -184,11 +184,24 @@ const requestCreateClub = async ({
     throw error;
   }
 
-  const membersList = uniqueMemberIds.map((id) => ({
-    user_id: id,
-    status: "pending",
-    responded_at: null,
-  }));
+  const invitedUsers = await User.find({ _id: { $in: uniqueMemberIds } });
+  const userEmailMap = {};
+  invitedUsers.forEach((u) => {
+    userEmailMap[String(u._id)] = u.email || "";
+  });
+
+  const membersList = uniqueMemberIds.map((id) => {
+    const email = (userEmailMap[String(id)] || "").toLowerCase();
+    const isDemo = email.includes("demo");
+    return {
+      user_id: id,
+      status: isDemo ? "accepted" : "pending",
+      responded_at: isDemo ? new Date() : null,
+    };
+  });
+
+  const allAccepted = membersList.every((m) => m.status === "accepted");
+  const initialStatus = allAccepted ? "pending" : "waiting_member_approval";
 
   const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
@@ -202,14 +215,14 @@ const requestCreateClub = async ({
     requested_by,
     members: membersList,
     member_ids: uniqueMemberIds,
-    status: "waiting_member_approval",
+    status: initialStatus,
     expires_at: expiresAt,
     reviewed_by: null,
     review_note: null,
     reviewed_at: null,
   });
 
-  // Trigger Confirmation Email to Requester & Invitation Emails to all initial founding members
+  // Trigger Confirmation Email to Requester & Invitation Emails to non-demo founding members
   try {
     const {
       sendClubCreationMemberInviteEmail,
@@ -218,7 +231,7 @@ const requestCreateClub = async ({
     const requester = await User.findById(requested_by);
 
     // 1. Send confirmation receipt email to Requester
-    if (requester?.email) {
+    if (requester?.email && !requester.email.toLowerCase().includes("demo")) {
       sendClubCreationSubmittedEmailToRequester({
         toEmail: requester.email,
         requesterName: requester.full_name || "Student",
@@ -228,11 +241,9 @@ const requestCreateClub = async ({
       }).catch((err) => console.error(`Error sending submission receipt to requester ${requester.email}:`, err.message));
     }
 
-    // 2. Send invitation emails to all founding members
-    const invitedUsers = await User.find({ _id: { $in: uniqueMemberIds } });
-
+    // 2. Send invitation emails to real (non-demo) founding members
     for (const member of invitedUsers) {
-      if (member.email) {
+      if (member.email && !member.email.toLowerCase().includes("demo")) {
         sendClubCreationMemberInviteEmail({
           toEmail: member.email,
           memberName: member.full_name || "Student",

@@ -1,5 +1,4 @@
 import { useMemo, useState, useEffect } from 'react'
-import { ALL_CLUBS } from '../../data/mockData'
 import {
   getClubTransactions,
   getFinancialDashboard,
@@ -7,7 +6,9 @@ import {
   updateTransactionRequest,
   getTransactionDetail,
 } from '../../api/finance.api'
+import { getClubById } from '../../api/club.api'
 import { payWithCash } from '../../api/payment.api'
+import { useConfirm, useToast } from '../../components/common/notificationContext'
 import '../../styles/club-finance.css'
 
 const EMPTY_FORM = {
@@ -20,7 +21,7 @@ const EMPTY_FORM = {
 }
 const currency = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 })
 const statusLabel = { approved: 'Approved', pending: 'Pending', rejected: 'Rejected' }
-const fallbackClub = ALL_CLUBS[0]
+
 
 const mapStatusToText = (statusNum) => {
   if (statusNum === 1 || statusNum === 'approved') return 'approved'
@@ -51,7 +52,9 @@ function mapTransactionFromApi(item) {
 }
 
 function ClubFinancePage({ clubId, userRole }) {
-  const club = ALL_CLUBS.find((item) => item.id === clubId) || fallbackClub
+  const confirm = useConfirm()
+  const showToast = useToast()
+  const [clubName, setClubName] = useState('')
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [dashboard, setDashboard] = useState({ balance: 0, approved_income: 0, approved_expense: 0, pending_requests: 0 })
@@ -60,16 +63,16 @@ function ClubFinancePage({ clubId, userRole }) {
   const [selected, setSelected] = useState(null)
   const [formTarget, setFormTarget] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
-  const [toast, setToast] = useState(null)
 
   const isPresident = userRole === 'president' || userRole === 'leader'
 
   const loadData = async () => {
     try {
       setLoading(true)
-      const [listRes, dashRes] = await Promise.allSettled([
+      const [listRes, dashRes, clubRes] = await Promise.allSettled([
         getClubTransactions(clubId),
         getFinancialDashboard(clubId),
+        getClubById(clubId),
       ])
 
       if (listRes.status === 'fulfilled' && listRes.value?.data) {
@@ -77,6 +80,9 @@ function ClubFinancePage({ clubId, userRole }) {
       }
       if (dashRes.status === 'fulfilled' && dashRes.value?.data) {
         setDashboard(dashRes.value.data)
+      }
+      if (clubRes.status === 'fulfilled' && clubRes.value?.data) {
+        setClubName(clubRes.value.data.name || '')
       }
     } catch (err) {
       console.error('Error fetching finance data:', err)
@@ -103,7 +109,6 @@ function ClubFinancePage({ clubId, userRole }) {
     return matchesFilter && (!normalized || [item.title, item.period, item.referenceCode, item.description, item.createdBy].some((value) => value && value.toLowerCase().includes(normalized)))
   }), [transactions, query, filter])
 
-  function notify(message) { setToast(message); window.setTimeout(() => setToast(null), 3500) }
   function openCreate() { setForm(EMPTY_FORM); setFormTarget('create') }
   function openEdit(item) { setForm({ title: item.title, type: item.type, period: item.period || 'FA26', amount: String(item.amount), dateInput: item.dateInput, description: item.description }); setSelected(null); setFormTarget(item) }
 
@@ -122,35 +127,81 @@ function ClubFinancePage({ clubId, userRole }) {
     try {
       if (formTarget === 'create') {
         await createTransactionRequest(clubId, payload)
-        notify('🎉 New transaction request created successfully!')
+        showToast({
+          type: 'success',
+          title: 'Tạo yêu cầu thành công',
+          message: 'Yêu cầu giao dịch mới đã được tạo thành công!',
+        })
       } else {
         await updateTransactionRequest(clubId, formTarget.id, payload)
-        notify('🎉 Transaction request updated successfully!')
+        showToast({
+          type: 'success',
+          title: 'Cập nhật thành công',
+          message: 'Yêu cầu giao dịch đã được cập nhật thành công!',
+        })
       }
       setFormTarget(null)
       loadData()
     } catch (err) {
-      notify(`❌ Failed to save transaction: ${err.message || 'Operation failed'}`)
+      showToast({
+        type: 'error',
+        title: 'Lỗi lưu giao dịch',
+        message: err.message || 'Thao tác không thành công',
+      })
     }
   }
 
   async function handleApprove(item) {
+    const accepted = await confirm({
+      title: 'Duyệt yêu cầu giao dịch',
+      message: `Bạn có chắc chắn muốn duyệt yêu cầu "${item.title}"?`,
+      confirmText: 'Duyệt yêu cầu',
+      cancelText: 'Hủy',
+      tone: 'warning',
+    })
+    if (!accepted) return
+
     try {
       await updateTransactionRequest(clubId, item.id, { status: 1 })
-      notify(`🎉 President approved request "${item.title}" successfully!`)
+      showToast({
+        type: 'success',
+        title: 'Đã duyệt yêu cầu',
+        message: `Chủ nhiệm đã duyệt yêu cầu "${item.title}" thành công!`,
+      })
       loadData()
     } catch (err) {
-      notify(`❌ Error approving transaction: ${err.message}`)
+      showToast({
+        type: 'error',
+        title: 'Lỗi duyệt giao dịch',
+        message: err.message || 'Lỗi khi duyệt giao dịch',
+      })
     }
   }
 
   async function handleReject(item) {
+    const accepted = await confirm({
+      title: 'Từ chối yêu cầu giao dịch',
+      message: `Bạn có chắc chắn muốn từ chối yêu cầu "${item.title}"?`,
+      confirmText: 'Từ chối',
+      cancelText: 'Hủy',
+      tone: 'danger',
+    })
+    if (!accepted) return
+
     try {
       await updateTransactionRequest(clubId, item.id, { status: 2 })
-      notify(`❌ President rejected request "${item.title}".`)
+      showToast({
+        type: 'warning',
+        title: 'Đã từ chối',
+        message: `Chủ nhiệm đã từ chối yêu cầu "${item.title}".`,
+      })
       loadData()
     } catch (err) {
-      notify(`❌ Error rejecting transaction: ${err.message}`)
+      showToast({
+        type: 'error',
+        title: 'Lỗi từ chối giao dịch',
+        message: err.message || 'Lỗi khi từ chối giao dịch',
+      })
     }
   }
 
@@ -158,23 +209,28 @@ function ClubFinancePage({ clubId, userRole }) {
     const headers = ['Reference', 'Title', 'Type', 'Period', 'Amount', 'Date', 'Status', 'Requested By', 'Approved By']
     const rows = transactions.map((item) => [item.referenceCode, item.title, item.type, item.period, item.amount, item.date, item.status, item.createdBy, item.approvedBy])
     const blob = new Blob([[headers, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' })
-    const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `${club.id}-financial-report.csv`; link.click(); URL.revokeObjectURL(url)
-    notify('Financial report exported as CSV.')
+    const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `${clubId}-financial-report.csv`; link.click(); URL.revokeObjectURL(url)
+    showToast({
+      type: 'success',
+      title: 'Xuất báo cáo',
+      message: 'Báo cáo tài chính đã được tải xuống dạng CSV.',
+    })
   }
 
   return <main className="club-finance-page">
-    <section className="club-finance-hero"><div><span>{club.name} · {isPresident ? 'President' : 'Treasurer'} workspace</span><h1>Financial Dashboard</h1><p>Track approved funds, manage transaction requests, and keep every club expense transparent.</p></div><div className="club-finance-hero__actions"><button type="button" onClick={exportReport}>⇩ Export report</button><button type="button" onClick={openCreate}>+ New request</button></div></section>
+    <section className="club-finance-hero"><div><span>{clubName || 'Club'} · {isPresident ? 'President' : 'Treasurer'} workspace</span><h1>Financial Dashboard</h1><p>Track approved funds, manage transaction requests, and keep every club expense transparent.</p></div><div className="club-finance-hero__actions"><button type="button" onClick={exportReport}>⇩ Export report</button><button type="button" onClick={openCreate}>+ New request</button></div></section>
     <section className="club-finance-summary" aria-label="Financial overview"><SummaryCard label="Current balance" value={income - expense} accent="balance" /><SummaryCard label="Approved income" value={income} accent="income" /><SummaryCard label="Approved expenses" value={expense} accent="expense" /><div className="club-finance-summary__card club-finance-summary__card--pending"><span>Pending requests</span><strong>{transactions.filter((item) => item.status === 'pending').length}</strong><small>Awaiting review</small></div></section>
     <section className="club-finance-transactions"><header><div><span>Transaction requests</span><h2>All transactions</h2></div><label className="club-finance-search">⌕<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, period, reference or requester..." /></label></header><div className="club-finance-filters">{[['all', 'All'], ['income', 'Income'], ['expense', 'Expenses'], ['pending', 'Pending'], ['approved', 'Approved']].map(([value, label]) => <button key={value} type="button" className={filter === value ? 'is-active' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div><div className="club-finance-table" role="table"><div className="club-finance-table__head" role="row"><span>Transaction</span><span>Type</span><span>Amount</span><span>Status</span><span /></div>{loading ? <div className="club-finance-empty">Loading transaction records...</div> : displayed.map((item) => <div className="club-finance-table__row" role="row" key={item.id}><div><strong>{item.title}</strong><small>{item.referenceCode} · {item.period || item.date}</small></div><span className={`club-finance-type club-finance-type--${item.type}`}>{item.type === 'income' ? 'Income' : 'Expense'}</span><strong className={item.type === 'income' ? 'is-income' : 'is-expense'}>{item.type === 'income' ? '+' : '-'}{currency.format(item.amount)}</strong><span className={`club-finance-status club-finance-status--${item.status}`}>{statusLabel[item.status]}</span><div className="club-finance-table__actions"><button type="button" onClick={() => setSelected(item)}>View</button></div></div>)}{!loading && !displayed.length && <div className="club-finance-empty">No transaction requests match this filter.</div>}</div></section>
     {selected && <TransactionDetail item={selected} clubId={clubId} isPresident={isPresident} handleApprove={handleApprove} handleReject={handleReject} onClose={() => setSelected(null)} onEdit={() => openEdit(selected)} />}
     {formTarget && <TransactionForm item={formTarget === 'create' ? null : formTarget} form={form} setForm={setForm} onClose={() => setFormTarget(null)} onSubmit={saveRequest} />}
-    {toast && <div className="club-finance-toast" role="status">{toast}</div>}
   </main>
 }
 
 function SummaryCard({ label, value, accent }) { return <div className={`club-finance-summary__card club-finance-summary__card--${accent}`}><span>{label}</span><strong>{currency.format(value)}</strong><small>{accent === 'balance' ? 'Available club funds' : 'This semester'}</small></div> }
 
 function TransactionDetail({ item, clubId, isPresident, handleApprove, handleReject, onClose, onEdit }) {
+  const confirm = useConfirm()
+  const showToast = useToast()
   const [detailData, setDetailData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [collectingId, setCollectingId] = useState(null)
@@ -189,13 +245,30 @@ function TransactionDetail({ item, clubId, isPresident, handleApprove, handleRej
   }
 
   const handleCollectCash = async (paymentId, memberName) => {
-    if (!window.confirm(`Xác nhận đã thu tiền mặt từ thành viên "${memberName}"?`)) return
+    const accepted = await confirm({
+      title: 'Xác nhận thu tiền mặt',
+      message: `Xác nhận đã thu tiền mặt từ thành viên "${memberName}"? Trạng thái sẽ được cập nhật thành đã thanh toán.`,
+      confirmText: 'Xác nhận',
+      cancelText: 'Hủy',
+      tone: 'warning',
+    })
+    if (!accepted) return
+
     try {
       setCollectingId(paymentId)
       await payWithCash({ club_id: clubId, payment_id: paymentId })
+      showToast({
+        type: 'success',
+        title: 'Thu tiền thành công',
+        message: `Đã ghi nhận thu tiền mặt từ thành viên "${memberName}".`,
+      })
       await reloadDetail()
     } catch (err) {
-      alert(err.message || 'Lỗi khi xác nhận thu tiền mặt')
+      showToast({
+        type: 'error',
+        title: 'Lỗi thu tiền mặt',
+        message: err.message || 'Lỗi khi xác nhận thu tiền mặt',
+      })
     } finally {
       setCollectingId(null)
     }

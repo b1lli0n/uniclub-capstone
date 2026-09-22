@@ -34,6 +34,11 @@ const rewardSchema = Schema(
       required: false,
     },
 
+    point_cost: {
+      type: Number,
+      required: false,
+    },
+
     quantity: {
       type: Number,
       required: true,

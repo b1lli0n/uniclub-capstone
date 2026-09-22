@@ -154,7 +154,11 @@ function HistoryDetailModal({ item, onClose, isManager = false, onApprove, onRej
             <RewardImage src={item.image} alt={item.item} className="club-rewards-detail__emoji" />
           </div>
           <div style={{ flex: 1 }}>
-            <p className="club-rewards-eyebrow">Voucher Code: <strong>{pickupCode}</strong></p>
+            {isApproved ? (
+              <p className="club-rewards-eyebrow">Voucher Code: <strong>{pickupCode}</strong></p>
+            ) : (
+              <p className="club-rewards-eyebrow">Redemption Request · {item.status}</p>
+            )}
             <h3>{item.item}</h3>
             <strong style={{ color: '#ea580c' }}>-{item.points} pts</strong>
             <p style={{ marginTop: '0.4rem', color: '#475569', fontSize: '0.9rem' }}>
@@ -292,7 +296,7 @@ function ClubRewardsPage({ isManager = false }) {
           items.map((r) => ({
             id: r._id,
             title: r.name,
-            points: r.points_required,
+            points: r.points_required ?? r.point_cost ?? r.points ?? 0,
             stock: r.quantity,
             type: r.category || 'General',
             image: r.image_url,
@@ -304,7 +308,6 @@ function ClubRewardsPage({ isManager = false }) {
 
         if (!isManager) {
           setPoints(payload.available_points ?? payload.total_points ?? 0)
-          setPendingPoints(payload.pending_points ?? 0)
         }
       })
       .catch((err) => {
@@ -332,21 +335,27 @@ function ClubRewardsPage({ isManager = false }) {
           if (!active) return
           
           const rawItems = [
-            ...(reqRes.data || []),
-            ...(histRes.data || []),
+            ...(reqRes.data?.redemptions || reqRes.data || []),
+            ...(histRes.data?.redemptions || histRes.data || []),
           ]
           const map = new Map()
           for (const item of rawItems) {
             map.set(String(item._id), item)
           }
+          const formatRedeemDate = (d) => {
+            if (!d) return 'Recently'
+            const parsed = new Date(d)
+            return isNaN(parsed.getTime()) ? 'Recently' : parsed.toLocaleDateString('vi-VN')
+          }
+
           const sorted = Array.from(map.values()).sort(
-            (a, b) => new Date(b.created_at) - new Date(a.created_at)
+            (a, b) => new Date(b.created_at || b.createdAt || 0) - new Date(a.created_at || a.createdAt || 0)
           )
 
           setRedemptions(sorted.map(item => ({
             id: item._id,
-            date: new Date(item.created_at).toLocaleDateString('en-US'),
-            created_at: item.created_at,
+            date: formatRedeemDate(item.created_at || item.createdAt),
+            created_at: item.created_at || item.createdAt,
             member: item.membership_id?.user_id?.full_name || 'Member',
             studentCode: item.membership_id?.user_id?.student_code || '',
             email: item.membership_id?.user_id?.email || '',
@@ -370,21 +379,27 @@ function ClubRewardsPage({ isManager = false }) {
           if (!active) return
 
           const rawItems = [
-            ...(pendingRes.data || []),
-            ...(reviewedRes.data || []),
+            ...(pendingRes.data?.redemptions || pendingRes.data || []),
+            ...(reviewedRes.data?.redemptions || reviewedRes.data || []),
           ]
           const map = new Map()
           for (const item of rawItems) {
             map.set(String(item._id), item)
           }
+          const formatRedeemDate = (d) => {
+            if (!d) return 'Recently'
+            const parsed = new Date(d)
+            return isNaN(parsed.getTime()) ? 'Recently' : parsed.toLocaleDateString('vi-VN')
+          }
+
           const sorted = Array.from(map.values()).sort(
-            (a, b) => new Date(b.created_at) - new Date(a.created_at)
+            (a, b) => new Date(b.created_at || b.createdAt || 0) - new Date(a.created_at || a.createdAt || 0)
           )
 
           setRedemptions(sorted.map(item => ({
             id: item._id,
-            date: new Date(item.created_at).toLocaleDateString('en-US'),
-            created_at: item.created_at,
+            date: formatRedeemDate(item.created_at || item.createdAt),
+            created_at: item.created_at || item.createdAt,
             item: item.reward_id?.name || 'Reward',
             points: item.total_point || item.points_spent,
             status: item.status,
@@ -457,7 +472,7 @@ function ClubRewardsPage({ isManager = false }) {
             title: r.name,
             type: r.type || 'Voucher',
             club: 'Club',
-            points: r.points_required ?? 100,
+            points: r.points_required ?? r.point_cost ?? r.points ?? 100,
             stock: r.quantity,
             image: r.image_url,
             description: r.description,
@@ -619,38 +634,30 @@ function ClubRewardsPage({ isManager = false }) {
               aria-label="Search rewards"
             />
 
-            <div className="club-rewards-control-group">
-              <label htmlFor="rewards-stock" className="club-rewards-control-label">
-                STOCK
-              </label>
-              <select
-                id="rewards-stock"
-                className="club-rewards-select"
-                value={stockFilter}
-                onChange={(e) => setStockFilter(e.target.value)}
-              >
-                <option value="all">All Rewards</option>
-                <option value="in_stock">In Stock</option>
-                <option value="out_of_stock">Out of Stock</option>
-              </select>
-            </div>
+            <select
+              id="rewards-stock"
+              className="club-rewards-select"
+              value={stockFilter}
+              onChange={(e) => setStockFilter(e.target.value)}
+              aria-label="Filter by stock"
+            >
+              <option value="all">All Rewards</option>
+              <option value="in_stock">In Stock</option>
+              <option value="out_of_stock">Out of Stock</option>
+            </select>
 
-            <div className="club-rewards-control-group">
-              <label htmlFor="rewards-sort" className="club-rewards-control-label">
-                SORT
-              </label>
-              <select
-                id="rewards-sort"
-                className="club-rewards-select"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="default">Default</option>
-                <option value="points_asc">Points: Low to High</option>
-                <option value="points_desc">Points: High to Low</option>
-                <option value="name_asc">Name: A - Z</option>
-              </select>
-            </div>
+            <select
+              id="rewards-sort"
+              className="club-rewards-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              aria-label="Sort rewards"
+            >
+              <option value="default">Default</option>
+              <option value="points_asc">Points: Low to High</option>
+              <option value="points_desc">Points: High to Low</option>
+              <option value="name_asc">Name: A - Z</option>
+            </select>
           </div>
         )}
 

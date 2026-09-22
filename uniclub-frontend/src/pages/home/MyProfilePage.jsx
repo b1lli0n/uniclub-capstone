@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import '../../styles/my-profile.css'
 import { getMyProfile, updateMyProfile } from '../../api/profile.api'
 import { useToast } from '../../components/common/notificationContext'
@@ -554,7 +555,7 @@ function MyProfilePage({ currentUser }) {
         </header>
 
         {/* Google-style "Cắt và xoay" Modal */}
-        {isAvatarModalOpen && (
+        {isAvatarModalOpen && createPortal(
           <div
             className="google-crop-modal-overlay"
             onMouseMove={(e) => handleDragMove(e.clientX, e.clientY)}
@@ -655,92 +656,78 @@ function MyProfilePage({ currentUser }) {
                       width: cropBox.size,
                       height: cropBox.size,
                     }}
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      startDrag('move', e.clientX, e.clientY)
-                    }}
+                    onMouseDown={(e) => handleStartDrag('move', e.clientX, e.clientY)}
                     onTouchStart={(e) => {
                       if (e.touches.length === 1) {
-                        startDrag('move', e.touches[0].clientX, e.touches[0].clientY)
+                        handleStartDrag('move', e.touches[0].clientX, e.touches[0].clientY)
                       }
                     }}
                   >
                     {/* Vòng tròn định hình viền trắng */}
                     <div className="google-crop-circle-guide" />
 
-                    {/* 4 Góc trắng kéo resize (Corner Brackets) */}
+                    {/* 4 Chấm tròn góc */}
                     <div
                       className="google-crop-handle google-crop-handle--nw"
-                      onMouseDown={(e) => {
-                        e.stopPropagation()
-                        startDrag('nw', e.clientX, e.clientY)
-                      }}
+                      onMouseDown={(e) => { e.stopPropagation(); handleStartDrag('nw', e.clientX, e.clientY) }}
                       onTouchStart={(e) => {
-                        e.stopPropagation()
                         if (e.touches.length === 1) {
-                          startDrag('nw', e.touches[0].clientX, e.touches[0].clientY)
+                          e.stopPropagation()
+                          handleStartDrag('nw', e.touches[0].clientX, e.touches[0].clientY)
                         }
                       }}
                     />
                     <div
                       className="google-crop-handle google-crop-handle--ne"
-                      onMouseDown={(e) => {
-                        e.stopPropagation()
-                        startDrag('ne', e.clientX, e.clientY)
-                      }}
+                      onMouseDown={(e) => { e.stopPropagation(); handleStartDrag('ne', e.clientX, e.clientY) }}
                       onTouchStart={(e) => {
-                        e.stopPropagation()
                         if (e.touches.length === 1) {
-                          startDrag('ne', e.touches[0].clientX, e.touches[0].clientY)
-                        }
-                      }}
-                    />
-                    <div
-                      className="google-crop-handle google-crop-handle--sw"
-                      onMouseDown={(e) => {
-                        e.stopPropagation()
-                        startDrag('sw', e.clientX, e.clientY)
-                      }}
-                      onTouchStart={(e) => {
-                        e.stopPropagation()
-                        if (e.touches.length === 1) {
-                          startDrag('sw', e.touches[0].clientX, e.touches[0].clientY)
+                          e.stopPropagation()
+                          handleStartDrag('ne', e.clientX, e.clientY)
                         }
                       }}
                     />
                     <div
                       className="google-crop-handle google-crop-handle--se"
-                      onMouseDown={(e) => {
-                        e.stopPropagation()
-                        startDrag('se', e.clientX, e.clientY)
-                      }}
+                      onMouseDown={(e) => { e.stopPropagation(); handleStartDrag('se', e.clientX, e.clientY) }}
                       onTouchStart={(e) => {
-                        e.stopPropagation()
                         if (e.touches.length === 1) {
-                          startDrag('se', e.touches[0].clientX, e.touches[0].clientY)
+                          e.stopPropagation()
+                          handleStartDrag('se', e.clientX, e.clientY)
+                        }
+                      }}
+                    />
+                    <div
+                      className="google-crop-handle google-crop-handle--sw"
+                      onMouseDown={(e) => { e.stopPropagation(); handleStartDrag('sw', e.clientX, e.clientY) }}
+                      onTouchStart={(e) => {
+                        if (e.touches.length === 1) {
+                          e.stopPropagation()
+                          handleStartDrag('sw', e.touches[0].clientX, e.touches[0].clientY)
                         }
                       }}
                     />
                   </div>
                 </div>
-
-                {/* Nút Xoay 90 độ ở giữa dưới */}
-                <div className="google-crop-rotate-wrap">
-                  <button
-                    type="button"
-                    className="google-crop-rotate-btn"
-                    onClick={handleRotate}
-                    title="Rotate 90°"
-                  >
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-                    </svg>
-                    <span>Rotate</span>
-                  </button>
-                </div>
               </div>
 
-              {/* Footer: Nút Save */}
+              {/* Toolbar xoay 90 độ */}
+              <div className="google-crop-toolbar">
+                <button
+                  type="button"
+                  className="google-crop-tool-btn"
+                  onClick={handleRotate}
+                  title="Rotate 90 degrees"
+                  aria-label="Rotate 90 degrees"
+                >
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                  </svg>
+                  <span>Rotate</span>
+                </button>
+              </div>
+
+              {/* Footer: Nút Save / Cancel */}
               <div className="google-crop-modal__footer">
                 <button
                   type="button"
@@ -752,7 +739,8 @@ function MyProfilePage({ currentUser }) {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Phần xem thông tin hồ sơ (View Profile) */}
@@ -804,7 +792,7 @@ function MyProfilePage({ currentUser }) {
         </div>
 
         {/* Modal / Popup Chỉnh sửa hồ sơ (Edit Profile Popup) */}
-        {isEditModalOpen && (
+        {isEditModalOpen && createPortal(
           <div className="my-profile-edit-modal-overlay" onClick={handleCloseEditModal}>
             <div
               className="my-profile-edit-modal"
@@ -894,7 +882,8 @@ function MyProfilePage({ currentUser }) {
                 </div>
               </form>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </section>
     </main>

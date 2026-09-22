@@ -5,6 +5,7 @@ const ClubMember = require("../models/club_member.model");
 const Club = require("../models/club.model");
 const User = require("../models/user.model");
 const { getStatusError } = require("../utils/error");
+const { uploadEventMedia } = require("../utils/cloudinary.util");
 const {
   sendEventRequestSubmittedEmailToAdmin,
   sendEventRequestResultEmailToRequester,
@@ -51,27 +52,6 @@ const createEventRequest = async ({ clubId, userId, userEmail, body }) => {
     throw getStatusError("start_time must be before end_time", 400);
   }
 
-  let registrationStart = null;
-  let registrationEnd = null;
-  const rawRegStart = body.registration_start || body.registration_start_time || body.registrationStartTime;
-  const rawRegEnd = body.registration_end || body.registration_end_time || body.registrationEndTime;
-
-  if (rawRegStart) {
-    registrationStart = parseDate(rawRegStart, "registration_start");
-  }
-  if (rawRegEnd) {
-    registrationEnd = parseDate(rawRegEnd, "registration_end");
-  }
-
-  if (registrationStart && registrationEnd) {
-    if (registrationStart >= registrationEnd) {
-      throw getStatusError("registration_start must be before registration_end", 400);
-    }
-    if (registrationEnd > startTime) {
-      throw getStatusError("registration_end must be before or equal to event start_time", 400);
-    }
-  }
-
   const capacity = Number(body.capacity);
   if (!Number.isInteger(capacity) || capacity <= 0) {
     throw getStatusError("capacity must be a positive integer", 400);
@@ -85,6 +65,16 @@ const createEventRequest = async ({ clubId, userId, userEmail, body }) => {
     isPublic = body.is_public;
   }
 
+  let mediaUris = [];
+  if (Array.isArray(body.media_uris) && body.media_uris.length > 0) {
+    mediaUris = await Promise.all(
+      body.media_uris.map((uri) => uploadEventMedia(uri))
+    );
+  } else if (body.imageUrl) {
+    const uploaded = await uploadEventMedia(body.imageUrl);
+    if (uploaded) mediaUris = [uploaded];
+  }
+
   const newRequest = new EventCreationRequest({
     club_id: clubId,
     requested_by: member._id,
@@ -93,12 +83,11 @@ const createEventRequest = async ({ clubId, userId, userEmail, body }) => {
     category,
     start_time: startTime,
     end_time: endTime,
-    registration_start: registrationStart,
-    registration_end: registrationEnd,
     location,
     is_public: isPublic,
     capacity,
     approval_document_url,
+    media_uris: mediaUris,
     status: "pending",
   });
 
@@ -231,8 +220,6 @@ const reviewEventRequest = async ({ requestId, status, reviewNote, reviewerId })
       category: request.category,
       start_time: request.start_time,
       end_time: request.end_time,
-      registration_start: request.registration_start || null,
-      registration_end: request.registration_end || null,
       location: request.location,
       is_public: request.is_public,
       capacity: request.capacity,
@@ -240,6 +227,7 @@ const reviewEventRequest = async ({ requestId, status, reviewNote, reviewerId })
       progress_status: "draft",
       check_in_status: "not_open",
       approval_document_url: request.approval_document_url || "",
+      media_uris: request.media_uris || [],
     });
     savedEvent = await newEvent.save();
   }

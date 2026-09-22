@@ -2185,3 +2185,44 @@
   color: #ff8e0b;
   font-weight: 600;
 }
+
+/* Public Events Notice Banner */
+.events-public-notice-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  background: linear-gradient(135deg, #fff8f0 0%, #fffbf7 100%);
+  border: 1px solid #ffd8af;
+  border-left: 4px solid #ff8e0b;
+  border-radius: 12px;
+  color: #5c4033;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  box-shadow: 0 2px 8px rgba(255, 142, 11, 0.06);
+}
+
+.events-public-notice-banner__icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  color: #ff8e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.events-public-notice-banner__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.events-public-notice-banner__content {
+  flex: 1;
+}
+
+.events-public-notice-banner__content strong {
+  color: #3d2e24;
+}

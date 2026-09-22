@@ -19,7 +19,6 @@ import {
   deleteEventFeedback as deleteEventFeedbackApi,
 } from '../../api/feedback.api'
 import { getMyClubs } from '../../api/memberClubMembership.api'
-import { EVENT_TIMELINES } from '../../data/mockData'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 import {
   formatDateVN,
@@ -66,21 +65,15 @@ function parseEventEndDate(event) {
 
 function isEventRegistrationOpen(event) {
   if (!event) return false
-  if (event.status === 'closed' || event.status === 'cancelled') return false
+  if (event.progress_status === 'draft') return false
+  if (event.status !== 'coming_soon' && event.status !== 'coming soon') return false
 
   const now = new Date()
 
-  // 1. Check registration window [Registration_Start, Registration_End]
-  const regStart = event.registration_start || event.registrationStart
-  const regEnd = event.registration_end || event.registrationEnd
+  // Cannot register after event has started
+  if (event.start_time && now >= new Date(event.start_time)) return false
 
-  if (regStart && now < new Date(regStart)) return false
-  if (regEnd && now > new Date(regEnd)) return false
-
-  // Fallback: If no registration_end is set, cannot register after event start
-  if (!regEnd && event.start_time && now > new Date(event.start_time)) return false
-
-  // 2. Check available slots (Available_Slots > 0)
+  // Check available slots (Available_Slots > 0)
   const availableSlots = event.availableSlots !== undefined
     ? event.availableSlots
     : (event.capacity !== undefined && event.registeredCount !== undefined
@@ -88,14 +81,7 @@ function isEventRegistrationOpen(event) {
         : 1)
   if (availableSlots <= 0) return false
 
-  // 3. Status check
-  if (event.start_time) {
-    const notEnded = event.end_time ? new Date() <= new Date(event.end_time) : true
-    return (event.status === 'opening' || event.status === 'coming_soon' || event.status === 'coming soon' || !event.status) && notEnded
-  }
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return parseEventDate(event.date).getTime() >= today.getTime()
+  return true
 }
 
 function isBeforeEventStart(event) {
@@ -332,8 +318,6 @@ function EventDetailPage() {
     status: 'opening',
     start_time: '',
     end_time: '',
-    registration_start: '',
-    registration_end: '',
     approval_document_url: '',
   })
 
@@ -727,8 +711,6 @@ function EventDetailPage() {
       status: event.status || 'opening',
       start_time: toLocalInputDate(event.start_time),
       end_time: toLocalInputDate(event.end_time),
-      registration_start: toLocalInputDate(event.registration_start),
-      registration_end: toLocalInputDate(event.registration_end),
       approval_document_url: event.approvalDocumentUrl || '',
     })
     setEditEventModalOpen(true)
@@ -748,16 +730,6 @@ function EventDetailPage() {
       showToast({ type: 'error', title: 'Validation', message: 'Start time must be before end time.' })
       return
     }
-    if (editDraft.registration_start && editDraft.registration_end) {
-      if (new Date(editDraft.registration_start) >= new Date(editDraft.registration_end)) {
-        showToast({ type: 'error', title: 'Validation', message: 'Registration start must be before registration end.' })
-        return
-      }
-      if (new Date(editDraft.registration_end) > new Date(editDraft.start_time)) {
-        showToast({ type: 'error', title: 'Validation', message: 'Registration must close before event starts.' })
-        return
-      }
-    }
 
     try {
       setIsUpdatingEvent(true)
@@ -771,8 +743,6 @@ function EventDetailPage() {
         status: editDraft.status,
         start_time: new Date(editDraft.start_time).toISOString(),
         end_time: new Date(editDraft.end_time).toISOString(),
-        registration_start: editDraft.registration_start ? new Date(editDraft.registration_start).toISOString() : null,
-        registration_end: editDraft.registration_end ? new Date(editDraft.registration_end).toISOString() : null,
         approval_document_url: editDraft.approval_document_url.trim(),
       }
 
@@ -887,11 +857,6 @@ function EventDetailPage() {
                   <h2>Event Timeline</h2>
                   <span>{eventTimelines.length} {eventTimelines.length === 1 ? 'item' : 'items'}</span>
                 </div>
-                {canManageTimeline ? (
-                  <button type="button" onClick={() => openTimelineModal()}>
-                    Add item
-                  </button>
-                ) : null}
               </header>
 
               {eventTimelines.length > 0 ? (
@@ -907,16 +872,6 @@ function EventDetailPage() {
                           {timelineItem.location ? <small>{timelineItem.location}</small> : null}
                         </div>
                         <p>{timelineItem.description}</p>
-                        {canManageTimeline ? (
-                          <div className="event-detail-timeline-actions">
-                            <button type="button" onClick={() => openTimelineModal(timelineItem)}>
-                              Edit
-                            </button>
-                            <button type="button" className="is-danger" onClick={() => deleteTimeline(timelineItem.id)}>
-                              Delete
-                            </button>
-                          </div>
-                        ) : null}
                       </div>
                     </article>
                   ))}
@@ -1104,14 +1059,6 @@ function EventDetailPage() {
                   {event.availableSlots !== undefined ? `${event.availableSlots} slots` : 'Available'}
                 </strong>
               </div>
-              {event.registration_start || event.registration_end ? (
-                <div style={{ gridColumn: 'span 2' }}>
-                  <span>Registration window</span>
-                  <strong>
-                    {event.registration_start ? formatDateVN(event.registration_start) : 'Open'} - {event.registration_end ? formatDateVN(event.registration_end) : 'Until event starts'}
-                  </strong>
-                </div>
-              ) : null}
             </div>
 
             <div className="event-detail-register-state">
@@ -1133,10 +1080,12 @@ function EventDetailPage() {
                 <p>
                   {(event.availableSlots !== undefined && event.availableSlots <= 0)
                     ? 'Registration is closed: No available slots remaining (event is full).'
-                    : (event.registration_start && new Date() < new Date(event.registration_start))
-                    ? `Registration has not opened yet. Opens on ${new Date(event.registration_start).toLocaleString('vi-VN')}.`
-                    : (event.registration_end && new Date() > new Date(event.registration_end))
-                    ? `Registration closed on ${new Date(event.registration_end).toLocaleString('vi-VN')}.`
+                    : event.progress_status === 'draft'
+                    ? 'Event is currently in draft mode and not open for registration.'
+                    : (event.status !== 'coming_soon' && event.status !== 'coming soon')
+                    ? `Registration is only open during "Coming Soon" phase (current status: ${event.status || 'not open'}).`
+                    : (event.start_time && new Date() >= new Date(event.start_time))
+                    ? 'Registration has closed because the event has already started.'
                     : 'Registration is currently closed for this event.'}
                 </p>
               ) : null}
@@ -1177,53 +1126,6 @@ function EventDetailPage() {
                     >
                       View registration info
                     </button>
-                  ) : null}
-
-                  {canManageTimeline ? (
-                    <div style={{ marginTop: '1.2rem', paddingTop: '1.2rem', borderTop: '1px dashed #cbd5e1' }}>
-                      <span style={{ display: 'block', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', fontWeight: '700', marginBottom: '0.6rem' }}>
-                        Organizer Controls
-                      </span>
-                      <button
-                        type="button"
-                        onClick={openEditEventModal}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.5rem',
-                          width: '100%',
-                          padding: '0.7rem 1rem',
-                          background: '#2563eb',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          marginBottom: '0.5rem',
-                          boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
-                        }}
-                      >
-                        ✏️ Update Event Details
-                      </button>
-                      <Link
-                        to={`/clubs/${organizerClubId}/manage-events`}
-                        style={{
-                          display: 'block',
-                          textAlign: 'center',
-                          textDecoration: 'none',
-                          padding: '0.6rem 1rem',
-                          background: '#f8fafc',
-                          color: '#334155',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: '8px',
-                          fontWeight: '600',
-                          fontSize: '0.9rem',
-                        }}
-                      >
-                        ⚙️ Manage Events Dashboard
-                      </Link>
-                    </div>
                   ) : null}
                 </>
               ) : null}
@@ -1656,28 +1558,6 @@ function EventDetailPage() {
                     required
                     value={editDraft.end_time}
                     onChange={(e) => setEditDraft({ ...editDraft, end_time: e.target.value })}
-                    style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
-                  />
-                </label>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
-                  <span>Registration Start</span>
-                  <input
-                    type="datetime-local"
-                    value={editDraft.registration_start}
-                    onChange={(e) => setEditDraft({ ...editDraft, registration_start: e.target.value })}
-                    style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
-                  />
-                </label>
-
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
-                  <span>Registration End</span>
-                  <input
-                    type="datetime-local"
-                    value={editDraft.registration_end}
-                    onChange={(e) => setEditDraft({ ...editDraft, registration_end: e.target.value })}
                     style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
                   />
                 </label>

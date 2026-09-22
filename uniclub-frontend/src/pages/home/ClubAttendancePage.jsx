@@ -1,18 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  ALL_CLUBS,
-  ALL_EVENTS,
-  EVENT_ATTENDANCES,
-  MY_CLUB_MEMBERSHIPS,
-} from '../../data/mockData'
 import '../../styles/club-attendance.css'
 import { getClubById } from '../../api/club.api'
 import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getClubEventsForMember, getEventAttendanceList, updateEventAttendanceStatus } from '../../api/event.api'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 import QrScannerModal from '../../components/common/QrScannerModal'
-
-const CLUB_FALLBACK = ALL_CLUBS[0]
 
 function getInitial(name) {
   return name.trim().slice(0, 1).toUpperCase()
@@ -156,17 +148,7 @@ function ClubAttendancePage({ clubId }) {
         })
         setMembership(userMembership || null)
 
-        let loadedEvents = []
-        if (eventsRes.data && eventsRes.data.length > 0) {
-          loadedEvents = eventsRes.data.map(mapEventFromApi)
-        } else {
-          // Fallback to mock events filtered by club name/slug
-          const slug = loadedClub?.slug || loadedClub?.id || clubId
-          loadedEvents = ALL_EVENTS.filter((event) => 
-            String(event.clubId) === String(slug) || 
-            String(event.clubId) === String(clubId)
-          ).map(createManagedEvent)
-        }
+        const loadedEvents = (eventsRes.data || []).map(mapEventFromApi)
         setClubEvents(loadedEvents)
 
         // Initialize state variables based on loaded events
@@ -216,9 +198,7 @@ function ClubAttendancePage({ clubId }) {
         }))
       } catch (err) {
         console.error("Failed to load attendance list from API:", err)
-        // Fallback to mock if API fails/empty
-        const filteredMock = EVENT_ATTENDANCES.filter((item) => item.eventId === selectedEventId)
-        setAttendanceItems(filteredMock)
+        setAttendanceItems([])
       }
     }
 
@@ -255,7 +235,7 @@ function ClubAttendancePage({ clubId }) {
     )
   }
 
-  const activeClub = club || CLUB_FALLBACK
+  const activeClub = club || { id: clubId, name: 'Club' }
   const canManageAttendance = canManageEventOperations(membership?.role)
   const uncheckedAttendance = selectedAttendance.filter((item) => !item.checkedIn)
   const checkedCount = selectedAttendance.filter((item) => item.checkedIn).length

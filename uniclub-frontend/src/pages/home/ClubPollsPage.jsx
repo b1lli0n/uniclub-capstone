@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react'
-import { ALL_CLUBS } from '../../data/mockData'
-import { CLUB_POLLS, CLUB_POLL_STATUS_OPTIONS } from '../../data/clubPollsMockData'
+import { CLUB_POLL_STATUS_OPTIONS } from '../../data/clubPollsMockData'
 import { getMyClubs } from '../../api/memberClubMembership.api'
+import { getClubById } from '../../api/club.api'
 import {
   getClubPolls,
   getPollDetail,
@@ -12,7 +12,6 @@ import {
 import '../../styles/club-polls.css'
 
 const EMPTY_FORM = { title: '', description: '', closesAt: '', options: ['', ''] }
-const fallbackClub = ALL_CLUBS[0]
 
 function formatStatus(status) {
   return status === 'open' ? 'Open' : 'Closed'
@@ -75,7 +74,7 @@ function mapApiPollToLocal(apiItem) {
 }
 
 function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole }) {
-  const club = ALL_CLUBS.find((item) => item.id === clubId) || fallbackClub
+  const [club, setClub] = useState(null)
   const [canManagePolls, setCanManagePolls] = useState(() => {
     if (typeof propCanManagePolls === 'boolean') return propCanManagePolls
     if (userRole) {
@@ -99,8 +98,12 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
     let cancelled = false
     async function checkRole() {
       try {
-        const myClubsResponse = await getMyClubs()
+        const [myClubsResponse, clubRes] = await Promise.all([
+          getMyClubs().catch(() => ({ data: [] })),
+          clubId ? getClubById(clubId).catch(() => null) : Promise.resolve(null),
+        ])
         if (cancelled) return
+
         const memberships = myClubsResponse.data || []
         const membership = memberships.find((item) => {
           const id = item.club_id?._id || item.club_id
@@ -110,6 +113,12 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
             (name && name.toLowerCase().includes(String(clubId).toLowerCase()))
           )
         })
+
+        const fetchedClub = clubRes?.data || membership?.club_id
+        if (fetchedClub) {
+          setClub(fetchedClub)
+        }
+
         if (membership) {
           const role = (membership.role || '').toLowerCase()
           // Only secretary, president, or leader can manage polls (create, edit, close)
@@ -140,16 +149,10 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
     try {
       const res = await getClubPolls(clubId)
       const rawList = Array.isArray(res?.data) ? res.data : res?.data?.polls || []
-      if (rawList.length > 0) {
-        setPolls(rawList.map(mapApiPollToLocal))
-      } else {
-        const mockList = CLUB_POLLS.filter((poll) => poll.clubId === club.id)
-        setPolls(mockList)
-      }
+      setPolls(rawList.map(mapApiPollToLocal))
     } catch (err) {
       console.error('Error fetching polls:', err)
-      const mockList = CLUB_POLLS.filter((poll) => poll.clubId === club.id)
-      setPolls(mockList)
+      setPolls([])
     } finally {
       setLoading(false)
     }
@@ -326,7 +329,7 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
     <main className="club-polls-page">
       <section className="club-polls-hero">
         <div>
-          <span>{club.name}</span>
+          <span>{club?.name || 'Club'}</span>
           <h1>{canManagePolls ? 'Poll Management' : 'Club Polls & Voting'}</h1>
           <p>
             {canManagePolls
@@ -521,7 +524,7 @@ function PollDetail({ poll, canManagePolls, onVote, onDismiss, onEdit, onClose }
         </div>
 
         <div className="club-poll-results" style={{ marginTop: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
             <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#2b2521' }}>
               🗳️ Options ({poll.options.length})
             </h4>
@@ -535,6 +538,7 @@ function PollDetail({ poll, canManagePolls, onVote, onDismiss, onEdit, onClose }
               const isMyVote = poll.myVote && String(poll.myVote) === String(option.id)
               const percent = votes > 0 ? Math.round(((Number(option.votes) || 0) / votes) * 100) : 0
               const isOpen = poll.status === 'open'
+              const voteCount = Number(option.votes) || 0
 
               return (
                 <div
@@ -553,34 +557,28 @@ function PollDetail({ poll, canManagePolls, onVote, onDismiss, onEdit, onClose }
                     }
                   }}
                 >
-                  <div className="club-poll-option-header">
-                    <div className="club-poll-option-title-group">
+                  {/* Background progress fill */}
+                  <div
+                    className="club-poll-card-progress-bg"
+                    style={{ width: `${percent}%` }}
+                  />
+
+                  <div className="club-poll-option-inner">
+                    <div className="club-poll-option-left">
                       <div className="club-poll-radio-indicator">
-                        {isMyVote && <span>✓</span>}
+                        {isMyVote ? <span>✓</span> : null}
                       </div>
                       <span className="club-poll-option-label">{option.label}</span>
-                    </div>
-                    <div className="club-poll-option-stats">
-                      <span className="club-poll-option-votes-count">
-                        {option.votes || 0} votes ({percent}%)
-                      </span>
-                      {isOpen && (
-                        <span
-                          className={`club-poll-action-pill ${
-                            isMyVote ? 'is-cancel' : 'is-vote'
-                          }`}
-                        >
-                          {isMyVote ? 'Cancel' : 'Vote'}
-                        </span>
+                      {isMyVote && (
+                        <span className="club-poll-voted-badge">Your choice</span>
                       )}
                     </div>
-                  </div>
-
-                  <div className="club-poll-progress-track">
-                    <div
-                      className="club-poll-progress-fill"
-                      style={{ width: `${percent}%` }}
-                    />
+                    <div className="club-poll-option-right">
+                      <span className="club-poll-option-votes-count">
+                        {voteCount} {voteCount === 1 ? 'vote' : 'votes'}
+                      </span>
+                      <span className="club-poll-option-percent">{percent}%</span>
+                    </div>
                   </div>
                 </div>
               )
@@ -590,7 +588,7 @@ function PollDetail({ poll, canManagePolls, onVote, onDismiss, onEdit, onClose }
           {poll.status === 'open' && (
             <div className="club-poll-helper-tip">
               <span>💡</span>
-              <span>Click to vote or switch · Click selected option again to cancel</span>
+              <span>Click any option to vote or switch your vote · Click your chosen option to cancel</span>
             </div>
           )}
         </div>

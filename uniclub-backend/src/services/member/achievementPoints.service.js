@@ -2,6 +2,8 @@ const PointRule = require("../../models/point_rule.model");
 const ClubMember = require("../../models/club_member.model");
 const Profile = require("../../models/profile.model");
 const ContributionLog = require("../../models/contribution_log.model");
+const Event = require("../../models/event.model");
+const Activity = require("../../models/activity.model");
 const { getStatusError } = require("../../utils/error");
 const mongoose = require("mongoose");
 
@@ -74,13 +76,13 @@ const getLeaderboard = async (clubId) => {
     };
   });
 
-  // 5. Sort by monthly points descending, then by total points descending, then by joined_at ascending
+  // 5. Sort by total points descending, then by monthly points descending, then by joined_at ascending
   leaderboard.sort((a, b) => {
-    if (b.monthly_points !== a.monthly_points) {
-      return b.monthly_points - a.monthly_points;
-    }
     if (b.total_points !== a.total_points) {
       return b.total_points - a.total_points;
+    }
+    if (b.monthly_points !== a.monthly_points) {
+      return b.monthly_points - a.monthly_points;
     }
     return new Date(a.joined_at) - new Date(b.joined_at);
   });
@@ -116,9 +118,8 @@ const getMyContributionLogs = async (userId, clubId, { page = 1, limit = 10 } = 
 
   const skip = (page - 1) * limit;
 
-  const [logs, total] = await Promise.all([
+  const [rawLogs, total] = await Promise.all([
     ContributionLog.find({ membership_id: member._id })
-      .populate("event_id", "_id title")
       .populate("action_type_id", "_id code name description")
       .sort({ created_at: -1 })
       .skip(skip)
@@ -127,16 +128,29 @@ const getMyContributionLogs = async (userId, clubId, { page = 1, limit = 10 } = 
     ContributionLog.countDocuments({ membership_id: member._id }),
   ]);
 
+  const eventIds = rawLogs.map((l) => l.event_id).filter(Boolean);
+  const [events, activities] = await Promise.all([
+    Event.find({ _id: { $in: eventIds } }).select("_id title").lean(),
+    Activity.find({ _id: { $in: eventIds } }).select("_id title").lean(),
+  ]);
+
+  const eventMap = new Map();
+  events.forEach((e) => eventMap.set(String(e._id), e));
+  activities.forEach((a) => eventMap.set(String(a._id), a));
+
   return {
-    logs: logs.map((log) => ({
-      _id: log._id,
-      event: log.event_id ? { _id: log.event_id._id, title: log.event_id.title } : null,
-      action_type: log.action_type_id
-        ? { _id: log.action_type_id._id, code: log.action_type_id.code, name: log.action_type_id.name }
-        : null,
-      reward_point: log.reward_point,
-      created_at: log.created_at,
-    })),
+    logs: rawLogs.map((log) => {
+      const matched = log.event_id ? eventMap.get(String(log.event_id)) : null;
+      return {
+        _id: log._id,
+        event: matched ? { _id: matched._id, title: matched.title } : null,
+        action_type: log.action_type_id
+          ? { _id: log.action_type_id._id, code: log.action_type_id.code, name: log.action_type_id.name }
+          : null,
+        reward_point: log.reward_point,
+        created_at: log.created_at,
+      };
+    }),
     pagination: {
       total,
       page: Number(page),

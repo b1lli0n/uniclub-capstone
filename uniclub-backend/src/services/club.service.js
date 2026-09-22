@@ -228,7 +228,7 @@ const getClubMembers = async ({ clubId, query }) => {
     status,
     search,
     page = 1,
-    limit = 10,
+    limit = 1000,
   } = query;
 
   const pageNumber = Math.max(Number(page), 1);
@@ -248,13 +248,15 @@ const getClubMembers = async ({ clubId, query }) => {
       "event_manager",
     ];
 
-    if (!allowedRoles.includes(role)) {
+    const normalizedRole = role.toLowerCase() === "leader" ? "president" : role.toLowerCase();
+
+    if (!allowedRoles.includes(normalizedRole)) {
       const error = new Error("Invalid member role");
       error.statusCode = 400;
       throw error;
     }
 
-    filter.role = role;
+    filter.role = normalizedRole;
   }
 
   if (status) {

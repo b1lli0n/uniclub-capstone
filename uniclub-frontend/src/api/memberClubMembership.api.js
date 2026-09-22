@@ -1,8 +1,8 @@
-import { apiRequest } from './api'
+import { apiRequest, cachedApiRequest, invalidateApiCache } from './api'
 
 /** View My Club */
 export function getMyClubs() {
-  return apiRequest('/member/clubs-membership/my-clubs')
+  return cachedApiRequest('/member/clubs-membership/my-clubs', {}, 3500)
 }
 
 /** View Club Members (as member) */
@@ -12,7 +12,9 @@ export function getClubMembers(clubId) {
 
 /** Leave Club */
 export function leaveClub(clubId) {
+  invalidateApiCache('/member/clubs-membership')
   return apiRequest(`/member/clubs-membership/${clubId}/leave`, {
     method: 'PATCH',
   })
 }
+

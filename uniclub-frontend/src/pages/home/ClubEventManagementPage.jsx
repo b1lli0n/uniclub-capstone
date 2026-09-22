@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
-import { ALL_CLUBS, ALL_EVENTS, EVENT_TIMELINES, MY_CLUB_MEMBERSHIPS } from '../../data/mockData'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import '../../styles/club-event-management.css'
+import DateTimePicker from '../../components/common/DateTimePicker'
 import { getClubById } from '../../api/club.api'
 import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getClubEventsForManager, createEvent, updateManagedEvent, cancelManagedEvent, getEventTimelines, createEventTimeline, updateEventTimeline, deleteEventTimeline } from '../../api/event.api'
@@ -16,8 +16,6 @@ import {
   sortTimelines,
 } from '../../utils/dateTimeUtils'
 
-
-const CLUB_FALLBACK = ALL_CLUBS[0]
 const EVENT_STATUSES = [
   { value: 'draft', label: 'Draft' },
   { value: 'complete', label: 'Complete' },
@@ -206,8 +204,6 @@ function mapEventFromApi(apiEvent) {
     lifecycleStatus: apiEvent.status === 'active' ? 'opening' : (apiEvent.status || 'opening'),
     startAt: formatForInput(apiEvent.start_time),
     endAt: formatForInput(apiEvent.end_time),
-    registrationStartAt: formatForInput(apiEvent.registration_start),
-    registrationEndAt: formatForInput(apiEvent.registration_end),
     imageUrl: resolveEventUploadImage(apiEvent.media_uris || apiEvent.image_url || apiEvent.imageUrl, apiEvent.category),
     approvalDocumentUrl: apiEvent.approval_document_url || 'https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I/view?usp=sharing',
     gradient: 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)',
@@ -216,156 +212,30 @@ function mapEventFromApi(apiEvent) {
 }
 
 
-function DateTimePicker({ label, value, onChange, required = false }) {
-  const selectedDate = parseInputDateTime(value)
-  const [isOpen, setIsOpen] = useState(false)
-  const [viewDate, setViewDate] = useState(() => selectedDate || new Date())
-  const selectedTime = selectedDate
-    ? `${String(selectedDate.getHours()).padStart(2, '0')}:${String(selectedDate.getMinutes()).padStart(2, '0')}`
-    : '09:00'
-  const monthStart = startOfMonth(viewDate)
-  const firstDayOffset = (monthStart.getDay() + 6) % 7
-  const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate()
-  const calendarDays = [
-    ...Array.from({ length: firstDayOffset }, (_, index) => ({ id: `blank-${index}`, date: null })),
-    ...Array.from({ length: daysInMonth }, (_, index) => ({
-      id: `day-${index + 1}`,
-      date: new Date(viewDate.getFullYear(), viewDate.getMonth(), index + 1),
-    })),
-  ]
-
-  function openPicker() {
-    setViewDate(selectedDate || new Date())
-    setIsOpen(true)
-  }
-
-  function changeMonth(offset) {
-    setViewDate((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1))
-  }
-
-  function chooseDate(date) {
-    const [hour, minute] = selectedTime.split(':').map(Number)
-    const nextDate = new Date(date)
-    nextDate.setHours(hour, minute, 0, 0)
-    onChange(toDateTimeInputValue(nextDate))
-  }
-
-  function chooseTime(time) {
-    const [hour, minute] = time.split(':').map(Number)
-    const nextDate = selectedDate || viewDate
-    const nextValue = new Date(
-      nextDate.getFullYear(),
-      nextDate.getMonth(),
-      nextDate.getDate(),
-      hour,
-      minute,
-      0,
-      0
-    )
-    onChange(toDateTimeInputValue(nextValue))
-  }
-
-  function chooseToday() {
-    const today = new Date()
-    setViewDate(today)
-    onChange(toDateTimeInputValue(today))
-  }
-
-  return (
-    <label className="club-event-management-field club-event-management-date-field">
-      <span>{label}</span>
-      <input
-        className="club-event-management-date-hidden"
-        value={value}
-        onChange={() => {}}
-        required={required}
-        tabIndex={-1}
-        aria-hidden="true"
-      />
-      <button
-        type="button"
-        className={`club-event-management-date-trigger${value ? ' has-value' : ''}`}
-        onClick={openPicker}
-      >
-        <span>{formatDateTimeLabel(value)}</span>
-        <CalendarIcon />
-      </button>
-
-      {isOpen ? (
-        <div className="club-event-management-date-popover">
-          <div className="club-event-management-date-header">
-            <button type="button" onClick={() => changeMonth(-1)} aria-label="Previous month">
-              &lt;
-            </button>
-            <strong>{MONTH_NAMES[viewDate.getMonth()]} {viewDate.getFullYear()}</strong>
-            <button type="button" onClick={() => changeMonth(1)} aria-label="Next month">
-              &gt;
-            </button>
-          </div>
-
-          <div className="club-event-management-date-weekdays">
-            {WEEKDAY_NAMES.map((dayName) => (
-              <span key={dayName}>{dayName}</span>
-            ))}
-          </div>
-
-          <div className="club-event-management-date-grid">
-            {calendarDays.map((day) =>
-              day.date ? (
-                <button
-                  key={day.id}
-                  type="button"
-                  className={sameDate(day.date, selectedDate) ? 'is-selected' : ''}
-                  onClick={() => chooseDate(day.date)}
-                >
-                  {day.date.getDate()}
-                </button>
-              ) : (
-                <span key={day.id} aria-hidden="true" />
-              )
-            )}
-          </div>
-
-          <div className="club-event-management-time-row">
-            <label>
-              <span>Time</span>
-              <input type="time" value={selectedTime} onChange={(event) => chooseTime(event.target.value)} />
-            </label>
-          </div>
-
-          <div className="club-event-management-date-actions">
-            <button type="button" onClick={chooseToday}>Today</button>
-            <button type="button" onClick={() => onChange('')}>Clear</button>
-            <button type="button" onClick={() => setIsOpen(false)}>Done</button>
-          </div>
-        </div>
-      ) : null}
-    </label>
-  )
-}
-
-function CustomSelect({ label, value, options, onChange }) {
+function CustomSelect({ label, value, options, onChange, disabled = false }) {
   const [isOpen, setIsOpen] = useState(false)
   const selectedOption = options.find((option) => option.value === value) || options[0]
 
   function chooseOption(optionValue) {
+    if (disabled) return
     onChange(optionValue)
     setIsOpen(false)
   }
 
   return (
-    <label className="club-event-management-field club-event-management-select-field">
+    <label className={`club-event-management-field club-event-management-select-field${disabled ? ' is-disabled' : ''}`}>
       <span>{label}</span>
       <button
         type="button"
-        className={`club-event-management-select-trigger${isOpen ? ' is-open' : ''}`}
-        onClick={() => setIsOpen((current) => !current)}
+        disabled={disabled}
+        className={`club-event-management-select-trigger${isOpen ? ' is-open' : ''}${disabled ? ' is-disabled' : ''}`}
+        onClick={() => !disabled && setIsOpen((current) => !current)}
       >
-        <span>{selectedOption.label}</span>
+        <span>{selectedOption?.label || value}</span>
         <ChevronDownIcon />
       </button>
 
-      {isOpen ? (
+      {isOpen && !disabled ? (
         <div className="club-event-management-select-menu">
           {options.map((option) => (
             <button
@@ -416,6 +286,7 @@ function ClubEventManagementPage({ clubId }) {
   const [timelineModalOpen, setTimelineModalOpen] = useState(false)
   const [editingTimeline, setEditingTimeline] = useState(null)
   const [timelineDraft, setTimelineDraft] = useState(() => createTimelineDraft(''))
+  const coverInputRef = useRef(null)
 
   useEffect(() => {
     let active = true
@@ -435,20 +306,8 @@ function ClubEventManagementPage({ clubId }) {
         })
         setMembership(userMembership || null)
 
-        // Try to load events from backend or fall back to mock events
         const eventsRes = await getClubEventsForManager(clubId).catch(() => ({ data: [] }))
-        if (!active) return
-        let fetchedEvents = []
-        if (eventsRes.data && eventsRes.data.length > 0) {
-          fetchedEvents = eventsRes.data.map(mapEventFromApi)
-        } else {
-          // Fallback to mock events filtered by club name/slug
-          const slug = clubRes.data?.slug || clubRes.data?.id || clubId
-          fetchedEvents = ALL_EVENTS.filter((event) => 
-            String(event.clubId) === String(slug) || 
-            String(event.clubId) === String(clubId)
-          ).map(createManagedEvent)
-        }
+        const fetchedEvents = (eventsRes.data || []).map(mapEventFromApi)
         setEvents(fetchedEvents)
       } catch (err) {
         console.error("Failed to load club management data:", err)
@@ -508,7 +367,7 @@ function ClubEventManagementPage({ clubId }) {
     )
   }
 
-  const activeClub = club || CLUB_FALLBACK
+  const activeClub = club || { id: clubId, name: 'Club' }
   const canManageEvents = canManageClubEventFeatures(membership?.role)
 
 
@@ -538,6 +397,37 @@ function ClubEventManagementPage({ clubId }) {
     }))
   }
 
+  function handleCoverFileChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      showToast({
+        type: 'error',
+        title: 'Invalid file',
+        message: 'Please choose an image file (PNG, JPG, WEBP, etc.)',
+      })
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast({
+        type: 'error',
+        title: 'File too large',
+        message: 'Image size must be less than 5MB.',
+      })
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        updateDraft('imageUrl', reader.result)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
   async function submitEvent(eventSubmit) {
     eventSubmit.preventDefault()
 
@@ -549,8 +439,6 @@ function ClubEventManagementPage({ clubId }) {
       location: draft.location.trim() || 'Hall A101',
       start_time: draft.startAt || new Date().toISOString(),
       end_time: draft.endAt || new Date(Date.now() + 7200000).toISOString(),
-      registration_start: draft.registrationStartAt || null,
-      registration_end: draft.registrationEndAt || null,
       capacity: Number(draft.participants) || 150,
       is_public: draft.visibility === 'public',
       status: draft.lifecycleStatus || 'opening',
@@ -583,7 +471,7 @@ function ClubEventManagementPage({ clubId }) {
 
         // Update local state immediately for instant UI responsiveness
         const updatedEventMapped = updatedApiEvent?._id
-          ? mapApiEventToManagedEvent(updatedApiEvent)
+          ? mapEventFromApi(updatedApiEvent)
           : {
               ...draft,
               name: draft.name,
@@ -598,8 +486,6 @@ function ClubEventManagementPage({ clubId }) {
               lifecycleStatus: draft.lifecycleStatus || 'opening',
               startAt: draft.startAt,
               endAt: draft.endAt,
-              registrationStartAt: draft.registrationStartAt,
-              registrationEndAt: draft.registrationEndAt,
               imageUrl: draft.imageUrl,
               updatedAt: new Date().toLocaleDateString('en-GB'),
             }
@@ -618,7 +504,7 @@ function ClubEventManagementPage({ clubId }) {
         getClubEventsForManager(targetClubId)
           .then((fresh) => {
             if (Array.isArray(fresh)) {
-              setEvents(fresh.map(mapApiEventToManagedEvent))
+              setEvents(fresh.map(mapEventFromApi))
             }
           })
           .catch(() => {})
@@ -1014,17 +900,13 @@ function ClubEventManagementPage({ clubId }) {
           />
           <form className="club-event-management-modal__panel club-event-management-editor" onSubmit={submitEvent}>
             <header>
-              <div>
-                <span>For Event Management</span>
-                <h2 id="event-manager-editor-title">
-                  {editorMode === 'create' ? 'Create Event' : 'Update Event'}
-                </h2>
-              </div>
+              <h2 id="event-manager-editor-title" style={{ margin: 0 }}>
+                Event details
+              </h2>
               <button type="button" onClick={closeEditor}>Close</button>
             </header>
 
             <div className="club-event-management-editor__section">
-              <h3>Event details</h3>
               <label className="club-event-management-field club-event-management-field--full">
                 <span>Event name *</span>
                 <input
@@ -1080,19 +962,6 @@ function ClubEventManagementPage({ clubId }) {
 
               <div className="club-event-management-editor__grid">
                 <DateTimePicker
-                  label="Registration Start (Opens)"
-                  value={draft.registrationStartAt}
-                  onChange={(value) => updateDraft('registrationStartAt', value)}
-                />
-                <DateTimePicker
-                  label="Registration End (Closes)"
-                  value={draft.registrationEndAt}
-                  onChange={(value) => updateDraft('registrationEndAt', value)}
-                />
-              </div>
-
-              <div className="club-event-management-editor__grid">
-                <DateTimePicker
                   label="Event Start *"
                   value={draft.startAt}
                   onChange={(value) => updateDraft('startAt', value)}
@@ -1107,47 +976,187 @@ function ClubEventManagementPage({ clubId }) {
               </div>
 
               <div className="club-event-management-editor__grid">
-                <label className="club-event-management-field">
+                <label className="club-event-management-field" style={{ alignSelf: 'start' }}>
                   <span>Max capacity</span>
                   <input
                     type="number"
                     min="1"
                     value={draft.participants}
                     onChange={(event) => updateDraft('participants', event.target.value)}
+                    style={{ height: '38px', maxHeight: '38px' }}
                   />
                 </label>
-                <CustomSelect
-                  label="Progress Status"
-                  value={draft.publicationStatus}
-                  options={EVENT_STATUSES}
-                  onChange={(value) => updateDraft('publicationStatus', value)}
-                />
+                <div>
+                  <CustomSelect
+                    label="Progress Status"
+                    value={draft.publicationStatus}
+                    options={
+                      draft.publicationStatus === 'complete' && draft.lifecycleStatus !== 'coming_soon'
+                        ? [{ value: 'complete', label: 'Complete' }]
+                        : EVENT_STATUSES
+                    }
+                    onChange={(value) => updateDraft('publicationStatus', value)}
+                  />
+                  {draft.publicationStatus === 'complete' && draft.lifecycleStatus !== 'coming_soon' && (
+                    <small style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                      * Cannot revert to Draft because the event is already &quot;{draft.lifecycleStatus === 'opening' ? 'Opening' : draft.lifecycleStatus === 'closed' ? 'Closed' : 'Cancelled'}&quot;. Reverting to Draft is only allowed when status is &quot;Coming Soon&quot;.
+                    </small>
+                  )}
+                </div>
               </div>
 
-              <CustomSelect
-                label="Operational Status"
-                value={draft.lifecycleStatus || 'opening'}
-                options={OPERATIONAL_STATUS_OPTIONS}
-                onChange={(value) => updateDraft('lifecycleStatus', value)}
-              />
+              <div>
+                <CustomSelect
+                  label="Operational Status"
+                  value={draft.lifecycleStatus || 'opening'}
+                  options={OPERATIONAL_STATUS_OPTIONS}
+                  onChange={(value) => updateDraft('lifecycleStatus', value)}
+                  disabled={draft.publicationStatus === 'draft'}
+                />
+                {draft.publicationStatus === 'draft' && (
+                  <small style={{ fontSize: '0.78rem', color: '#ea580c', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                    🔒 Operational status is locked while in Draft. Switch Progress Status to "Complete" to manage.
+                  </small>
+                )}
+              </div>
 
-              <CustomSelect
-                label="Cover Image (Local Uploads)"
-                value={draft.imageUrl || UPLOAD_EVENT_IMAGES[0].value}
-                options={UPLOAD_EVENT_IMAGES}
-                onChange={(value) => updateDraft('imageUrl', value)}
-              />
+              <div className="club-event-management-field club-event-management-field--full" style={{ marginTop: '12px' }}>
+                <span style={{ display: 'block', marginBottom: '6px', fontWeight: '700', fontSize: '0.9rem', color: '#1e293b' }}>
+                  🖼️ Event Cover Image (Upload from Device)
+                </span>
+                
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleCoverFileChange}
+                />
+
+                {draft.imageUrl ? (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    padding: '12px',
+                    border: '1.5px solid #fed7aa',
+                    borderRadius: '14px',
+                    background: '#fffaf5'
+                  }}>
+                    <div style={{
+                      position: 'relative',
+                      width: '100%',
+                      height: '180px',
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                    }}>
+                      <img
+                        src={draft.imageUrl}
+                        alt="Event cover preview"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <div style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        display: 'flex',
+                        gap: '6px'
+                      }}>
+                        <button
+                          type="button"
+                          onClick={() => coverInputRef.current?.click()}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.8rem',
+                            fontWeight: '700',
+                            color: '#ffffff',
+                            background: 'rgba(15, 23, 42, 0.8)',
+                            backdropFilter: 'blur(4px)',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Change Image
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateDraft('imageUrl', '')}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.8rem',
+                            fontWeight: '700',
+                            color: '#ffffff',
+                            background: 'rgba(239, 68, 68, 0.85)',
+                            backdropFilter: 'blur(4px)',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748b' }}>
+                      <span>☁️ Image will be uploaded to Cloudinary on save</span>
+                      <span style={{ color: '#ea580c', fontWeight: '600' }}>✓ Image Selected</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => coverInputRef.current?.click()}
+                    style={{
+                      border: '2px dashed #cbd5e1',
+                      borderRadius: '14px',
+                      padding: '24px 16px',
+                      textAlign: 'center',
+                      background: '#f8fafc',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#ea580c'
+                      e.currentTarget.style.backgroundColor = '#fff7ed'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#cbd5e1'
+                      e.currentTarget.style.backgroundColor = '#f8fafc'
+                    }}
+                  >
+                    <div style={{ fontSize: '2rem', marginBottom: '6px' }}>📁</div>
+                    <p style={{ margin: '0 0 4px 0', fontWeight: '700', color: '#1e293b', fontSize: '0.95rem' }}>
+                      Click to choose cover image from your computer
+                    </p>
+                    <small style={{ color: '#64748b', fontSize: '0.8rem' }}>
+                      Supports PNG, JPG, WEBP (Max 5MB) • Auto-saved to Cloudinary CDN
+                    </small>
+                  </div>
+                )}
+              </div>
 
               <label className="club-event-management-field club-event-management-field--full" style={{ marginTop: '14px' }}>
-                <span style={{ fontWeight: '800', color: '#1e293b' }}>📄 School Approval / Contract Document (Google Drive PDF) *</span>
+                <span style={{ fontWeight: '800', color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>📄 School Approval / Contract Document (Google Drive PDF) *</span>
+                  {editorMode === 'update' && (
+                    <span style={{ fontSize: '0.75rem', color: '#0284c7', background: '#e0f2fe', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                      🔒 Locked (Approved by School)
+                    </span>
+                  )}
+                </span>
                 <input
                   type="url"
                   value={draft.approvalDocumentUrl || 'https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I/view?usp=sharing'}
                   onChange={(event) => updateDraft('approvalDocumentUrl', event.target.value)}
+                  disabled={editorMode === 'update'}
+                  style={editorMode === 'update' ? { backgroundColor: '#f1f5f9', cursor: 'not-allowed', color: '#64748b' } : {}}
                   placeholder="https://drive.google.com/file/d/... (Signed Contract Document Link)"
                 />
                 <small style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  * Enter the Google Drive link to the signed school event contract or permit document.
+                  {editorMode === 'update'
+                    ? '* Document link is locked after approval to maintain contractual integrity.'
+                    : '* Enter the Google Drive link to the signed school event contract or permit document.'}
                 </small>
               </label>
             </div>

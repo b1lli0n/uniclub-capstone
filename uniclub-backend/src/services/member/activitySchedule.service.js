@@ -40,7 +40,10 @@ const buildActivityQuery = (clubId, filters = {}) => {
   return query;
 };
 
-const getClubActivitySchedule = async (clubId, filters = {}) => {
+const ClubMember = require("../../models/club_member.model");
+const ActivityAttendance = require("../../models/activity_attendance.model");
+
+const getClubActivitySchedule = async (clubId, filters = {}, userId = null) => {
   const page = parsePositiveInt(filters.page, 1);
   const limit = parsePositiveInt(filters.limit, 10);
   const query = buildActivityQuery(clubId, filters);
@@ -57,8 +60,27 @@ const getClubActivitySchedule = async (clubId, filters = {}) => {
     Activity.countDocuments(query),
   ]);
 
+  let attendedActivityIds = new Set();
+  if (userId) {
+    const member = await ClubMember.findOne({ club_id: clubId, user_id: userId, status: "active" });
+    if (member) {
+      const attendances = await ActivityAttendance.find({
+        club_id: clubId,
+        membership_id: member._id,
+        status: "attended",
+      }).select("activity_id");
+      attendedActivityIds = new Set(attendances.map((a) => String(a.activity_id)));
+    }
+  }
+
+  const formattedActivities = activities.map((act) => {
+    const obj = act.toObject ? act.toObject() : { ...act };
+    obj.is_attended = attendedActivityIds.has(String(act._id));
+    return obj;
+  });
+
   return {
-    activities,
+    activities: formattedActivities,
     pagination: {
       total,
       page,
@@ -68,7 +90,7 @@ const getClubActivitySchedule = async (clubId, filters = {}) => {
   };
 };
 
-const getActivityScheduleDetail = async (clubId, activityId) => {
+const getActivityScheduleDetail = async (clubId, activityId, userId = null) => {
   const activity = await Activity.findOne({
     _id: activityId,
     club_id: clubId,
@@ -83,7 +105,23 @@ const getActivityScheduleDetail = async (clubId, activityId) => {
     throw getStatusError("Activity not found", 404);
   }
 
-  return activity;
+  let isAttended = false;
+  if (userId) {
+    const member = await ClubMember.findOne({ club_id: clubId, user_id: userId, status: "active" });
+    if (member) {
+      const att = await ActivityAttendance.findOne({
+        club_id: clubId,
+        activity_id: activityId,
+        membership_id: member._id,
+        status: "attended",
+      });
+      isAttended = Boolean(att);
+    }
+  }
+
+  const obj = activity.toObject ? activity.toObject() : { ...activity };
+  obj.is_attended = isAttended;
+  return obj;
 };
 
 module.exports = {

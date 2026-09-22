@@ -9,13 +9,11 @@ const getMyProfile = async (userId) => {
     "full_name email avatar_url role"
   );
 
-  let profile = await Profile.findOne({ user_id: userId });
-
-  if (!profile) {
-    profile = await Profile.create({
-      user_id: userId,
-    });
-  }
+  let profile = await Profile.findOneAndUpdate(
+    { user_id: userId },
+    { $setOnInsert: { user_id: userId } },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
 
   return {
     user,
@@ -36,13 +34,11 @@ const getUserProfileById = async (userId) => {
     throw getStatusError("User not found", 404);
   }
 
-  let profile = await Profile.findOne({ user_id: userId });
-
-  if (!profile) {
-    profile = await Profile.create({
-      user_id: userId,
-    });
-  }
+  let profile = await Profile.findOneAndUpdate(
+    { user_id: userId },
+    { $setOnInsert: { user_id: userId } },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
 
   return {
     user,

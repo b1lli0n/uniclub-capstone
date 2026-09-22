@@ -82,10 +82,16 @@ function ClubJoinFormPage({ clubId }) {
           getClubById(clubId),
           getMyClubs(),
           getPresidentJoinForm(clubId).catch((err) => {
-            if (err.status === 404 || err.message?.includes('404')) {
+            if (
+              err.status === 404 ||
+              err.message?.includes('404') ||
+              err.message?.toLowerCase().includes('no join form') ||
+              err.message?.toLowerCase().includes('not found')
+            ) {
               return { data: [] }
             }
-            throw err
+            console.warn('getPresidentJoinForm fallback:', err)
+            return { data: [] }
           }),
         ])
 
@@ -95,9 +101,16 @@ function ClubJoinFormPage({ clubId }) {
 
         const membership = (myClubsRes.data || []).find((item) => {
           const id = item.club_id?._id || item.club_id
-          return String(id) === String(clubId)
+          const name = item.club_id?.name || ''
+          return (
+            String(id) === String(clubId) ||
+            (name && name.toLowerCase().includes(String(clubId).toLowerCase()))
+          )
         })
-        setCanManageForms(membership?.role === 'president')
+        const role = membership?.role?.toLowerCase()
+        const isPresident = role === 'president' || role === 'leader'
+        setCanManageForms(isPresident)
+
 
         if (formRes?.data) {
           const list = Array.isArray(formRes.data) ? formRes.data : [formRes.data]

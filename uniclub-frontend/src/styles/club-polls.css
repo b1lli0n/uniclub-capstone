@@ -15,36 +15,110 @@
 .club-poll-modal header button:hover{border-color:#e96c17;background:#ffe3ca;color:#a94700}
 .club-poll-form input:focus,.club-poll-form textarea:focus{border-color:#e96c17 !important;outline:0;box-shadow:0 0 0 3px rgba(235,121,43,.16)}
 
-.club-poll-modal__panel {
-  width: min(680px, 100%) !important;
+.club-poll-modal header h2 {
+  color: #1e293b;
+  font-weight: 850;
 }
 
-/* Use the application's shared typeface for every Poll surface and control. */
-.club-polls-page,.club-poll-modal{font-family:var(--sans);letter-spacing:inherit}
-.club-polls-page h1,.club-polls-page h2,.club-poll-modal h2,.club-poll-modal h3{font-family:var(--sans)}
-.club-polls-page button,.club-polls-page input,.club-polls-page textarea,.club-poll-modal button,.club-poll-modal input,.club-poll-modal textarea{font-family:inherit}
+.club-poll-modal header button {
+  border: 1px solid #f2d9c3;
+  background: #fff3e7;
+  color: #c65f00;
+  font-weight: 900;
+  transition: all 0.2s ease;
+}
+
+.club-poll-modal header button:hover {
+  border-color: #e96c17;
+  background: #ffe3ca;
+  color: #a94700;
+  transform: rotate(90deg) scale(1.05);
+}
+
+.club-poll-form input:focus,
+.club-poll-form textarea:focus {
+  border-color: #e96c17 !important;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(235, 121, 43, 0.16);
+}
+
+/* Modal Animation & Backdrop */
+.club-poll-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.club-poll-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(6px);
+  animation: pollBackdropIn 0.22s ease-out;
+}
+
+.club-poll-modal__panel {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: min(650px, 100%) !important;
+  max-height: calc(100vh - 2.5rem);
+  overflow: auto;
+  padding: 1.75rem 2rem;
+  border-radius: 28px;
+  background: #ffffff;
+  border: 1px solid rgba(254, 215, 170, 0.5);
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  animation: pollPanelIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pollBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pollPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Use the application's shared typeface for every Poll surface and control */
+.club-polls-page, .club-poll-modal { font-family: var(--sans); letter-spacing: inherit; }
+.club-polls-page h1, .club-polls-page h2, .club-poll-modal h2, .club-poll-modal h3 { font-family: var(--sans); }
+.club-polls-page button, .club-polls-page input, .club-polls-page textarea, .club-poll-modal button, .club-poll-modal input, .club-poll-modal textarea { font-family: inherit; }
 
 /* Interactive Poll Options & Silky Smooth Voting */
 .club-poll-options-container {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin-top: 0.85rem;
+  margin-top: 0.75rem;
 }
 
 .club-poll-option-card {
   position: relative;
   background: #ffffff;
-  border: 1.5px solid #ebdacf;
-  border-radius: 14px;
-  padding: 0.95rem 1.15rem;
+  border: 1.5px solid #e8ded6;
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
   cursor: default;
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.22s ease,
-              box-shadow 0.22s ease,
-              background-color 0.22s ease;
+  overflow: hidden;
   user-select: none;
   outline: none;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease,
+              box-shadow 0.2s ease,
+              background-color 0.2s ease;
 }
 
 .club-poll-option-card.is-interactive {
@@ -53,177 +127,151 @@
 
 .club-poll-option-card.is-interactive:hover {
   transform: translateY(-2px);
-  border-color: #eb6c18;
-  background: #fffbf7;
-  box-shadow: 0 8px 20px rgba(235, 108, 24, 0.12);
+  border-color: #f97316;
+  box-shadow: 0 8px 24px rgba(235, 108, 24, 0.12);
 }
 
 .club-poll-option-card.is-interactive:active {
-  transform: scale(0.99);
+  transform: scale(0.985);
 }
 
 .club-poll-option-card.is-selected {
-  border-color: #eb6c18;
-  background: linear-gradient(135deg, #fff9f3 0%, #fff0e2 100%);
-  box-shadow: 0 6px 18px rgba(235, 108, 24, 0.14);
+  border-color: #ea580c;
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(234, 88, 12, 0.14);
 }
 
 .club-poll-option-card.is-selected.is-interactive:hover {
-  border-color: #f87171;
-  background: linear-gradient(135deg, #fffdfd 0%, #fef2f2 100%);
-  box-shadow: 0 8px 22px rgba(239, 68, 68, 0.15);
+  border-color: #c2410c;
+  box-shadow: 0 8px 26px rgba(234, 88, 12, 0.2);
 }
 
-.club-poll-option-header {
+/* Background progress fill */
+.club-poll-card-progress-bg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(90deg, rgba(254, 215, 170, 0.35) 0%, rgba(254, 215, 170, 0.18) 100%);
+  border-radius: inherit;
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.club-poll-option-card.is-selected .club-poll-card-progress-bg {
+  background: linear-gradient(90deg, rgba(254, 215, 170, 0.6) 0%, rgba(254, 215, 170, 0.3) 100%);
+}
+
+.club-poll-option-inner {
+  position: relative;
+  z-index: 2;
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  gap: 1.25rem;
-  margin-bottom: 0.55rem;
+  gap: 1rem;
+}
+
+.club-poll-option-left {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .club-poll-radio-indicator {
-  width: 22px;
-  height: 22px;
-  min-width: 22px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
   border-radius: 50%;
-  border: 2px solid #d6c5b8;
+  border: 2px solid #cbd5e1;
   display: grid;
   place-items: center;
   background: #ffffff;
   color: #ffffff;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 900;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .club-poll-option-card.is-interactive:hover .club-poll-radio-indicator {
-  border-color: #eb6c18;
+  border-color: #f97316;
 }
 
 .club-poll-option-card.is-selected .club-poll-radio-indicator {
-  background: #eb6c18;
-  border-color: #eb6c18;
-  box-shadow: 0 2px 8px rgba(235, 108, 24, 0.35);
-}
-
-.club-poll-option-card.is-selected.is-interactive:hover .club-poll-radio-indicator {
-  background: #ef4444;
-  border-color: #ef4444;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
-}
-
-.club-poll-option-title-group {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex: 1 1 auto;
-  min-width: 0;
+  background: #ea580c;
+  border-color: #ea580c;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.4);
 }
 
 .club-poll-option-label {
-  font-size: 0.94rem;
+  font-size: 0.96rem;
   font-weight: 750;
-  color: #2b2521;
+  color: #1e293b;
   line-height: 1.35;
+  word-break: break-word;
 }
 
-.club-poll-option-stats {
+.club-poll-voted-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.55rem;
+  background: #ffedd5;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+  animation: badgePopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes badgePopIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.club-poll-option-right {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 0.85rem;
-  margin-left: auto;
+  gap: 0.75rem;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .club-poll-option-votes-count {
-  font-size: 0.85rem;
-  font-weight: 800;
-  color: #786659;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
   white-space: nowrap;
-  min-width: 95px;
+}
+
+.club-poll-option-percent {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #0f172a;
+  min-width: 44px;
   text-align: right;
+  letter-spacing: -0.02em;
 }
 
-.club-poll-option-card.is-selected .club-poll-option-votes-count {
-  color: #c65f00;
-}
-
-.club-poll-action-pill {
-  box-sizing: border-box;
-  width: 68px;
-  min-width: 68px;
-  height: 30px;
-  justify-content: center;
-  text-align: center;
-  font-size: 0.74rem;
-  font-weight: 800;
-  padding: 0;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.club-poll-action-pill.is-cancel {
-  background: #fed7aa;
-  color: #9a3412;
-  border: 1px solid #fdba74;
-}
-
-.club-poll-option-card.is-selected.is-interactive:hover .club-poll-action-pill.is-cancel {
-  background: #fee2e2;
-  color: #dc2626;
-  border-color: #fca5a5;
-}
-
-.club-poll-action-pill.is-vote {
-  background: #f8ebe0;
-  color: #c65f00;
-  border: 1px solid #fed7aa;
-}
-
-.club-poll-option-card.is-interactive:hover .club-poll-action-pill.is-vote {
-  background: #eb6c18;
-  color: #ffffff;
-  border-color: #eb6c18;
-  box-shadow: 0 2px 8px rgba(235, 108, 24, 0.3);
-}
-
-.club-poll-progress-track {
-  height: 9px;
-  background: #f0e2d5;
-  border-radius: 999px;
-  overflow: hidden;
-  margin-top: 0.55rem;
-}
-
-.club-poll-progress-fill {
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #f59e0b 0%, #eb6c18 100%);
-  transition: width 0.45s cubic-bezier(0.34, 1.25, 0.64, 1);
-}
-
-.club-poll-option-card.is-selected .club-poll-progress-fill {
-  background: linear-gradient(90deg, #eb6c18 0%, #c65f00 100%);
-  box-shadow: 0 0 10px rgba(235, 108, 24, 0.35);
+.club-poll-option-card.is-selected .club-poll-option-percent {
+  color: #ea580c;
 }
 
 .club-poll-helper-tip {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.42rem 0.75rem;
-  margin-top: 0.75rem;
-  background: #fff9f4;
-  border: 1px solid #fde7d4;
-  border-radius: 9px;
-  color: #a05a20;
-  font-size: 0.74rem;
-  line-height: 1.35;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  margin-top: 1rem;
+  background: #fffaf5;
+  border: 1px solid #ffedd5;
+  border-radius: 12px;
+  color: #9a3412;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.4;
 }
 

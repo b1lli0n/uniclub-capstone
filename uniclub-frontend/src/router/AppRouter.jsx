@@ -1,86 +1,47 @@
-import { useState, useEffect } from 'react'
-import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
-
-import LoginPage from '../pages/auth/LoginPage'
-import AuthCallbackPage from '../pages/auth/AuthCallbackPage'
+import { useState, useEffect, lazy, Suspense } from 'react'
+import { Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom'
 
 import HomeLayout from '../layouts/HomeLayout'
-import HomePage from '../pages/home/HomePage'
-import MyProfilePage from '../pages/home/MyProfilePage'
-import MyRequestsPage from '../pages/home/MyRequestsPage'
-import MyClubsPage from '../pages/home/MyClubsPage'
-import CreateClubPage from '../pages/home/CreateClubPage'
-import ClubsPage from '../pages/home/ClubsPage'
-import EventsPage from '../pages/home/EventsPage'
-import EventDetailPage from '../pages/home/EventDetailPage'
-import ClubDetailPage from '../pages/home/ClubDetailPage'
-import ClubEventsPage from '../pages/home/ClubEventsPage'
-import ClubEventManagementPage from '../pages/home/ClubEventManagementPage'
-import ClubRankingPage from '../pages/home/ClubRankingPage'
-import ClubJoinRequestsPage from '../pages/home/ClubJoinRequestsPage'
-import ClubJoinFormPage from '../pages/home/ClubJoinFormPage'
-import ClubAttendancePage from '../pages/home/ClubAttendancePage'
-import ClubPointRulesPage from '../pages/home/ClubPointRulesPage'
-import ClubRewardsPage from '../pages/home/ClubRewardsPage'
-import ActivitySchedulePage from '../pages/home/ActivitySchedulePage'
-import ActivityAttendancePage from '../pages/home/ActivityAttendancePage'
-import MyEventsPage from '../pages/home/MyEventsPage'
-import ClubInvitationsPage from '../pages/home/ClubInvitationsPage'
-import ClubPollsPage from '../pages/home/ClubPollsPage'
-import ClubFinancePage from '../pages/home/ClubFinancePage'
-import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
-import ClubFeesPage from '../pages/home/ClubFeesPage'
-import ClubReceiptDetailPage from '../pages/home/ClubReceiptDetailPage'
-import PaymentReturnPage from '../pages/auth/PaymentReturnPage'
-import ApiTestPage from '../pages/ApiTestPage'
 import LogoutConfirmModal from '../components/common/LogoutConfirmModal'
 
+// Lazy-loaded pages for optimized code splitting and smooth page transitions
+const LoginPage = lazy(() => import('../pages/auth/LoginPage'))
+const AuthCallbackPage = lazy(() => import('../pages/auth/AuthCallbackPage'))
+const HomePage = lazy(() => import('../pages/home/HomePage'))
+const MyProfilePage = lazy(() => import('../pages/home/MyProfilePage'))
+const MyRequestsPage = lazy(() => import('../pages/home/MyRequestsPage'))
+const MyClubsPage = lazy(() => import('../pages/home/MyClubsPage'))
+const CreateClubPage = lazy(() => import('../pages/home/CreateClubPage'))
+const ClubsPage = lazy(() => import('../pages/home/ClubsPage'))
+const EventsPage = lazy(() => import('../pages/home/EventsPage'))
+const EventDetailPage = lazy(() => import('../pages/home/EventDetailPage'))
+const ClubDetailPage = lazy(() => import('../pages/home/ClubDetailPage'))
+const ClubEventsPage = lazy(() => import('../pages/home/ClubEventsPage'))
+const ClubEventManagementPage = lazy(() => import('../pages/home/ClubEventManagementPage'))
+const ClubRankingPage = lazy(() => import('../pages/home/ClubRankingPage'))
+const ClubJoinRequestsPage = lazy(() => import('../pages/home/ClubJoinRequestsPage'))
+const ClubJoinFormPage = lazy(() => import('../pages/home/ClubJoinFormPage'))
+const ClubAttendancePage = lazy(() => import('../pages/home/ClubAttendancePage'))
+const ClubPointRulesPage = lazy(() => import('../pages/home/ClubPointRulesPage'))
+const ClubRewardsPage = lazy(() => import('../pages/home/ClubRewardsPage'))
+const ActivitySchedulePage = lazy(() => import('../pages/home/ActivitySchedulePage'))
+const ActivityAttendancePage = lazy(() => import('../pages/home/ActivityAttendancePage'))
+const MyEventsPage = lazy(() => import('../pages/home/MyEventsPage'))
+const ClubInvitationsPage = lazy(() => import('../pages/home/ClubInvitationsPage'))
+const ClubPollsPage = lazy(() => import('../pages/home/ClubPollsPage'))
+const ClubFinancePage = lazy(() => import('../pages/home/ClubFinancePage'))
+const AdminDashboardPage = lazy(() => import('../pages/admin/AdminDashboardPage'))
+const ClubFeesPage = lazy(() => import('../pages/home/ClubFeesPage'))
+const ClubReceiptDetailPage = lazy(() => import('../pages/home/ClubReceiptDetailPage'))
+const PaymentReturnPage = lazy(() => import('../pages/auth/PaymentReturnPage'))
+const ApiTestPage = lazy(() => import('../pages/ApiTestPage'))
 
-import { MY_CLUB_MEMBERSHIPS } from '../data/mockData'
+
+import { CURRENT_USER } from '../data/mockData'
 import { getMyProfile } from '../api/profile.api'
 import { getMyClubs } from '../api/memberClubMembership.api'
-import { apiRequest } from '../api/api'
+import { apiRequest, invalidateApiCache } from '../api/api'
 
-
-function getMembership(clubId) {
-  return MY_CLUB_MEMBERSHIPS.find((item) => item.clubId === clubId)
-}
-
-function canManageClubMembers(clubId) {
-  return getMembership(clubId)?.role?.toLowerCase() === 'leader'
-}
-
-function canManageClubInvitations(clubId) {
-  const role = getMembership(clubId)?.role?.toLowerCase()
-  return role === 'president' || role === 'leader' || role === 'secretary'
-}
-
-function canManageClubEvents(clubId) {
-  const role = getMembership(clubId)?.role?.toLowerCase()
-  return role === 'leader' || role === 'event management'
-}
-
-function isClubMember(clubId) {
-  return MY_CLUB_MEMBERSHIPS.some((item) => item.clubId === clubId)
-}
-
-function canManageClubRewards(clubId) {
-  const role = getMembership(clubId)?.role?.toLowerCase()
-  return role === 'leader' || role === 'vice leader'
-}
-
-function canManageActivitySchedule(clubId) {
-  return getMembership(clubId)?.role?.toLowerCase() === 'secretary'
-}
-
-function canManageClubPolls(clubId) {
-  const role = getMembership(clubId)?.role?.toLowerCase()
-  return role === 'president' || role === 'leader' || role === 'secretary'
-}
-
-function canManageClubFinance(clubId) {
-  return getMembership(clubId)?.role?.toLowerCase() === 'treasurer'
-}
 
 function ProtectedLayout({
   pageId,
@@ -97,7 +58,12 @@ function ProtectedLayout({
 }) {
   const navigate = useNavigate()
   const isAuthenticated = Boolean(localStorage.getItem('token'))
-  const [currentUser, setCurrentUser] = useState(CURRENT_USER)
+  const [currentUser, setCurrentUser] = useState(() => {
+    if (isAuthenticated) {
+      return { fullName: '', email: '', avatarUrl: '', avatarInitial: '', role: '' }
+    }
+    return CURRENT_USER
+  })
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
@@ -123,6 +89,7 @@ function ProtectedLayout({
         console.error("Failed to load user profile in ProtectedLayout:", err)
         if (typeof navigator !== 'undefined' && !navigator.onLine) {
           localStorage.removeItem('token')
+          invalidateApiCache()
           window.location.href = '/login'
         }
       }
@@ -150,6 +117,7 @@ function ProtectedLayout({
     } finally {
       // Đảm bảo luôn xóa token và làm mới trang Login sạch sẽ
       localStorage.removeItem('token')
+      invalidateApiCache()
       window.location.href = '/login'
     }
   }
@@ -217,6 +185,128 @@ function ProtectedLayout({
   )
 }
 
+function RouteLoading({
+  message = 'Authenticating Permissions',
+  subtitle = 'Verifying your club membership and access role...',
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '70vh',
+        padding: '2rem 1rem',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '2.5rem 2.75rem',
+          background: '#ffffff',
+          borderRadius: '24px',
+          boxShadow: '0 20px 50px rgba(245, 124, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.03)',
+          border: '1px solid rgba(245, 124, 0, 0.12)',
+          maxWidth: '420px',
+          width: '100%',
+          textAlign: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          animation: 'routeLoadingFadeIn 0.25s ease-out',
+        }}
+      >
+        {/* Top glowing progress line */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '3.5px',
+            background: 'linear-gradient(90deg, #F57C00, #ff9f2f, #ea580c, #F57C00)',
+            backgroundSize: '200% 100%',
+            animation: 'routeLoadingGradient 1.8s linear infinite',
+          }}
+        />
+
+        {/* Animated Badge / Shield Spinner */}
+        <div style={{ position: 'relative', width: '64px', height: '64px', marginBottom: '1.25rem' }}>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: '50%',
+              border: '3px solid rgba(245, 124, 0, 0.14)',
+              borderTopColor: '#F57C00',
+              borderRightColor: '#ff9f2f',
+              animation: 'routeLoadingSpin 0.85s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: '7px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #fff8f0 0%, #ffe9d6 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ea580c',
+              boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.8)',
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+          </div>
+        </div>
+
+        <h3
+          style={{
+            margin: '0 0 0.4rem',
+            color: '#1e293b',
+            fontSize: '1.06rem',
+            fontWeight: 800,
+            letterSpacing: '-0.01em',
+          }}
+        >
+          {message}
+        </h3>
+
+        <p
+          style={{
+            margin: 0,
+            color: '#64748b',
+            fontSize: '0.86rem',
+            lineHeight: 1.5,
+            fontWeight: 500,
+          }}
+        >
+          {subtitle}
+        </p>
+
+        <style>{`
+          @keyframes routeLoadingSpin {
+            to { transform: rotate(360deg); }
+          }
+          @keyframes routeLoadingGradient {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+          }
+          @keyframes routeLoadingFadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
+      </div>
+    </div>
+  )
+}
+
 function ClubRoute({ pageId, guard = 'member', children }) {
   const { clubId } = useParams()
   const navigate = useNavigate()
@@ -248,18 +338,12 @@ function ClubRoute({ pageId, guard = 'member', children }) {
             joinedDate: found.joined_at || found.joinedDate || ''
           })
         } else {
-          // Fallback to mock data if not found in backend response (for mock compatibility)
-          const mockFound = MY_CLUB_MEMBERSHIPS.find(item => String(item.clubId) === String(clubId))
-          if (mockFound) {
-            setMembership(mockFound)
-          }
+          setMembership(null)
         }
       } catch (err) {
         console.error("Failed to fetch clubs membership:", err)
-        // Fallback to mock data on error
-        const mockFound = MY_CLUB_MEMBERSHIPS.find(item => String(item.clubId) === String(clubId))
-        if (mockFound && active) {
-          setMembership(mockFound)
+        if (active) {
+          setMembership(null)
         }
       } finally {
         if (active) setLoading(false)
@@ -272,9 +356,10 @@ function ClubRoute({ pageId, guard = 'member', children }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <p>Authenticating access permissions...</p>
-      </div>
+      <RouteLoading
+        message="Authenticating Permissions"
+        subtitle="Verifying your club membership and access role..."
+      />
     )
   }
 
@@ -493,6 +578,16 @@ function ClubReceiptRoute() {
 }
 
 
+function ScrollToTop() {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [pathname])
+
+  return null
+}
+
 function AppRouter() {
   const navigate = useNavigate()
   const isAuthenticated = Boolean(localStorage.getItem('token'))
@@ -507,6 +602,7 @@ function AppRouter() {
       console.warn('Network error during admin logout:', e)
     } finally {
       localStorage.removeItem('token')
+      invalidateApiCache()
       window.location.href = '/login'
     }
   }
@@ -516,6 +612,7 @@ function AppRouter() {
       if (localStorage.getItem('token')) {
         console.warn('Network lost! Auto clearing token and redirecting to login...')
         localStorage.removeItem('token')
+        invalidateApiCache()
         window.location.href = '/login'
       }
     }
@@ -533,7 +630,9 @@ function AppRouter() {
 
   return (
     <>
-      <Routes>
+      <ScrollToTop />
+      <Suspense fallback={<RouteLoading message="Loading Page..." subtitle="Preparing page resources..." />}>
+        <Routes>
       <Route
         path="/login"
         element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
@@ -699,6 +798,7 @@ function AppRouter() {
 
       <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />} />
     </Routes>
+    </Suspense>
 
       <LogoutConfirmModal
         isOpen={showAdminLogout}
@@ -755,9 +855,10 @@ function AdminRoute({ children }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', fontWeight: 'bold' }}>
-        Checking Admin Access...
-      </div>
+      <RouteLoading
+        message="Verifying Admin Access"
+        subtitle="Validating administrative credentials and security tokens..."
+      />
     )
   }
 

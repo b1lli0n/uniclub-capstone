@@ -427,7 +427,11 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                   <div className="club-fee-card__amount-wrap">
                     <strong className="club-fee-card__amount">{formatVND(item.amount)}</strong>
                     {isPending && (
-                      <span className="club-fee-badge club-fee-badge--pending">⏱️ Unpaid</span>
+                      item.period && item.period !== 'FA26' ? (
+                        <span className="club-fee-badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontWeight: 800 }}>⚠️ Quá hạn</span>
+                      ) : (
+                        <span className="club-fee-badge club-fee-badge--pending">⏱️ Chưa đóng</span>
+                      )
                     )}
                     {isSuccess && (
                       <span className="club-fee-badge club-fee-badge--success">✓ Paid</span>

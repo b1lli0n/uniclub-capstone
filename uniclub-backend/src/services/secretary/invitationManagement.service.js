@@ -86,7 +86,18 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
   }
 
   if (!invitedUser) {
-    throw getStatusError("User not found with email or student ID: " + invited_user_id, 404);
+    if (typeof invited_user_id === "string" && invited_user_id.includes("@")) {
+      const emailLower = invited_user_id.trim().toLowerCase();
+      invitedUser = await User.create({
+        email: emailLower,
+        full_name: invited_user_id.trim().split("@")[0],
+        provider: "feid",
+        provider_id: "invited_" + Date.now(),
+        role: "student",
+      });
+    } else {
+      throw getStatusError("User not found with email or student ID: " + invited_user_id, 404);
+    }
   }
 
   const resolvedUserId = invitedUser._id;
@@ -147,32 +158,56 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
   const expirationDays = 3;
   const expiresAt = new Date(Date.now() + expirationDays * 24 * 60 * 60 * 1000);
 
+  const isDemo = invitedUser.email && invitedUser.email.toLowerCase().includes("demo");
+  const invitationStatus = isDemo ? "accepted" : "pending";
+
   const invitation = await Invitation.create({
     club_id: clubId,
     invited_user_id: resolvedUserId,
     invited_by: secretaryMember ? secretaryMember._id : secretaryId,
     role: invitationRole,
     message: typeof message === "string" && message.trim() ? message.trim() : defaultInvitationMessage,
-    status: "pending",
+    status: invitationStatus,
     expires_at: expiresAt,
   });
 
-  // Send Email Notification to invited student
-  try {
-    const club = await Club.findById(clubId);
-    if (invitedUser?.email && club) {
-      sendInvitationEmail({
-        toEmail: invitedUser.email,
-        userName: invitedUser.full_name || "Student",
-        clubName: club.name || "Club",
+  if (isDemo) {
+    // Auto-accept into ClubMember for demo users
+    let cm = await ClubMember.findOne({
+      club_id: clubId,
+      user_id: resolvedUserId,
+    });
+    if (!cm) {
+      await ClubMember.create({
+        club_id: clubId,
+        user_id: resolvedUserId,
         role: invitationRole,
-        message: typeof message === "string" ? message.trim() : "",
-        expiresAt,
-        isResend: false,
-      }).catch((err) => console.error("Invitation email error:", err.message));
+        status: "active",
+        joined_at: new Date(),
+      });
+    } else {
+      cm.role = invitationRole;
+      cm.status = "active";
+      await cm.save();
     }
-  } catch (err) {
-    console.error("Failed to trigger invitation email:", err.message);
+  } else {
+    // Send Email Notification to real student
+    try {
+      const club = await Club.findById(clubId);
+      if (invitedUser?.email && club) {
+        sendInvitationEmail({
+          toEmail: invitedUser.email,
+          userName: invitedUser.full_name || "Student",
+          clubName: club.name || "Club",
+          role: invitationRole,
+          message: typeof message === "string" ? message.trim() : "",
+          expiresAt,
+          isResend: false,
+        }).catch((err) => console.error("Invitation email error:", err.message));
+      }
+    } catch (err) {
+      console.error("Failed to trigger invitation email:", err.message);
+    }
   }
 
   return populateInvitation(Invitation.findById(invitation._id));

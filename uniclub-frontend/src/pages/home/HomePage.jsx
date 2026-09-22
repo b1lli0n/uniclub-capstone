@@ -44,7 +44,9 @@ function HomePage({ onCreateClub, onSelectClub, onSelectEvent, onViewAll }) {
       try {
         const res = await getPublicEvents()
         if (active) {
-          const mapped = (res.data || []).map(event => {
+          const mapped = (res.data || [])
+            .filter(event => event.is_public !== false)
+            .map(event => {
             return {
               id: event._id || event.id,
               title: event.title,

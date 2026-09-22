@@ -212,28 +212,46 @@
 .club-ranking-header__logo {
   width: 64px;
   height: 64px;
-  padding: 4px;
-  border: 2px solid rgba(245, 124, 0, 0.26);
+  padding: 3px;
+  border: 2px solid rgba(245, 124, 0, 0.35);
   border-radius: 50%;
   box-sizing: border-box;
   flex-shrink: 0;
   background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
   box-shadow:
-    0 8px 18px rgba(245, 124, 0, 0.12),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.75);
+    0 8px 20px rgba(245, 124, 0, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.85);
 }
 
 .club-ranking-header__logo.club-logo {
-  color: #7d6ad8;
-  font-size: 1.15rem;
-  box-shadow:
-    0 8px 18px rgba(245, 124, 0, 0.12),
-    inset 0 0 0 999px rgba(125, 106, 216, 0.08);
+  color: #ea580c;
+  font-size: 1.35rem;
+  font-weight: 900;
 }
 
 .club-ranking-header__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   border-radius: 50%;
+  display: block;
 }
+
+.club-ranking-header__logo span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #ea580c;
+  font-weight: 900;
+  text-shadow: none;
+}
+
 
 .club-ranking-content {
   display: grid;
@@ -243,12 +261,12 @@
 
 .club-ranking-podium {
   position: relative;
-  min-height: 330px;
+  min-height: 380px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: end;
   gap: 0.9rem;
-  padding: 2.25rem 1.15rem 1.3rem;
+  padding: 3.25rem 1.15rem 1.3rem;
   border-radius: 20px;
   background:
     radial-gradient(circle at 48% 18%, rgba(255, 255, 255, 0.82), transparent 28%),
@@ -284,10 +302,11 @@
 }
 
 .club-ranking-podium__item--rank-1 {
-  min-height: 260px;
+  min-height: 305px;
   order: 2;
-  transform: translateY(-0.35rem);
+  transform: translateY(-2.25rem);
 }
+
 
 .club-ranking-podium__item--rank-2 {
   min-height: 230px;
@@ -429,12 +448,13 @@
 
 .club-ranking-podium__item--rank-1 small {
   width: min(100%, 136px);
-  min-height: 172px;
-  padding-top: 4.1rem;
+  min-height: 205px;
+  padding-top: 4.5rem;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 24%),
     linear-gradient(180deg, #ffbd61 0%, #e58330 100%);
 }
+
 
 .club-ranking-podium__item--rank-3 small {
   background:
@@ -505,6 +525,35 @@
 
 .club-ranking-row:last-child {
   margin-bottom: 0;
+}
+
+.club-ranking-table__footer {
+  padding: 0.65rem;
+  background: #fff8f2;
+  border-top: 2px solid #ffe6c9;
+}
+
+.club-ranking-row--my-rank {
+  border: 1.5px solid #F57C00;
+  background: #fffcf8;
+  box-shadow: 0 4px 14px rgba(245, 124, 0, 0.12);
+  margin-bottom: 0;
+}
+
+.club-ranking-row--my-rank .club-ranking-row__rank {
+  color: #ea580c;
+}
+
+.club-ranking-row__you-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ea580c;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 .club-ranking-row__rank {

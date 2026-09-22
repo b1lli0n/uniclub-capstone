@@ -80,8 +80,8 @@ app.use("/api/president/join-request-management", presidentJoinRequestManagement
 app.use("/api/student/feedback-management", feedbackManagementRoutes);
 app.use("/api/student/clubs-membership", studentClubMembershipRoutes);
 app.use("/api/event-manager/event-management", eventManagerRoutes);
-app.use("/api/member/clubs/:clubId/activity-schedule",memberActivityScheduleRoutes);
-app.use("/api/secretary/clubs/:clubId/activity-schedule",secretaryActivityScheduleRoutes);
+app.use("/api/member/clubs/:clubId/activity-schedule", memberActivityScheduleRoutes);
+app.use("/api/secretary/clubs/:clubId/activity-schedule", secretaryActivityScheduleRoutes);
 app.use("/api/member/clubs/:clubId/polls", memberPollRoutes);
 app.use("/api/secretary/clubs/:clubId/polls", secretaryPollRoutes);
 app.use("/api/president/reward-management", rewardManagementRoutes);

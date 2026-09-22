@@ -54,15 +54,25 @@ const getMemberRewards = async ({ clubId, userId, search }) => {
   const [rewards, { availablePoints, pendingPoints, memberPoints }] = await Promise.all([
     Reward.find(filter)
       .sort({ created_at: -1 })
-      .select("_id name description points_required image_url quantity status created_at"),
+      .select("_id name description points_required point_cost image_url quantity status created_at"),
     calculateAvailablePoints(membership._id, membership.reward_point),
   ]);
+
+  const mappedRewards = rewards.map((r) => {
+    const doc = r.toObject ? r.toObject() : r;
+    const cost = doc.points_required ?? doc.point_cost ?? 0;
+    return {
+      ...doc,
+      points_required: cost,
+      point_cost: cost,
+    };
+  });
 
   return {
     available_points: availablePoints,
     total_points: memberPoints,
     pending_points: pendingPoints,
-    rewards,
+    rewards: mappedRewards,
   };
 };
 
@@ -74,7 +84,7 @@ const getMemberRewardDetail = async ({ clubId, rewardId, userId }) => {
     getActiveMembership(clubId, userId),
     Reward.findOne({ _id: rewardId, club_id: clubId, status: "active" })
       .populate("club_id", "_id name logo_url")
-      .select("_id club_id name description points_required image_url quantity status created_at updated_at"),
+      .select("_id club_id name description points_required point_cost image_url quantity status created_at updated_at"),
   ]);
 
   if (!reward) {
@@ -86,12 +96,18 @@ const getMemberRewardDetail = async ({ clubId, rewardId, userId }) => {
     membership.reward_point
   );
 
+  const cost = reward.points_required ?? reward.point_cost ?? 0;
+
   return {
     available_points: availablePoints,
     total_points: memberPoints,
     pending_points: pendingPoints,
-    can_redeem: reward.quantity > 0 && availablePoints >= reward.points_required,
-    reward,
+    can_redeem: reward.quantity > 0 && availablePoints >= cost,
+    reward: {
+      ...reward.toObject(),
+      points_required: cost,
+      point_cost: cost,
+    },
   };
 };
 
@@ -159,16 +175,14 @@ const redeemReward = async ({ clubId, rewardId, userId }) => {
     throw getStatusError("Reward is out of stock", 409);
   }
 
-  if (!membership) {
-    throw getStatusError("You are not an active member of this club", 403);
-  }
+  const membership = await getActiveMembership(clubId, userId);
 
   const { availablePoints } = await calculateAvailablePoints(
     membership._id,
     membership.reward_point
   );
 
-  const cost = reward.points_required ?? 100;
+  const cost = reward.points_required ?? reward.point_cost ?? 100;
   if (availablePoints < cost) {
     throw getStatusError("Insufficient reward points", 400);
   }

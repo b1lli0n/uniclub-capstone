@@ -1,7 +1,9 @@
 const JoinForm = require("../../models/join_form.model");
 const JoinRequest = require("../../models/join_request.model");
 const ClubMember = require("../../models/club_member.model");
+const Club = require("../../models/club.model");
 const { getStatusError } = require("../../utils/error");
+const { sendNewJoinRequestEmailToPresident } = require("../email.service");
 
 const getClubJoinForm = async (clubId) => {
   const form = await JoinForm.findOne({
@@ -125,10 +127,30 @@ const submitJoinRequest = async (userId, clubId, formId, answers) => {
     status: "pending",
   });
 
-  return joinRequest.populate([
-    { path: "club_id", select: "_id name logo_url" },
+  const populated = await joinRequest.populate([
+    { path: "club_id", select: "_id name logo_url president_id" },
     { path: "form_id", select: "_id title questions" },
+    { path: "user_id", select: "_id full_name email" },
   ]);
+
+  // Gửi email thông báo cho Chủ nhiệm CLB
+  try {
+    const club = await Club.findById(clubId).populate("president_id", "email full_name");
+    if (club?.president_id?.email) {
+      sendNewJoinRequestEmailToPresident({
+        presidentEmail: club.president_id.email,
+        presidentName: club.president_id.full_name,
+        applicantName: populated.user_id?.full_name || "Applicant",
+        applicantEmail: populated.user_id?.email || "",
+        clubName: club.name,
+        answers: formattedAnswers,
+      }).catch((err) => console.error("Error sending join request email to president:", err));
+    }
+  } catch (err) {
+    console.error("Failed to notify president via email:", err);
+  }
+
+  return populated;
 };
 
 const getMyJoinRequests = async (userId, { status } = {}) => {

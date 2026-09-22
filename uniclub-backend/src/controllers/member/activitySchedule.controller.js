@@ -19,13 +19,18 @@ const getClubActivitySchedule = async (req, res, next) => {
       return next(getStatusError("Invalid end_date", 400));
     }
 
-    const data = await activityScheduleService.getClubActivitySchedule(clubId, {
-      start_date: startDate,
-      end_date: endDate,
-      search,
-      page,
-      limit,
-    });
+    const userId = req.user?.id || req.user?._id;
+    const data = await activityScheduleService.getClubActivitySchedule(
+      clubId,
+      {
+        start_date: startDate,
+        end_date: endDate,
+        search,
+        page,
+        limit,
+      },
+      userId
+    );
 
     return res.status(200).json({
       success: true,
@@ -49,7 +54,8 @@ const getActivityScheduleDetail = async (req, res, next) => {
       return next(getStatusError("Invalid activityId", 400));
     }
 
-    const data = await activityScheduleService.getActivityScheduleDetail(clubId, activityId);
+    const userId = req.user?.id || req.user?._id;
+    const data = await activityScheduleService.getActivityScheduleDetail(clubId, activityId, userId);
 
     return res.status(200).json({
       success: true,

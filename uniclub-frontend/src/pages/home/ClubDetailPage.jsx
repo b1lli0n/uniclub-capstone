@@ -35,9 +35,9 @@ function mapEventFromApi(apiEvent) {
   const endDate = apiEvent.end_time ? new Date(apiEvent.end_time) : startDate
   const now = new Date()
 
-  // Kiểm tra xem sự kiện đã qua ngày / kết thúc hay chưa
-  const isPast = endDate ? endDate < now : false
-  const isOngoing = startDate && endDate ? (startDate <= now && now <= endDate) : false
+  const isCheckinOpen = apiEvent.check_in_status === 'open'
+  const isOngoing = isCheckinOpen || (startDate && endDate ? (startDate <= now && now <= endDate) : false)
+  const isPast = isCheckinOpen || apiEvent.status === 'opening' ? false : (endDate ? endDate < now : false)
   const isUpcoming = startDate ? startDate > now : false
 
   const formattedDate = formatDateVN(apiEvent.start_time)
@@ -46,7 +46,7 @@ function mapEventFromApi(apiEvent) {
   let statusLabel = 'Upcoming'
   let statusTone = 'upcoming'
 
-  if (apiEvent.check_in_status === 'open') {
+  if (isCheckinOpen) {
     statusLabel = 'Check-in Open'
     statusTone = 'open'
   } else if (isOngoing) {
@@ -151,16 +151,11 @@ function ClubDetailPage({ clubId, onBack }) {
     async function loadClubDetail() {
       setLoading(true)
       try {
-        const [clubResponse, membersResponse, myClubsResponse] = await Promise.all([
-          getClubById(clubId),
-          getClubMembers(clubId).catch(() => ({ data: [] })),
-          getMyClubs().catch(() => ({ data: [] })),
-        ])
+        // Start myClubs first (cached) to know if member before kicking off events fetch
+        const myClubsPromise = getMyClubs().catch(() => ({ data: [] }))
+        const myClubsResponse = await myClubsPromise
 
         if (cancelled) return
-
-        setClub(mapClubFromApi(clubResponse.data, { memberCount: membersResponse.data?.length }))
-        setMemberRows((membersResponse.data || []).map((member, index) => mapMemberFromApi(member, index)))
 
         const membership = (myClubsResponse.data || []).find((item) => {
           const id = item.club_id?._id || item.club_id
@@ -169,16 +164,19 @@ function ClubDetailPage({ clubId, onBack }) {
 
         const isMember = Boolean(membership)
 
-        // Fetch events based on membership status
-        let eventsRes
-        if (isMember) {
-          eventsRes = await getClubEventsForMember(clubId).catch(() => ({ data: [] }))
-        } else {
-          eventsRes = await getPublicEvents({ clubId }).catch(() => ({ data: [] }))
-        }
+        // Now fire all remaining fetches in parallel
+        const [clubResponse, membersResponse, eventsRes] = await Promise.all([
+          getClubById(clubId),
+          getClubMembers(clubId).catch(() => ({ data: [] })),
+          isMember
+            ? getClubEventsForMember(clubId).catch(() => ({ data: [] }))
+            : getPublicEvents({ clubId }).catch(() => ({ data: [] })),
+        ])
 
         if (cancelled) return
 
+        setClub(mapClubFromApi(clubResponse.data, { memberCount: membersResponse.data?.length }))
+        setMemberRows((membersResponse.data || []).map((member, index) => mapMemberFromApi(member, index)))
         setEvents((eventsRes.data || []).map((ev) => mapEventFromApi(ev)))
 
         setCurrentMembership(
@@ -233,11 +231,12 @@ function ClubDetailPage({ clubId, onBack }) {
       const priorityB = ROLE_PRIORITY[b.rawRole?.toLowerCase()] || 99
       return priorityA - priorityB
     })
-  // Lọc chỉ các sự kiện chưa qua ngày (sắp diễn ra hoặc đang diễn ra), sắp xếp gần nhất lên trước
-  const upcomingEvents = events
-    .filter((event) => !event.isPast)
+  // Ưu tiên hiển thị các sự kiện đang mở check-in, đang diễn ra hoặc sắp tới
+  const activeOrUpcomingEvents = events
+    .filter((event) => !event.isPast || event.checkinOpen)
     .sort((a, b) => a.rawStartTime - b.rawStartTime)
-  const previewClubEvents = upcomingEvents.slice(0, 3)
+  // Nếu có sự kiện đang/sắp diễn ra thì lấy 3 sự kiện đầu, ngược lại hiển thị 3 sự kiện gần nhất
+  const previewClubEvents = (activeOrUpcomingEvents.length > 0 ? activeOrUpcomingEvents : events).slice(0, 3)
   const hiddenPrivateEventsCount = 0
 
   async function openJoinModal() {

@@ -13,6 +13,7 @@ const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 const getPublicEvents = async ({ clubId } = {}) => {
   const filter = {
     is_public: true,
+    progress_status: "completed",
     status: { $ne: "cancelled" },
   };
 
@@ -48,6 +49,7 @@ const getClubEventsForMember = async ({ clubId, userId }) => {
 
   const events = await Event.find({
     club_id: clubId,
+    progress_status: "completed",
     status: { $ne: "cancelled" },
   })
     .sort({ start_time: -1 })
@@ -67,6 +69,29 @@ const getEventDetail = async ({ eventId, currentUser }) => {
 
   if (!event) {
     throw getStatusError("Event not found", 404);
+  }
+
+  // If event is in draft mode, only club managers can view details
+  if (event.progress_status === "draft") {
+    let canViewDraft = false;
+    if (currentUser?.id) {
+      const membership = await ClubMember.findOne({
+        user_id: currentUser.id,
+        club_id: event.club_id._id || event.club_id,
+        status: "active",
+      });
+      if (
+        membership &&
+        ["president", "event_manager", "secretary", "treasurer", "leader"].includes(
+          membership.role
+        )
+      ) {
+        canViewDraft = true;
+      }
+    }
+    if (!canViewDraft) {
+      throw getStatusError("Event is in draft mode and not published yet", 404);
+    }
   }
 
   // Check roles/visibility if event is private
@@ -131,45 +156,28 @@ const registerForEvent = async ({ eventId, userId, userEmail }) => {
     throw getStatusError("Event not found", 404);
   }
 
-  // 1. Check event cancellation, closed status, or draft mode
-  if (event.status === "cancelled") {
-    throw getStatusError("Cannot register for a cancelled event", 400);
-  }
-
-  if (event.status === "closed") {
-    throw getStatusError("Event registration is closed", 400);
-  }
-
+  // 1. Check event cancellation, draft mode, and status (BR-25)
   if (event.progress_status === "draft") {
     throw getStatusError("Event is in draft mode and not open for registration", 400);
   }
 
-  // 2. Check registration time window [Registration_Start, Registration_End] (BR-25)
+  if (event.status !== "coming_soon") {
+    if (event.status === "cancelled") {
+      throw getStatusError("Cannot register for a cancelled event", 400);
+    }
+    if (event.status === "closed") {
+      throw getStatusError("Event registration is closed", 400);
+    }
+    throw getStatusError("Registration is only open when event status is coming soon", 400);
+  }
+
+  // 2. Check event start and end time
   const now = new Date();
-  const regStart = event.registration_start;
-  const regEnd = event.registration_end;
-
-  if (regStart && now < new Date(regStart)) {
-    throw getStatusError(
-      `Registration has not opened yet. Registration window starts at ${new Date(regStart).toISOString()}`,
-      400
-    );
-  }
-
-  if (regEnd && now > new Date(regEnd)) {
-    throw getStatusError(
-      `Registration has closed. Registration window ended at ${new Date(regEnd).toISOString()}`,
-      400
-    );
-  }
-
-  // Fallback if registration_end is not set: cannot register after event start
-  if (!regEnd && event.start_time && now > new Date(event.start_time)) {
+  if (event.start_time && now >= new Date(event.start_time)) {
     throw getStatusError("Cannot register because the event has already started", 400);
   }
 
-  // Check event end time
-  if (event.end_time && now > new Date(event.end_time)) {
+  if (event.end_time && now >= new Date(event.end_time)) {
     throw getStatusError("Cannot register because the event has ended", 400);
   }
 

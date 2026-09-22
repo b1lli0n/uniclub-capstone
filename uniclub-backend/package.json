@@ -9,7 +9,7 @@
     "test": "jest",
     "seed": "node seed.js",
     "seed:club": "node seed-club.js",
-    "seed:demo": "node seed_checkin_demo.js"
+    "seed:demo": "node seed_demo_data.js"
   },
   "keywords": [
     "express",
@@ -37,6 +37,7 @@
     "nodemailer": "^9.0.5",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
+    "pdf-parse": "^2.4.5",
     "qs": "^6.15.3",
     "selfsigned": "^5.5.0",
     "uniclub-monorepo": "file:..",
