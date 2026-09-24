@@ -25,6 +25,9 @@ usecasedes/
 usecasedescription.md
 sequence/
 test/
+doc-tools/
+*.drawio
+.*.drawio.bkp
 
 # Doc generation and helper scripts
 build_*_docs.js
@@ -32,4 +35,7 @@ docx_*.js
 inject_modules_*.js
 rebuild_*.js
 scratch_*.js
+uniclub-backend/exports/
+
+
 

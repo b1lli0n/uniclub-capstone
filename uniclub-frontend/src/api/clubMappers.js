@@ -61,6 +61,22 @@ export function mapClubFromApi(club, extras = {}) {
     (typeof extras.leader === 'string' ? extras.leader : '') ||
     ''
 
+  const membersVal =
+    extras.memberCount ??
+    club.member_count ??
+    club.members_count ??
+    club.members ??
+    club.total_members ??
+    0
+
+  const eventsVal =
+    extras.eventCount ??
+    club.event_count ??
+    club.events_count ??
+    club.events ??
+    club.total_events ??
+    0
+
   return {
     id: club._id || club.id,
     name: club.name || '',
@@ -70,8 +86,8 @@ export function mapClubFromApi(club, extras = {}) {
     categoryLabel: (club.category || 'ACADEMIC').toUpperCase(),
     leader: leaderName,
     leaderId: leader._id || null,
-    members: extras.memberCount ?? club.member_count ?? club.members ?? 0,
-    events: extras.eventCount ?? club.event_count ?? club.events ?? 0,
+    members: membersVal,
+    events: eventsVal,
     logoUrl: club.logo_url || '',
     status: club.status || 'active',
     gradient: CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.academic,

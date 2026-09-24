@@ -78,12 +78,14 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
   }
 
   return (
-    <div className="club-receipt-container">
-      <div className="no-print club-receipt-nav">
+    <main className="club-receipt-wrapper">
+      {/* Top action bar */}
+      <div className="club-receipt-topbar no-print">
         <button
           type="button"
           className="club-fee-btn club-fee-btn--receipt"
           onClick={() => navigate(clubId || receipt?.club?._id ? `/clubs/${clubId || receipt?.club?._id}/fees` : '/my-fees')}
+          id="btn-receipt-back"
         >
           ← Back to Fees
         </button>
@@ -91,30 +93,34 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
           type="button"
           className="club-fee-btn club-fee-btn--pay"
           onClick={() => window.print()}
+          id="btn-receipt-print"
         >
-          🖨️ Print / Download Receipt (PDF)
+          🖨️ Print / Download Receipt
         </button>
       </div>
 
-      <div className="club-receipt-paper">
-        <div className="club-receipt-header">
-          <div className="club-receipt-header__badge">
-            ✓ PAYMENT RECEIPT - SUCCESSFUL
+      {/* Official Receipt Card */}
+      <article className="club-receipt-paper" id="official-e-receipt">
+        <header className="club-receipt-header">
+          <div className="club-receipt-header__brand">
+            <span className="club-receipt-header__logo-icon">🏛️</span>
+            <div>
+              <h1 className="club-receipt-header__title">UNICLUB MANAGEMENT SYSTEM</h1>
+              <p className="club-receipt-header__sub">Official Digital Payment Receipt</p>
+            </div>
           </div>
-          <h1 className="club-receipt-header__title">
-            UNICLUB - CLUB MANAGEMENT SYSTEM
-          </h1>
-          <p className="club-receipt-header__subtitle">
-            FPT University Student Club Activities & Finance Platform
-          </p>
-          <div style={{ marginTop: '0.6rem' }}>
-            <span className="club-receipt-header__id">
-              Receipt ID: #{receipt.receiptId || receipt._id}
+
+          <div className="club-receipt-header__badge-wrap">
+            <span className="club-receipt-badge">
+              ✓ PAYMENT SUCCESSFUL
+            </span>
+            <span className="club-receipt-id">
+              ID: #{receipt.receiptId || receipt._id}
             </span>
           </div>
-        </div>
+        </header>
 
-        <div className="club-receipt-grid">
+        <section className="club-receipt-grid">
           <div className="club-receipt-field">
             <span className="club-receipt-field__label">🏛️ Organizing Club</span>
             <span className="club-receipt-field__value">{receipt.club?.name || 'N/A'}</span>
@@ -127,23 +133,23 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
 
           <div className="club-receipt-field">
             <span className="club-receipt-field__label">✉️ Member Email</span>
-            <span className="club-receipt-field__value" style={{ fontFamily: 'monospace' }}>{receipt.user?.email || 'N/A'}</span>
+            <span className="club-receipt-field__value">{receipt.user?.email || 'N/A'}</span>
           </div>
 
           <div className="club-receipt-field">
             <span className="club-receipt-field__label">📅 Billing Period</span>
-            <span className="club-receipt-field__value">{receipt.period}</span>
+            <span className="club-receipt-field__value">Period {receipt.period}</span>
           </div>
 
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">📝 Description</span>
-            <span className="club-receipt-field__value">{receipt.order_info || `Membership Fee ${receipt.period}`}</span>
+            <span className="club-receipt-field__label">📝 Fee Description</span>
+            <span className="club-receipt-field__value">{receipt.order_info || `Membership Fee - ${receipt.period}`}</span>
           </div>
 
           <div className="club-receipt-field">
             <span className="club-receipt-field__label">💳 Payment Method</span>
-            <span className="club-receipt-field__value" style={{ color: '#0071e3' }}>
-              {receipt.payment_method_label || 'VNPay Sandbox'}
+            <span className="club-receipt-field__value">
+              {String(receipt.payment_method).toLowerCase() === 'cash' || receipt.payment_method === 0 ? '💵 Cash Payment' : '💳 VNPay Online Gateway'}
             </span>
           </div>
 
@@ -158,7 +164,7 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
 
           {receipt.vnp_response_code && (
             <div className="club-receipt-field">
-              <span className="club-receipt-field__label">⚡ Response Code</span>
+              <span className="club-receipt-field__label">⚡ VNPay Response Code</span>
               <span className="club-receipt-field__value" style={{ color: '#16a34a' }}>
                 {receipt.vnp_response_code} (Success)
               </span>
@@ -169,18 +175,24 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
             <span className="club-receipt-field__label">⏰ Paid At</span>
             <span className="club-receipt-field__value">{formatDate(receipt.paid_at || receipt.created_at)}</span>
           </div>
+        </section>
+
+        {/* Total Amount Paid Banner */}
+        <div className="club-receipt-total-bar">
+          <span className="club-receipt-total-label">Total Amount Paid</span>
+          <strong className="club-receipt-total-value">{formatVND(receipt.amount)}</strong>
         </div>
 
-        <div className="club-receipt-total-box">
-          <span className="club-receipt-total-box__label">Total Amount Paid:</span>
-          <span className="club-receipt-total-box__amount">{formatVND(receipt.amount)}</span>
-        </div>
-
-        <div className="club-receipt-footer">
-          <p>🎉 Thank you for contributing to {receipt.club?.name || 'club'} activities!</p>
-          <p>This digital receipt serves as official proof of payment authenticated by the UniClub system.</p>
-        </div>
-      </div>
-    </div>
+        {/* Official Footer Note */}
+        <footer className="club-receipt-footer">
+          <p style={{ margin: '0 0 0.35rem 0', fontWeight: 600, color: '#6e5e52' }}>
+            🎉 Thank you for fulfilling your club membership dues and supporting club activities!
+          </p>
+          <p style={{ margin: 0, fontSize: '0.78rem' }}>
+            This digital receipt serves as verifiable official proof of payment within the UniClub Platform.
+          </p>
+        </footer>
+      </article>
+    </main>
   )
 }

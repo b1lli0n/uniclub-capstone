@@ -409,6 +409,12 @@ function MyRequestsPage() {
                   </strong>
                 </div>
               ) : null}
+              {detailTarget.reviewNote ? (
+                <div className="request-detail-modal__item" style={{ gridColumn: '1 / -1', background: '#fff1f2', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #fecdd3' }}>
+                  <span style={{ color: '#be123c', fontWeight: 900 }}>Lý do từ chối / Phản hồi (Reason / Note)</span>
+                  <strong style={{ color: '#9f1239', fontSize: '0.88rem' }}>{detailTarget.reviewNote}</strong>
+                </div>
+              ) : null}
             </div>
 
             {activeTab === 'received' && isPendingStatus(detailTarget.status) ? (

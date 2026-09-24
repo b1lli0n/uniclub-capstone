@@ -70,4 +70,11 @@ router.put(
   clubManagementController.updateClub
 );
 
+router.patch(
+  "/:clubId",
+  verifyToken,
+  authorize(["student_affairs"]),
+  clubManagementController.updateClub
+);
+
 module.exports = router;

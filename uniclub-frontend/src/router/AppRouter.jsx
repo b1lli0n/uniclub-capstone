@@ -36,8 +36,7 @@ const ClubReceiptDetailPage = lazy(() => import('../pages/home/ClubReceiptDetail
 const PaymentReturnPage = lazy(() => import('../pages/auth/PaymentReturnPage'))
 const ApiTestPage = lazy(() => import('../pages/ApiTestPage'))
 
-
-import { CURRENT_USER } from '../data/mockData'
+import { MY_CLUB_MEMBERSHIPS, CURRENT_USER } from '../data/mockData'
 import { getMyProfile } from '../api/profile.api'
 import { getMyClubs } from '../api/memberClubMembership.api'
 import { apiRequest, invalidateApiCache } from '../api/api'
@@ -793,6 +792,8 @@ function AppRouter() {
           </AdminRoute>
         }
       />
+      <Route path="/admin-dashboard" element={<Navigate to="/admin" replace />} />
+      <Route path="/student-affairs" element={<Navigate to="/admin" replace />} />
 
       <Route path="/test-api" element={<ApiTestPage />} />
 

@@ -4,10 +4,11 @@ const Profile = require("../../models/profile.model");
 const ContributionLog = require("../../models/contribution_log.model");
 const Event = require("../../models/event.model");
 const Activity = require("../../models/activity.model");
+const ActionType = require("../../models/action_type.model");
 const { getStatusError } = require("../../utils/error");
 const mongoose = require("mongoose");
 
-const getLeaderboard = async (clubId) => {
+const getLeaderboard = async (clubId, { month, year } = {}) => {
   if (!mongoose.Types.ObjectId.isValid(clubId)) {
     throw getStatusError("Invalid club ID", 400);
   }
@@ -33,14 +34,17 @@ const getLeaderboard = async (clubId) => {
 
   // 3. Aggregate monthly points for these members
   const now = new Date();
-  const monthKey = new Date(now.getFullYear(), now.getMonth(), 1);
+  const targetYear = year ? parseInt(year, 10) : now.getFullYear();
+  const targetMonth = month ? parseInt(month, 10) - 1 : now.getMonth();
+  const monthStart = new Date(targetYear, targetMonth, 1);
+  const monthEnd = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59, 999);
 
   const memberIds = members.map((m) => m._id);
   const monthlyLogs = await ContributionLog.aggregate([
     {
       $match: {
         membership_id: { $in: memberIds },
-        month_key: monthKey,
+        month_key: { $gte: monthStart, $lte: monthEnd },
       },
     },
     {

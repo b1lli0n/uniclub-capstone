@@ -6,7 +6,6 @@ import heroGroup from '../../assets/hero-group.png'
 import '../../styles/login.css'
 
 
-
 function FptLogo() {
   return <img src={fptUniversityLogo} alt="FPT University" className="login-fpt-logo" />
 }

@@ -9,7 +9,10 @@
     "test": "jest",
     "seed": "node seed.js",
     "seed:club": "node seed-club.js",
-    "seed:demo": "node seed_demo_data.js"
+    "seed:demo": "node seed_demo_data.js",
+    "event:end": "node scripts/end_acoustic_night.js",
+    "points:sync": "node scripts/sync_member_points_logs.js",
+    "fee:reset": "node scripts/reset_fa26_fee.js"
   },
   "keywords": [
     "express",

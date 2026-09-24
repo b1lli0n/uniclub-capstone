@@ -169,6 +169,7 @@
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1041,7 +1042,7 @@
   margin: 0.5rem 0 1rem;
 }
 
-.admin-member-toolbar > span {
+.admin-member-toolbar>span {
   color: #6c5c51;
   font-size: 0.8rem;
   font-weight: 900;
@@ -1637,16 +1638,29 @@
 }
 
 @keyframes admin-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes admin-modal-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes admin-modal-zoom-in {
-  from { opacity: 0; transform: scale(0.95) translateY(8px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
 
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

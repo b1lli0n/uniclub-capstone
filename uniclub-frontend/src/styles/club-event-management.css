@@ -1070,45 +1070,59 @@
 }
 
 /* ── Time-picker selects in timeline editor modal ── */
+.club-event-management-field select.club-event-management-time-select,
 .club-event-management-time-select {
   appearance: none;
   -webkit-appearance: none;
-  height: 40px;
-  border-radius: 10px;
+  width: auto;
+  height: 44px;
+  min-height: 44px;
+  border-radius: 12px;
   border: 1.5px solid #cbd5e1;
-  padding: 0 0.5rem 0 0.75rem;
+  padding: 0 1.35rem 0 0.75rem;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
+  line-height: 1.2;
   font-weight: 800;
   background-color: #ffffff;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='none' stroke='%2364748b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M1 1l3 3 3-3'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.4rem center;
+  background-position: right 0.45rem center;
   color: #0f172a;
   cursor: pointer;
   outline: none;
+  box-sizing: border-box;
+  text-align: center;
   box-shadow: 0 1px 3px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9);
   transition: border-color 0.18s, box-shadow 0.18s;
 }
 
+.club-event-management-field select.club-event-management-time-select--wide,
 .club-event-management-time-select--wide {
-  width: 74px;
+  width: 80px;
+  min-width: 80px;
 }
 
+.club-event-management-field select.club-event-management-time-select--narrow,
 .club-event-management-time-select--narrow {
-  width: 64px;
+  width: 72px;
+  min-width: 72px;
 }
 
+.club-event-management-field select.club-event-management-time-select--period,
 .club-event-management-time-select--period {
-  width: 74px;
+  width: 80px;
+  min-width: 80px;
   color: #ea580c;
   font-weight: 900;
 }
 
+.club-event-management-field select.club-event-management-time-select:hover,
 .club-event-management-time-select:hover {
   border-color: #94a3b8;
 }
 
+.club-event-management-field select.club-event-management-time-select:focus,
 .club-event-management-time-select:focus {
   border-color: #ff8e0b;
   box-shadow: 0 0 0 3px rgba(255, 142, 11, 0.15), 0 1px 3px rgba(0,0,0,0.07);

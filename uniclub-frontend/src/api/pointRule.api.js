@@ -46,8 +46,12 @@ export function awardPointsManually(clubId, memberId, data) {
 }
 
 /** Get club points leaderboard */
-export function getClubLeaderboard(clubId) {
-  return apiRequest(`/member/clubs-membership/${clubId}/points/leaderboard`)
+export function getClubLeaderboard(clubId, params = {}) {
+  const query = new URLSearchParams()
+  if (params.month) query.set('month', params.month)
+  if (params.year) query.set('year', params.year)
+  const qs = query.toString() ? `?${query.toString()}` : ''
+  return apiRequest(`/member/clubs-membership/${clubId}/points/leaderboard${qs}`)
 }
 
 /** Get my contribution logs for a club */
