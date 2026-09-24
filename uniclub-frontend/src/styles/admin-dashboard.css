@@ -1003,11 +1003,12 @@
   font-weight: 900;
 }
 
+.admin-preview-member-role--president,
 .admin-preview-member-role--leader {
   color: #2f8f4e;
 }
 
-.admin-preview-member-role--vice-leader {
+.admin-preview-member-role--event-manager {
   color: #5d8ee8;
 }
 
@@ -1060,11 +1061,12 @@
   z-index: 60;
 }
 
+.admin-role-dropdown--president,
 .admin-role-dropdown--leader {
   --role-color: #2f8f4e;
 }
 
-.admin-role-dropdown--vice-leader {
+.admin-role-dropdown--event-manager {
   --role-color: #5d8ee8;
 }
 

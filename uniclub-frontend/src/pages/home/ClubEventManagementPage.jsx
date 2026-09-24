@@ -678,7 +678,7 @@ function ClubEventManagementPage({ clubId }) {
       <main className="club-event-management-page">
         <section className="club-event-management-empty">
           <h1>Manage Events</h1>
-          <p>Only event management or the club leader can manage club events.</p>
+          <p>Only event management or the club president can manage club events.</p>
         </section>
       </main>
     )

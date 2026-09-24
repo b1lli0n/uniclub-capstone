@@ -1479,16 +1479,6 @@
   border: 1px solid #edd5c0;
 }
 
-.club-profile-modal__leader-tag {
-  display: inline-block;
-  padding: 0.2rem 0.55rem;
-  border-radius: 8px;
-  background: #eb6c18;
-  color: #ffffff;
-  font-size: 0.72rem;
-  font-weight: 850;
-}
-
 .club-profile-modal__loading {
   padding: 2rem 0;
   text-align: center;

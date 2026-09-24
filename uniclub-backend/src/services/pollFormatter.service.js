@@ -20,7 +20,7 @@ const formatPoll = (poll, viewerId) => {
     const user = createdBy.user_id && typeof createdBy.user_id === "object" ? createdBy.user_id : createdBy;
     createdBy = {
       _id: createdBy._id,
-      full_name: user.full_name || createdBy.full_name || "Club Leader",
+      full_name: user.full_name || createdBy.full_name || "Club President",
       avatar_url: user.avatar_url || createdBy.avatar_url || "",
       email: user.email || createdBy.email || "",
       role: createdBy.role || "",

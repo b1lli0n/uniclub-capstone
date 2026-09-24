@@ -18,7 +18,7 @@ import { formatRoleLabel, mapClubFromApi, mapMemberFromApi } from '../../api/clu
 import { CLUB_DETAIL_COPY } from '../../data/mockData'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 import { formatDateVN, formatTimeRange24 } from '../../utils/dateTimeUtils'
-import { StarIcon, XIcon, EyeIcon, TrashIcon } from '../../components/common/Icons'
+import { XIcon, EyeIcon, TrashIcon } from '../../components/common/Icons'
 import '../../styles/club-detail.css'
 
 
@@ -230,12 +230,10 @@ function ClubDetailPage({ clubId, onBack }) {
   const ROLE_PRIORITY = {
     president: 1,
     leader: 1,
-    'vice leader': 2,
-    vice_leader: 2,
-    secretary: 3,
-    treasurer: 4,
-    event_manager: 5,
-    'event manager': 5,
+    secretary: 2,
+    treasurer: 3,
+    event_manager: 4,
+    'event manager': 4,
   }
 
   const detailDescription = club?.description || ''
@@ -477,12 +475,12 @@ function ClubDetailPage({ clubId, onBack }) {
                 <button
                   type="button"
                   className="club-product-card__pending-btn"
-                  title="Your application is awaiting review by club leaders"
+                  title="Your application is awaiting review by the club president"
                   onClick={() => {
                     showToast({
                       type: 'warning',
                       title: 'Request Pending',
-                      message: 'Your join request is currently under review by club leaders.',
+                      message: 'Your join request is currently under review by the club president.',
                     })
                   }}
                 >
@@ -824,9 +822,6 @@ function ClubDetailPage({ clubId, onBack }) {
                   <h3>{selectedMemberProfile.name}</h3>
                   <div className="club-profile-modal__tags">
                     <span className="club-profile-modal__role-tag">{selectedMemberProfile.role}</span>
-                    {selectedMemberProfile.rawRole === 'president' && (
-                      <span className="club-profile-modal__leader-tag">Club President</span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -867,13 +862,6 @@ function ClubDetailPage({ clubId, onBack }) {
                     <span className="club-profile-modal__label">Joined Date</span>
                     <strong className="club-profile-modal__val">
                       {selectedMemberProfile.joinedDate || 'Member'}
-                    </strong>
-                  </div>
-
-                  <div className="club-profile-modal__field">
-                    <span className="club-profile-modal__label">Achievement Points</span>
-                    <strong className="club-profile-modal__val" style={{ color: '#eb6c18', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <StarIcon size={14} fill="#eb6c18" strokeWidth={1.5} /> {selectedMemberProfile.rankingPoint || 0} pts
                     </strong>
                   </div>
                 </div>

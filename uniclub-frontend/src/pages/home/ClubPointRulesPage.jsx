@@ -158,7 +158,7 @@ function createDraft(rule) {
   }
 }
 
-function ClubPointRulesPage({ clubId, isLeader = false }) {
+function ClubPointRulesPage({ clubId, isPresident = false, isLeader = false }) {
   const showToast = useToast()
   const matchedMock = ALL_CLUBS.find(
     (item) =>
@@ -167,7 +167,7 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
       item.name?.toLowerCase().includes('guitar')
   )
   const [club, setClub] = useState(matchedMock ? { name: matchedMock.name || matchedMock.title } : null)
-  const [isManager, setIsManager] = useState(isLeader)
+  const [isManager, setIsManager] = useState(isPresident || isLeader)
   const [rulesList, setRulesList] = useState([])
   const [loading, setLoading] = useState(true)
   const [actionTypes, setActionTypes] = useState([])
@@ -218,7 +218,7 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
         }
 
         const userRole = (mine?.role || '').toLowerCase()
-        const presidentRole = userRole === 'president' || userRole === 'leader' || Boolean(isLeader)
+        const presidentRole = userRole === 'president' || userRole === 'leader' || Boolean(isPresident || isLeader)
         setIsManager(presidentRole)
 
         if (typesRes.data && typesRes.data.length > 0) {

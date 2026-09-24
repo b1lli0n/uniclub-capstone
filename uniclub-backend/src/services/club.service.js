@@ -495,7 +495,7 @@ const updateClubStatus = async ({ clubId, status, reason }) => {
     try {
       const { sendClubDeactivatedEmailToLeader } = require("./email.service");
       let leaderEmail = null;
-      let leaderName = "Club Leader";
+      let leaderName = "Club President";
 
       if (club.president_id) {
         const leaderUser = await User.findById(club.president_id).lean();

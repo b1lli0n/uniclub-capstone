@@ -514,8 +514,8 @@ async function payFeeWithCash({ clubId, requesterId, paymentId }) {
 
   const membership = await getActiveMembership(clubId, requesterId)
 
-  // Only club officers (president, treasurer, manager, vice_president) can confirm cash payments
-  const isOfficer = ['president', 'treasurer', 'manager', 'vice_president'].includes(membership.role)
+  // Only club officers (president, treasurer, manager, event_manager) can confirm cash payments
+  const isOfficer = ['president', 'treasurer', 'manager', 'event_manager'].includes(membership.role)
 
   if (!isOfficer) {
     throw new Error('Chỉ Thủ quỹ hoặc Ban chủ nhiệm CLB mới có quyền xác nhận thu tiền mặt. Vui lòng nộp tiền cho Thủ quỹ.')

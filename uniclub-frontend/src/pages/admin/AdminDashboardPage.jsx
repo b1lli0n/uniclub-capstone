@@ -420,11 +420,11 @@ function AdminDashboardPage({ onLogout }) {
       title: isActivate ? 'Activate club?' : 'Deactivate club?',
       message: isActivate
         ? `Activate ${targetClub?.clubName || 'this club'}? The club will become active and accessible to members.`
-        : `Are you sure you want to deactivate ${targetClub?.clubName || 'this club'}? An email notification will be sent to the club leader.`,
+        : `Are you sure you want to deactivate ${targetClub?.clubName || 'this club'}? An email notification will be sent to the club president.`,
       confirmText: isActivate ? 'Activate' : 'Deactivate',
       tone: isActivate ? 'primary' : 'warning',
       hasInput: !isActivate,
-      inputLabel: 'Reason for deactivation (will be sent via email to the Club Leader):',
+      inputLabel: 'Reason for deactivation (will be sent via email to the Club President):',
       inputPlaceholder: 'Enter reason for club deactivation (e.g., Policy violation, temporary suspension under directive...)...',
       inputRequired: false,
     })
@@ -892,7 +892,7 @@ function AdminDashboardPage({ onLogout }) {
               <strong>{selectedActiveClub.clubName}</strong>
             </div>
             <div className="admin-detail-field">
-              <span>Leader</span>
+              <span>President</span>
               <strong>{activeClubLeader}</strong>
             </div>
             <div className="admin-detail-field">
@@ -1087,7 +1087,7 @@ function AdminDashboardPage({ onLogout }) {
         <div className="admin-table admin-table--clubs" role="table" aria-label="Active clubs">
           <div className="admin-table__row admin-table__row--head admin-table__row--club-head" role="row">
             <span>Club name</span>
-            <span>Leader</span>
+            <span>President</span>
             <span>Members</span>
             <span>Status</span>
             <span aria-label="Actions" />
@@ -1512,7 +1512,7 @@ function AdminDashboardPage({ onLogout }) {
                     <strong>{detailRequest.clubName}</strong>
                   </div>
                   <div className="admin-detail-field">
-                    <span>Leader</span>
+                    <span>President</span>
                     <strong>{detailRequest.leader || detailRequest.sender || 'Unknown'}</strong>
                   </div>
                   <div className="admin-detail-field">
@@ -1681,7 +1681,7 @@ function AdminDashboardPage({ onLogout }) {
               <div className="admin-table" role="table" aria-label="Registration requests">
                 <div className="admin-table__row admin-table__row--head" role="row">
                   <span>Club name</span>
-                  <span>Leader</span>
+                  <span>President</span>
                   <span>Sent date</span>
                   <span>Status</span>
                   <span aria-label="Actions" />

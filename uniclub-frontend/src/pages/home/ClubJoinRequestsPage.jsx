@@ -170,7 +170,7 @@ function ClubJoinRequestsPage({ clubId }) {
       <main className="club-join-requests-page">
         <section className="club-join-requests-empty">
           <h1>Member Approval</h1>
-          <p>Only the club leader can view and manage join requests.</p>
+          <p>Only the club president can view and manage join requests.</p>
         </section>
       </main>
     )

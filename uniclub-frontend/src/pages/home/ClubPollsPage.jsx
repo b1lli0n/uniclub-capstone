@@ -67,7 +67,7 @@ function mapApiPollToLocal(apiItem) {
     options,
     status: apiItem.status || 'open',
     createdAt: apiItem.createdAt ? new Date(apiItem.createdAt).toLocaleDateString('vi-VN') : 'Recently',
-    createdBy: apiItem.created_by?.full_name || apiItem.createdBy || 'Club Leader',
+    createdBy: apiItem.created_by?.full_name || apiItem.createdBy || 'Club President',
     voters: total,
     myVote: myVoteOptionId,
     rawVotes: apiItem.votes || [],

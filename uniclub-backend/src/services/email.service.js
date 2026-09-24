@@ -303,12 +303,12 @@ const sendEventFeedbackSubmittedEmail = async ({ toEmail, userName, clubName, ev
 const sendRedemptionRequestEmailToLeader = async ({ leaderEmail = process.env.EMAIL_USER || "uniclub2402@gmail.com", userName, clubName, rewardTitle, pointCost }) => {
   try {
     const mailer = getTransporter();
-    const subject = `[UniClub Leader] 🎁 New Reward Redemption Request from ${userName}: "${rewardTitle}"`;
+    const subject = `[UniClub President] 🎁 New Reward Redemption Request from ${userName}: "${rewardTitle}"`;
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 16px;">
         <div style="background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); max-width: 550px; margin: 0 auto; border: 1px solid #e2e8f0;">
           <h2 style="color: #ea580c; margin-top: 0;">🎁 New Reward Redemption Request</h2>
-          <p>Hello <strong>${clubName}</strong> Board / Leader,</p>
+          <p>Hello <strong>${clubName}</strong> Board / President,</p>
           <p>Member <strong>${userName}</strong> has submitted a reward redemption request on UniClub:</p>
           <div style="background: #fff7ed; padding: 16px 20px; border-radius: 12px; border-left: 4px solid #ea580c; margin: 20px 0;">
             <p style="margin: 0 0 6px 0;"><strong>Reward Title:</strong> ${rewardTitle}</p>
@@ -672,7 +672,7 @@ const sendClubDeactivatedEmailToLeader = async ({ toEmail, leaderName, clubName,
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
         <h2 style="color: #e53e3e;">⚠️ Club Deactivation Notice</h2>
-        <p>Hello <strong>${leaderName || "Club Leader"}</strong>,</p>
+        <p>Hello <strong>${leaderName || "Club President"}</strong>,</p>
         <p>The Student Affairs Department announces that club <strong>${clubName}</strong> has been set to <strong>Inactive</strong> status on UniClub.</p>
         ${reasonSection}
         <p>During the inactivity period, members cannot interact or create new activities in the club. If you have any inquiries or would like to submit an appeal/explanation, please contact the Student Affairs Department directly.</p>

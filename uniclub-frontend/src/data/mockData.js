@@ -334,11 +334,11 @@ export const CLUB_EVENTS = [
 ]
 
 export const CLUB_MEMBERS = [
-  { id: 'm1', name: 'Mai Thi An', role: 'Leader', tone: '#6b8a9a' },
+  { id: 'm1', name: 'Mai Thi An', role: 'President', tone: '#6b8a9a' },
   { id: 'm2', name: 'Hoang Van Son', role: 'Mentor', tone: '#3d2e24' },
   { id: 'm3', name: 'Pham Thi Tam', role: 'Member', tone: '#ff8e0b' },
   { id: 'm4', name: 'Nguyen Viet Quy', role: 'Secretary', tone: '#f5b87a' },
-  { id: 'm5', name: 'Cao Thi H', role: 'Vice leader', tone: '#7b8fa4' },
+  { id: 'm5', name: 'Cao Thi H', role: 'Event Manager', tone: '#7b8fa4' },
   { id: 'm6', name: 'Chu Thi Nhi', role: 'Treasurer', tone: '#c9714d' },
   { id: 'm7', name: 'Nong Van Son', role: 'Member', tone: '#8f6f4e' },
 ]
@@ -580,7 +580,7 @@ export const EVENT_TIMELINES = [
     eventId: 'basketball-meetup',
     time: '15:20',
     title: 'Club introduction',
-    description: 'Leader introduces the semester activity plan, member groups, and training rules.',
+    description: 'President introduces the semester activity plan, member groups, and training rules.',
     location: 'Room A101',
   },
   {
@@ -955,7 +955,7 @@ export const MY_REQUEST_ITEMS = [
   },
 ]
 
-// Leader club join request data.
+// President club join request data.
 // BE note: replace with GET /clubs/:clubId/join-requests and approve/reject mutations.
 export const CLUB_JOIN_REQUEST_STATUS_OPTIONS = [
   { value: 'all', label: 'All' },
@@ -1009,7 +1009,7 @@ export const CLUB_JOIN_REQUESTS = [
   },
 ]
 
-// Leader join form builder data.
+// President join form builder data.
 // BE note: replace with form request APIs for view/create/update/activate/deactivate.
 export const CLUB_JOIN_FORM_REQUESTS = [
   {
@@ -1124,8 +1124,8 @@ export const ADMIN_NAV_ITEMS = [
 ]
 
 const ADMIN_MEMBER_POOL = [
-  { name: 'Pham Huong D', email: 'phamhuongd@fpt.edu.vn', role: 'Leader' },
-  { name: 'Cao Thi H', email: 'caothih@fpt.edu.vn', role: 'Vice leader' },
+  { name: 'Pham Huong D', email: 'phamhuongd@fpt.edu.vn', role: 'President' },
+  { name: 'Cao Thi H', email: 'caothih@fpt.edu.vn', role: 'Event Manager' },
   { name: 'Ta Van Manh', email: 'tavanmanh@fpt.edu.vn', role: 'Secretary' },
   { name: 'Chu Thi Nhi', email: 'chuthinhi@fpt.edu.vn', role: 'Treasurer' },
   { name: 'Hoang Van G', email: 'hoangvang@fpt.edu.vn', role: 'Member' },

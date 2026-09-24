@@ -402,12 +402,13 @@
   text-overflow: ellipsis;
 }
 
+.my-clubs-role--president,
 .my-clubs-role--leader {
   background: #fff1df;
   color: #2f7a3e;
 }
 
-.my-clubs-role--vice-leader {
+.my-clubs-role--event-manager {
   background: #fff8f2;
   color: #5b7ee8;
 }

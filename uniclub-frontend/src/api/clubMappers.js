@@ -88,6 +88,7 @@ export function mapClubFromApi(club, extras = {}) {
     description: club.description || '',
     category,
     categoryLabel: (club.category || 'ACADEMIC').toUpperCase(),
+    president: leaderName,
     leader: leaderName,
     leaderId: leader._id || null,
     members: membersVal,
@@ -336,7 +337,6 @@ const ADMIN_ROLE_TO_BE = {
   'Event Manager': 'event_manager',
   Member: 'member',
   Leader: 'president',
-  'Vice leader': 'president',
 }
 
 
@@ -352,6 +352,7 @@ export function mapCreationRequestFromApi(request) {
     id: request._id,
     clubName: request.club_name || '',
     sender: request.requested_by?.full_name || 'Unknown',
+    president: request.requested_by?.full_name || 'Unknown',
     leader: request.requested_by?.full_name || 'Unknown',
     sentDate: formatDate(request.created_at),
     status: request.status || 'pending',

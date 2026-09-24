@@ -378,7 +378,7 @@ function ClubAttendancePage({ clubId }) {
       <main className="club-attendance-page">
         <section className="club-attendance-empty">
           <h1>Attendance</h1>
-          <p>Only event management or the club leader can view and update event attendance.</p>
+          <p>Only event management or the club president can view and update event attendance.</p>
         </section>
       </main>
     )

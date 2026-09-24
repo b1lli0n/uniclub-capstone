@@ -367,7 +367,6 @@ function ClubRoute({ pageId, guard = 'member', children }) {
   const isMember = Boolean(membership)
   
   // Back-end roles: president, secretary, event_manager, treasurer, member
-  // Front-end mock roles: leader, vice leader, event management, secretary, member
   const canManageMembers = role === 'president' || role === 'leader'
   const canManageEvents = role === 'president' || role === 'leader' || role === 'event_manager' || role === 'event management'
   const canManageSchedule = role === 'president' || role === 'secretary' || role === 'leader'
@@ -379,7 +378,7 @@ function ClubRoute({ pageId, guard = 'member', children }) {
   const isAllowed =
     guard === 'member'
       ? canViewFees
-      : guard === 'leader'
+      : guard === 'president' || guard === 'leader'
         ? canManageMembers
         : guard === 'event-manager'
           ? canManageEvents
@@ -410,7 +409,7 @@ function ClubRoute({ pageId, guard = 'member', children }) {
         clubId,
         membership,
         navigate,
-        canManageRewards: role === 'president' || role === 'leader' || role === 'vice leader',
+        canManageRewards: role === 'president' || role === 'leader',
         canManageSchedule,
         canManagePolls,
         canManageInvitations,
@@ -444,7 +443,7 @@ function ClubRankingRoute() {
 
 function ClubJoinRequestsRoute() {
   return (
-    <ClubRoute pageId="member-approval" guard="leader">
+    <ClubRoute pageId="member-approval" guard="president">
       {({ clubId }) => <ClubJoinRequestsPage clubId={clubId} />}
     </ClubRoute>
   )
@@ -482,7 +481,7 @@ function ClubFinanceRoute() {
 
 function ClubJoinFormRoute() {
   return (
-    <ClubRoute pageId="join-form" guard="leader">
+    <ClubRoute pageId="join-form" guard="president">
       {({ clubId }) => <ClubJoinFormPage clubId={clubId} />}
     </ClubRoute>
   )
@@ -516,7 +515,7 @@ function ClubPointRulesRoute() {
   return (
     <ClubRoute pageId="point-rules" guard="member">
       {({ clubId, canManageRewards }) => (
-        <ClubPointRulesPage clubId={clubId} isLeader={canManageRewards} />
+        <ClubPointRulesPage clubId={clubId} isPresident={canManageRewards} isLeader={canManageRewards} />
       )}
     </ClubRoute>
   )
