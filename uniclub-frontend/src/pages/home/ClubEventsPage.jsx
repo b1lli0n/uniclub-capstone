@@ -4,9 +4,12 @@ import { getClubById } from '../../api/club.api'
 import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getClubEventsForMember, getPublicEvents } from '../../api/event.api'
 import '../../styles/club-detail.css'
+import Pagination from '../../components/common/Pagination'
 
 import { resolveEventUploadImage } from '../../utils/imageUtils'
 import { formatDateVN, formatTimeRange24 } from '../../utils/dateTimeUtils'
+
+const EVENTS_PER_PAGE = 6
 
 const VISIBILITY_FILTERS = [
   { id: 'all', label: 'All' },
@@ -97,6 +100,11 @@ function ClubEventsPage() {
   const navigate = useNavigate()
   const [visibility, setVisibility] = useState('all')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    setPage(1)
+  }, [visibility, search])
   
   const [club, setClub] = useState(null)
   const [isClubMember, setIsClubMember] = useState(false)
@@ -167,6 +175,13 @@ function ClubEventsPage() {
            events.filter((ev) => !ev.is_public && isClubMember).length
   }, [events, isClubMember])
 
+  const totalPages = Math.max(1, Math.ceil(visibleEvents.length / EVENTS_PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const paginatedEvents = useMemo(() => {
+    const startIndex = (currentPage - 1) * EVENTS_PER_PAGE
+    return visibleEvents.slice(startIndex, startIndex + EVENTS_PER_PAGE)
+  }, [visibleEvents, currentPage])
+
   if (loading) {
     return (
       <div className="club-events-page" style={{ padding: '4rem 0', textAlign: 'center' }}>
@@ -229,7 +244,7 @@ function ClubEventsPage() {
       </section>
 
       <section className="club-events-list" aria-label={`${club.name} events`}>
-        {visibleEvents.map((event) => (
+        {paginatedEvents.map((event) => (
           <article key={event.id} className="club-events-card">
             <div className="club-events-card__media" style={{ '--event-gradient': event.gradient, position: 'relative', overflow: 'hidden' }}>
               {event.imageUrl ? (
@@ -269,6 +284,13 @@ function ClubEventsPage() {
           </article>
         ))}
       </section>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        ariaLabel="Club events pagination"
+      />
 
       {visibleEvents.length === 0 ? (
         <p className="club-events-empty">No club events match this filter.</p>

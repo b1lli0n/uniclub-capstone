@@ -11,7 +11,9 @@ import {
 } from '../../api/poll.api'
 import '../../styles/club-polls.css'
 import { CheckIcon, ClipboardListIcon, LightbulbIcon, EditIcon, LockIcon } from '../../components/common/Icons'
+import Pagination from '../../components/common/Pagination'
 
+const POLLS_PER_PAGE = 6
 const EMPTY_FORM = { title: '', description: '', closesAt: '', options: ['', ''] }
 
 function formatStatus(status) {
@@ -88,6 +90,11 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, statusFilter])
   const [selectedPoll, setSelectedPoll] = useState(null)
   const [formMode, setFormMode] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -171,6 +178,13 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
         (!query || [poll.title, poll.description].some((value) => value.toLowerCase().includes(query)))
     )
   }, [polls, search, statusFilter])
+
+  const totalPages = Math.max(1, Math.ceil(visiblePolls.length / POLLS_PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const paginatedPolls = useMemo(() => {
+    const startIndex = (currentPage - 1) * POLLS_PER_PAGE
+    return visiblePolls.slice(startIndex, startIndex + POLLS_PER_PAGE)
+  }, [visiblePolls, currentPage])
 
   function notify(message) {
     setToast(message)
@@ -384,7 +398,7 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
         {loading ? (
           <div className="club-polls-empty">Loading polls...</div>
         ) : (
-          visiblePolls.map((poll) => (
+          paginatedPolls.map((poll) => (
             <PollCard
               key={poll.id}
               poll={poll}
@@ -403,6 +417,13 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
           </div>
         )}
       </section>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        ariaLabel="Club polls pagination"
+      />
 
       {selectedPoll && (
         <PollDetail

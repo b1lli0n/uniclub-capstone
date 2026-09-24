@@ -27,7 +27,11 @@ import {
   parseTimeParts,
   sortTimelines,
 } from '../../utils/dateTimeUtils'
+import Pagination from '../../components/common/Pagination'
+import '../../components/common/Pagination.css'
 import '../../styles/clubs.css'
+
+const FEEDBACKS_PER_PAGE = 5
 
 function parseEventDate(dateText) {
   if (!dateText) return new Date()
@@ -290,6 +294,7 @@ function EventDetailPage() {
   const [ticketOpen, setTicketOpen] = useState(false)
   const [registration, setRegistration] = useState(null)
   const [feedbacks, setFeedbacks] = useState([])
+  const [feedbackPage, setFeedbackPage] = useState(1)
   const [myFeedback, setMyFeedback] = useState(null)
   const [myClubs, setMyClubs] = useState([])
 
@@ -418,6 +423,16 @@ function EventDetailPage() {
       clearInterval(interval)
     }
   }, [ticketOpen, eventId, event?.registrationStatus])
+
+  useEffect(() => {
+    setFeedbackPage(1)
+  }, [feedbacks.length])
+
+  const totalFeedbackPages = Math.max(1, Math.ceil(feedbacks.length / FEEDBACKS_PER_PAGE))
+  const paginatedFeedbacks = useMemo(() => {
+    const startIndex = (feedbackPage - 1) * FEEDBACKS_PER_PAGE
+    return feedbacks.slice(startIndex, startIndex + FEEDBACKS_PER_PAGE)
+  }, [feedbacks, feedbackPage])
 
   const isRegistered = event?.isRegistered
   const canCancel = isRegistered && (registration?.status === 'registered' || registration?.status === 'approved' || registration?.status === 'pending') && isBeforeEventStart(event)
@@ -929,97 +944,105 @@ function EventDetailPage() {
               </p>
 
               {feedbacks.length > 0 ? (
-                <div className="event-detail-feedback-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {feedbacks.map((fb) => {
-                    const reviewerName = fb.user_id?.full_name || fb.authorName || 'Anonymous'
-                    const reviewerInitial = reviewerName.slice(0, 1).toUpperCase()
-                    const isMine = fb.user_id?._id === profile?._id || fb.user_id === profile?._id || fb.userId === profile?._id
+                <>
+                  <div className="event-detail-feedback-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {paginatedFeedbacks.map((fb) => {
+                      const reviewerName = fb.user_id?.full_name || fb.authorName || 'Anonymous'
+                      const reviewerInitial = reviewerName.slice(0, 1).toUpperCase()
+                      const isMine = fb.user_id?._id === profile?._id || fb.user_id === profile?._id || fb.userId === profile?._id
 
-                    return (
-                      <article key={fb._id || fb.id} className="event-detail-feedback-item" style={{
-                        display: 'flex',
-                        gap: '1rem',
-                        padding: '1rem',
-                        background: '#fcfaf7',
-                        border: '1px solid #f0e4d8',
-                        borderRadius: '12px'
-                      }}>
-                        <div className="event-detail-feedback-avatar" aria-hidden="true" style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '50%',
-                          background: '#e8ddcf',
-                          color: '#3d2e24',
+                      return (
+                        <article key={fb._id || fb.id} className="event-detail-feedback-item" style={{
                           display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: '600',
-                          fontSize: '0.9rem',
-                          flexShrink: 0
+                          gap: '1rem',
+                          padding: '1rem',
+                          background: '#fcfaf7',
+                          border: '1px solid #f0e4d8',
+                          borderRadius: '12px'
                         }}>
-                          {reviewerInitial}
-                        </div>
-
-                        <div className="event-detail-feedback-content" style={{ flex: 1 }}>
-                          <div className="event-detail-feedback-topline" style={{
+                          <div className="event-detail-feedback-avatar" aria-hidden="true" style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            background: '#e8ddcf',
+                            color: '#3d2e24',
                             display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'flex-start',
-                            marginBottom: '0.3rem'
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: '600',
+                            fontSize: '0.9rem',
+                            flexShrink: 0
                           }}>
-                            <div>
-                              <strong style={{ fontSize: '0.9rem', color: '#3d2e24', display: 'block' }}>{reviewerName}</strong>
-                              <span style={{ fontSize: '0.75rem', color: '#8c7e95' }}>
-                                {fb.updated_at || fb.updatedAt ? `Updated ${new Date(fb.updated_at || fb.updatedAt).toLocaleDateString('vi-VN')}` : new Date(fb.created_at || fb.createdAt || Date.now()).toLocaleDateString('vi-VN')}
-                              </span>
-                            </div>
-                            <RatingStars rating={fb.rating} readonly />
+                            {reviewerInitial}
                           </div>
 
-                          <p style={{ margin: '0.4rem 0 0.6rem', fontSize: '0.88rem', color: '#3d2e24', lineHeight: 1.4 }}>
-                            {fb.comment}
-                          </p>
-
-                          {isMine ? (
-                            <div className="event-detail-feedback-actions" style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
-                              <button 
-                                type="button" 
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: '#F57C00',
-                                  cursor: 'pointer',
-                                  fontSize: '0.8rem',
-                                  fontWeight: '600',
-                                  padding: 0
-                                }}
-                                onClick={() => openFeedbackModal(fb)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                className="is-danger"
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: '#dc2626',
-                                  cursor: 'pointer',
-                                  fontSize: '0.8rem',
-                                  fontWeight: '600',
-                                  padding: 0
-                                }}
-                                onClick={() => deleteEventFeedback(fb._id || fb.id)}
-                              >
-                                Delete
-                              </button>
+                          <div className="event-detail-feedback-content" style={{ flex: 1 }}>
+                            <div className="event-detail-feedback-topline" style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'flex-start',
+                              marginBottom: '0.3rem'
+                            }}>
+                              <div>
+                                <strong style={{ fontSize: '0.9rem', color: '#3d2e24', display: 'block' }}>{reviewerName}</strong>
+                                <span style={{ fontSize: '0.75rem', color: '#8c7e95' }}>
+                                  {fb.updated_at || fb.updatedAt ? `Updated ${new Date(fb.updated_at || fb.updatedAt).toLocaleDateString('vi-VN')}` : new Date(fb.created_at || fb.createdAt || Date.now()).toLocaleDateString('vi-VN')}
+                                </span>
+                              </div>
+                              <RatingStars rating={fb.rating} readonly />
                             </div>
-                          ) : null}
-                        </div>
-                      </article>
-                    )
-                  })}
-                </div>
+
+                            <p style={{ margin: '0.4rem 0 0.6rem', fontSize: '0.88rem', color: '#3d2e24', lineHeight: 1.4 }}>
+                              {fb.comment}
+                            </p>
+
+                            {isMine ? (
+                              <div className="event-detail-feedback-actions" style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
+                                <button 
+                                  type="button" 
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#F57C00',
+                                    cursor: 'pointer',
+                                    fontSize: '0.8rem',
+                                    fontWeight: '600',
+                                    padding: 0
+                                  }}
+                                  onClick={() => openFeedbackModal(fb)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="is-danger"
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#dc2626',
+                                    cursor: 'pointer',
+                                    fontSize: '0.8rem',
+                                    fontWeight: '600',
+                                    padding: 0
+                                  }}
+                                  onClick={() => deleteEventFeedback(fb._id || fb.id)}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
+                        </article>
+                      )
+                    })}
+                  </div>
+
+                  <Pagination
+                    currentPage={feedbackPage}
+                    totalPages={totalFeedbackPages}
+                    onPageChange={setFeedbackPage}
+                  />
+                </>
               ) : (
                 <div className="event-detail-empty-feedback" style={{ textAlign: 'center', padding: '2rem 0', color: '#8c7e95', fontSize: '0.9rem' }}>
                   No feedback yet.

@@ -1,0 +1,59 @@
+/* Reusable Pagination Styles */
+.clubs-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.clubs-pagination__btn {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 0.5rem;
+  border: 1px solid #f0e4d8;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #000000;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  user-select: none;
+}
+
+.clubs-pagination__btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.clubs-pagination__btn:hover:not(:disabled) {
+  background: #fff8f2;
+  border-color: #ffce96;
+}
+
+.clubs-pagination__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.clubs-pagination__btn--num.is-active {
+  background: #3d2e24;
+  border-color: #3d2e24;
+  color: #ffffff;
+}
+
+.clubs-pagination__dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  color: #6b5a4a;
+  font-size: 1rem;
+  user-select: none;
+}

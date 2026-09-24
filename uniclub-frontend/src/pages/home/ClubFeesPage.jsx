@@ -4,6 +4,9 @@ import { useToast } from '../../components/common/notificationContext'
 import { getFeeList, createPaymentUrl } from '../../api/payment.api'
 import '../../styles/club-fees.css'
 import CustomSelect from '../../components/common/CustomSelect'
+import Pagination from '../../components/common/Pagination'
+
+const FEES_PER_PAGE = 6
 import {
   ZapIcon,
   BanknoteIcon,
@@ -64,6 +67,12 @@ export default function ClubFeesPage({ clubId: propClubId }) {
   const [selectedPeriod, setSelectedPeriod] = useState('')
   const [selectedMethod, setSelectedMethod] = useState('all') // 'all', 'vnpay', 'cash'
   const [sortBy, setSortBy] = useState('newest')
+  const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    setPage(1)
+  }, [searchQuery, selectedPeriod, selectedMethod, activeTab, sortBy])
+
   const [selectedPayment, setSelectedPayment] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState('vnpay') // 'vnpay' | 'cash'
   const [processing, setProcessing] = useState(false)
@@ -194,6 +203,13 @@ export default function ClubFeesPage({ clubId: propClubId }) {
   }
 
   const hasActiveFilters = Boolean(searchQuery || selectedPeriod || selectedMethod !== 'all' || activeTab !== 'all')
+
+  const totalPages = Math.max(1, Math.ceil(sortedItems.length / FEES_PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * FEES_PER_PAGE
+    return sortedItems.slice(startIndex, startIndex + FEES_PER_PAGE)
+  }, [sortedItems, currentPage])
 
   const resetFilters = () => {
     setSearchQuery('')
@@ -422,8 +438,9 @@ export default function ClubFeesPage({ clubId: propClubId }) {
           )}
         </div>
       ) : (
-        <div className="club-fees-list">
-          {sortedItems.map((item) => {
+        <>
+          <div className="club-fees-list">
+          {paginatedItems.map((item) => {
             const isPending = item.status === 'pending' || item.status === 0 || item.status === '0'
             const isSuccess = item.status === 'success' || item.status === 1 || item.status === '1'
             const isFailed = item.status === 'failed' || item.status === 2 || item.status === '2'
@@ -551,7 +568,15 @@ export default function ClubFeesPage({ clubId: propClubId }) {
             )
           })}
         </div>
-      )}
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          ariaLabel="Membership fees pagination"
+        />
+      </>
+    )}
 
       {/* Payment Confirmation Modal */}
       {selectedPayment && (

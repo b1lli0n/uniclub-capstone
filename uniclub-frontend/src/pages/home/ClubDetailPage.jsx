@@ -19,7 +19,11 @@ import { CLUB_DETAIL_COPY } from '../../data/mockData'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 import { formatDateVN, formatTimeRange24 } from '../../utils/dateTimeUtils'
 import { XIcon, EyeIcon, TrashIcon } from '../../components/common/Icons'
+import Pagination from '../../components/common/Pagination'
+import '../../components/common/Pagination.css'
 import '../../styles/club-detail.css'
+
+const MODAL_MEMBERS_PER_PAGE = 8
 
 
 function EventIcon() {
@@ -89,7 +93,14 @@ function ClubDetailPage({ clubId, onBack }) {
   const [joinModalOpen, setJoinModalOpen] = useState(false)
   const [leaveModalOpen, setLeaveModalOpen] = useState(false)
   const [membersModalOpen, setMembersModalOpen] = useState(false)
+  const [membersPage, setMembersPage] = useState(1)
   const [profileModalOpen, setProfileModalOpen] = useState(false)
+
+  useEffect(() => {
+    if (membersModalOpen) {
+      setMembersPage(1)
+    }
+  }, [membersModalOpen])
   const [selectedMemberProfile, setSelectedMemberProfile] = useState(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [club, setClub] = useState(null)
@@ -253,6 +264,12 @@ function ClubDetailPage({ clubId, onBack }) {
   // Nếu có sự kiện đang/sắp diễn ra thì lấy 3 sự kiện đầu, ngược lại hiển thị 3 sự kiện gần nhất
   const previewClubEvents = (activeOrUpcomingEvents.length > 0 ? activeOrUpcomingEvents : events).slice(0, 3)
   const hiddenPrivateEventsCount = 0
+
+  const totalMemberPages = Math.max(1, Math.ceil(memberRows.length / MODAL_MEMBERS_PER_PAGE))
+  const paginatedModalMembers = memberRows.slice(
+    (membersPage - 1) * MODAL_MEMBERS_PER_PAGE,
+    membersPage * MODAL_MEMBERS_PER_PAGE
+  )
 
   async function openJoinModal() {
     try {
@@ -723,7 +740,7 @@ function ClubDetailPage({ clubId, onBack }) {
             </div>
 
             <div className="club-members-modal__list">
-              {memberRows.map((member) => (
+              {paginatedModalMembers.map((member) => (
                 <article key={member.id} className="club-members-modal__item" style={{ '--member-tone': member.tone }}>
                   <div
                     className="club-members-modal__member-info"
@@ -778,6 +795,12 @@ function ClubDetailPage({ clubId, onBack }) {
                 </article>
               ))}
             </div>
+
+            <Pagination
+              currentPage={membersPage}
+              totalPages={totalMemberPages}
+              onPageChange={setMembersPage}
+            />
           </div>
         </div>
       ) : null}

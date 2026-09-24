@@ -6,6 +6,8 @@ import {
   saveSecretaryActivityAttendance,
 } from '../../api/secretaryActivitySchedule.api'
 import { useToast } from '../../components/common/notificationContext'
+import Pagination from '../../components/common/Pagination'
+import '../../components/common/Pagination.css'
 import '../../styles/activity-attendance.css'
 
 function formatTimeRange(startTime, endTime) {
@@ -27,6 +29,8 @@ function formatDate(dateValue) {
   })
 }
 
+const MEMBERS_PER_PAGE = 10
+
 export default function ActivityAttendancePage() {
   const { clubId, activityId } = useParams()
   const navigate = useNavigate()
@@ -38,6 +42,11 @@ export default function ActivityAttendancePage() {
   const [saving, setSaving] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all') // 'all', 'attended', 'absent'
+  const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    setPage(1)
+  }, [searchQuery, statusFilter])
 
   useEffect(() => {
     if (!clubId || !activityId) return
@@ -178,6 +187,12 @@ export default function ActivityAttendancePage() {
   const attendedCount = useMemo(() => members.filter((m) => m.checked).length, [members])
   const absentCount = totalCount - attendedCount
   const attendanceRate = totalCount > 0 ? Math.round((attendedCount / totalCount) * 100) : 0
+
+  const totalPages = Math.max(1, Math.ceil(filteredMembers.length / MEMBERS_PER_PAGE))
+  const paginatedMembers = useMemo(() => {
+    const startIndex = (page - 1) * MEMBERS_PER_PAGE
+    return filteredMembers.slice(startIndex, startIndex + MEMBERS_PER_PAGE)
+  }, [filteredMembers, page])
 
   if (loading) {
     return (
@@ -349,7 +364,7 @@ export default function ActivityAttendancePage() {
               </tr>
             </thead>
             <tbody>
-              {filteredMembers.map((m) => {
+              {paginatedMembers.map((m) => {
                 const memberKey = m.id || m.membershipId
                 return (
                   <tr key={memberKey} className={m.checked ? 'is-attended' : ''}>
@@ -423,6 +438,12 @@ export default function ActivityAttendancePage() {
           </div>
         )}
       </div>
+
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
     </div>
   )
 }

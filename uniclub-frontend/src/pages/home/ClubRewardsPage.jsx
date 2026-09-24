@@ -18,6 +18,10 @@ import {
 import '../../styles/club-rewards.css'
 import CustomSelect from '../../components/common/CustomSelect'
 import { EyeIcon, CalendarIcon, UserIcon } from '../../components/common/Icons'
+import Pagination from '../../components/common/Pagination'
+
+const REWARDS_PER_PAGE = 8
+const REDEMPTIONS_PER_PAGE = 8
 
 const STOCK_OPTIONS = [
   { value: 'all', label: 'All Rewards' },
@@ -286,6 +290,16 @@ function ClubRewardsPage({ isManager = false }) {
   const [stockFilter, setStockFilter] = useState('all')
   const [sortBy, setSortBy] = useState('default')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [rewardPage, setRewardPage] = useState(1)
+  const [redemptionPage, setRedemptionPage] = useState(1)
+
+  useEffect(() => {
+    setRewardPage(1)
+  }, [query, stockFilter, sortBy])
+
+  useEffect(() => {
+    setRedemptionPage(1)
+  }, [statusFilter])
 
   const [isLoading, setIsLoading] = useState(true)
   const [isActionLoading, setIsActionLoading] = useState(false)
@@ -478,6 +492,20 @@ function ClubRewardsPage({ isManager = false }) {
 
     return result
   }, [isManager, query, rewards, stockFilter, sortBy])
+
+  const totalRewardPages = Math.max(1, Math.ceil(visibleRewards.length / REWARDS_PER_PAGE))
+  const currentRewardPage = Math.min(rewardPage, totalRewardPages)
+  const paginatedRewards = useMemo(() => {
+    const startIndex = (currentRewardPage - 1) * REWARDS_PER_PAGE
+    return visibleRewards.slice(startIndex, startIndex + REWARDS_PER_PAGE)
+  }, [visibleRewards, currentRewardPage])
+
+  const totalRedemptionPages = Math.max(1, Math.ceil(visibleRequests.length / REDEMPTIONS_PER_PAGE))
+  const currentRedemptionPage = Math.min(redemptionPage, totalRedemptionPages)
+  const paginatedRequests = useMemo(() => {
+    const startIndex = (currentRedemptionPage - 1) * REDEMPTIONS_PER_PAGE
+    return visibleRequests.slice(startIndex, startIndex + REDEMPTIONS_PER_PAGE)
+  }, [visibleRequests, currentRedemptionPage])
 
   // 3. Fetch detailed reward info on click
   function fetchDetail(reward) {
@@ -693,6 +721,7 @@ function ClubRewardsPage({ isManager = false }) {
       </div>
 
       {tab === 'inventory' && (
+        <>
         <section className="club-rewards-grid">
           {isManager && (
             <button className="club-reward-card club-reward-card--add" onClick={() => { setEditorReward(null); setEditorOpen(true) }} type="button">
@@ -700,7 +729,7 @@ function ClubRewardsPage({ isManager = false }) {
             </button>
           )}
           {isLoading && <p style={{ gridColumn: '1/-1', textAlign: 'center', padding: '2rem', color: '#666' }}>Loading rewards...</p>}
-          {!isLoading && visibleRewards.map((reward) => (
+          {!isLoading && paginatedRewards.map((reward) => (
             <article key={reward.id} className={`club-reward-card${!reward.isVisible ? ' is-hidden' : ''}`} onClick={() => fetchDetail(reward)}>
               <div className="club-reward-card__image" style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fc', overflow: 'hidden', fontSize: '3.5rem' }}>
                 <RewardImage src={reward.image} alt={reward.title} />
@@ -741,9 +770,20 @@ function ClubRewardsPage({ isManager = false }) {
             </div>
           )}
         </section>
+
+        {tab === 'inventory' && (
+          <Pagination
+            currentPage={currentRewardPage}
+            totalPages={totalRewardPages}
+            onPageChange={setRewardPage}
+            ariaLabel="Rewards inventory pagination"
+          />
+        )}
+      </>
       )}
 
       {tab === 'requests' && (
+        <>
         <section className="club-rewards-table-card">
           <h2>{isManager ? 'Club Redemption Requests' : 'My Redemption Requests'}</h2>
           <table>
@@ -758,7 +798,7 @@ function ClubRewardsPage({ isManager = false }) {
               </tr>
             </thead>
             <tbody>
-              {visibleRequests.map((item) => (
+              {paginatedRequests.map((item) => (
                 <tr key={item.id}>
                   <td>{item.date}</td>
                   {isManager && (
@@ -807,6 +847,16 @@ function ClubRewardsPage({ isManager = false }) {
             </tbody>
           </table>
         </section>
+
+        {tab === 'requests' && (
+          <Pagination
+            currentPage={currentRedemptionPage}
+            totalPages={totalRedemptionPages}
+            onPageChange={setRedemptionPage}
+            ariaLabel="Redemption requests pagination"
+          />
+        )}
+      </>
       )}
 
       {editorOpen && <RewardEditor reward={editorReward} onClose={() => setEditorOpen(false)} onSave={saveReward} />}

@@ -13,7 +13,10 @@ import { mapClubFromApi, mapClubInvitationFromApi, formatRoleLabel } from '../..
 import { CLUB_INVITATION_STATUS_OPTIONS } from '../../data/clubInvitationsData'
 import { useToast } from '../../components/common/notificationContext'
 import { MailIcon } from '../../components/common/Icons'
+import Pagination from '../../components/common/Pagination'
 import '../../styles/club-invitations.css'
+
+const INVITATIONS_PER_PAGE = 8
 
 const EMPTY_FORM = { invitedUserId: '', role: 'member', message: '' }
 
@@ -30,6 +33,11 @@ function ClubInvitationsPage({ clubId }) {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter, search])
   const [selectedInvitation, setSelectedInvitation] = useState(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [cancelTarget, setCancelTarget] = useState(null)
@@ -103,6 +111,13 @@ function ClubInvitationsPage({ clubId }) {
       )
     })
   }, [invitations, search])
+
+  const totalPages = Math.max(1, Math.ceil(visibleInvitations.length / INVITATIONS_PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const paginatedInvitations = useMemo(() => {
+    const startIndex = (currentPage - 1) * INVITATIONS_PER_PAGE
+    return visibleInvitations.slice(startIndex, startIndex + INVITATIONS_PER_PAGE)
+  }, [visibleInvitations, currentPage])
 
   const pendingCount = invitations.filter((item) => item.status === 'pending').length
 
@@ -284,7 +299,7 @@ function ClubInvitationsPage({ clubId }) {
           </div>
         ) : null}
         {!loading
-          ? visibleInvitations.map((invitation) => (
+          ? paginatedInvitations.map((invitation) => (
               <article key={invitation.id} className="club-invitation-card">
                 <div className="club-invitation-card__person">
                   <div className="club-invitation-card__avatar" aria-hidden="true">
@@ -321,6 +336,13 @@ function ClubInvitationsPage({ clubId }) {
           </div>
         ) : null}
       </section>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        ariaLabel="Club invitations pagination"
+      />
 
       {selectedInvitation ? (
         <InvitationDetail

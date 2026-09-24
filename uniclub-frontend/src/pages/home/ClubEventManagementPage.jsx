@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import '../../styles/club-event-management.css'
 import DateTimePicker from '../../components/common/DateTimePicker'
+import Pagination from '../../components/common/Pagination'
+
+const EVENTS_PER_PAGE = 6
 import { getClubById } from '../../api/club.api'
 import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getClubEventsForManager, createEvent, updateManagedEvent, cancelManagedEvent, getEventTimelines, createEventTimeline, updateEventTimeline, deleteEventTimeline } from '../../api/event.api'
@@ -281,6 +284,11 @@ function ClubEventManagementPage({ clubId }) {
 
   const [events, setEvents] = useState([])
   const [activeStatus, setActiveStatus] = useState('complete')
+  const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    setPage(1)
+  }, [activeStatus])
   const [detailEvent, setDetailEvent] = useState(null)
   const [editorMode, setEditorMode] = useState(null)
   const [draft, setDraft] = useState(() => createEmptyDraft(clubId))
@@ -357,6 +365,13 @@ function ClubEventManagementPage({ clubId }) {
   )
   const completeCount = events.filter((event) => event.publicationStatus === 'complete').length
   const draftCount = events.filter((event) => event.publicationStatus === 'draft').length
+
+  const totalPages = Math.max(1, Math.ceil(filteredEvents.length / EVENTS_PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const paginatedEvents = useMemo(() => {
+    const startIndex = (currentPage - 1) * EVENTS_PER_PAGE
+    return filteredEvents.slice(startIndex, startIndex + EVENTS_PER_PAGE)
+  }, [filteredEvents, currentPage])
 
   if (loading) {
     return (
@@ -867,7 +882,7 @@ function ClubEventManagementPage({ clubId }) {
       </section>
 
       <section className="club-event-management-list" aria-label={`${activeClub.name} managed events`}>
-        {filteredEvents.map((eventItem) => (
+        {paginatedEvents.map((eventItem) => (
           <article key={eventItem.id} className="club-event-management-card">
             <div className="club-event-management-card__media" style={{ '--event-gradient': eventItem.gradient }}>
               {eventItem.imageUrl ? (
@@ -921,6 +936,13 @@ function ClubEventManagementPage({ clubId }) {
           </article>
         ))}
       </section>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        ariaLabel="Club event management pagination"
+      />
 
       {filteredEvents.length === 0 ? (
         <p className="club-event-management-empty-note">No {activeStatus} events yet.</p>

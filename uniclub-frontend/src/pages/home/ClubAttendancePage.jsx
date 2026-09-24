@@ -5,6 +5,9 @@ import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getClubEventsForMember, getEventAttendanceList, updateEventAttendanceStatus } from '../../api/event.api'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 import QrScannerModal from '../../components/common/QrScannerModal'
+import Pagination from '../../components/common/Pagination'
+
+const ATTENDANCE_PER_PAGE = 10
 
 function getInitial(name) {
   return name.trim().slice(0, 1).toUpperCase()
@@ -122,6 +125,11 @@ function ClubAttendancePage({ clubId }) {
 
   const [selectedEventId, setSelectedEventId] = useState('')
   const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    setPage(1)
+  }, [selectedEventId, query])
   const [manualMemberId, setManualMemberId] = useState('')
   const [attendanceItems, setAttendanceItems] = useState([])
   const [checkinOpenByEvent, setCheckinOpenByEvent] = useState({})
@@ -223,6 +231,13 @@ function ClubAttendancePage({ clubId }) {
         item.email.toLowerCase().includes(keyword)
     )
   }, [query, selectedAttendance])
+
+  const totalPages = Math.max(1, Math.ceil(visibleAttendance.length / ATTENDANCE_PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const paginatedAttendance = useMemo(() => {
+    const startIndex = (currentPage - 1) * ATTENDANCE_PER_PAGE
+    return visibleAttendance.slice(startIndex, startIndex + ATTENDANCE_PER_PAGE)
+  }, [visibleAttendance, currentPage])
 
   if (loading) {
     return (
@@ -534,9 +549,9 @@ function ClubAttendancePage({ clubId }) {
               </tr>
             </thead>
             <tbody>
-              {visibleAttendance.map((item, index) => (
+              {paginatedAttendance.map((item, index) => (
                 <tr key={item.id}>
-                  <td>{index + 1}</td>
+                  <td>{(currentPage - 1) * ATTENDANCE_PER_PAGE + index + 1}</td>
                   <td>
                     <div className="club-attendance-member">
                       <span aria-hidden="true">{getInitial(item.memberName)}</span>
@@ -575,6 +590,13 @@ function ClubAttendancePage({ clubId }) {
             No attendees match this search.
           </div>
         ) : null}
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          ariaLabel="Attendance list pagination"
+        />
       </section>
 
       <QrScannerModal

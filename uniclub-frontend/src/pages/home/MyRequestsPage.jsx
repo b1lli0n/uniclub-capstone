@@ -14,6 +14,9 @@ import {
 import { mapMemberInvitationFromApi, mapJoinRequestFromApi, formatStatusLabel } from '../../api/clubMappers'
 import { MY_REQUEST_TABS, REQUEST_STATUS_OPTIONS } from '../../data/mockData'
 import { useToast } from '../../components/common/notificationContext'
+import Pagination from '../../components/common/Pagination'
+
+const REQUESTS_PER_PAGE = 6
 
 function MyRequestsPage() {
   const showToast = useToast()
@@ -27,6 +30,11 @@ function MyRequestsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [statusMenuOpen, setStatusMenuOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('sent')
+  const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    setPage(1)
+  }, [activeTab, statusFilter])
 
   useEffect(() => {
     let cancelled = false
@@ -89,6 +97,13 @@ function MyRequestsPage() {
     sent: requests.length,
     received: invitations.length,
   }
+
+  const totalPages = Math.max(1, Math.ceil(visibleItems.length / REQUESTS_PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * REQUESTS_PER_PAGE
+    return visibleItems.slice(startIndex, startIndex + REQUESTS_PER_PAGE)
+  }, [visibleItems, currentPage])
 
   async function handleConfirmCancel() {
     if (!cancelTarget) return
@@ -279,7 +294,7 @@ function MyRequestsPage() {
       >
         {loading ? <p>{activeTab === 'received' ? 'Loading invitations...' : 'Loading requests...'}</p> : null}
         {!loading
-          ? visibleItems.map((item) => (
+          ? paginatedItems.map((item) => (
           <article key={item.id} className="my-request-card">
             <div className="my-request-card__header">
               <div>
@@ -354,6 +369,13 @@ function MyRequestsPage() {
           <p>{activeTab === 'received' ? 'No invitations found.' : 'No requests found.'}</p>
         ) : null}
       </section>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        ariaLabel="Requests and invitations pagination"
+      />
 
       {detailTarget ? (
         <div className="request-detail-modal" role="dialog" aria-modal="true" aria-labelledby="request-detail-title">

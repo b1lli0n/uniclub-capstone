@@ -10,6 +10,7 @@ import { getClubById } from '../../api/club.api'
 import { payWithCash } from '../../api/payment.api'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 import '../../styles/club-finance.css'
+import Pagination from '../../components/common/Pagination'
 import {
   BanknoteIcon,
   CheckIcon,
@@ -21,6 +22,8 @@ import {
   SearchIcon,
   PlusIcon,
 } from '../../components/common/Icons'
+
+const TRANSACTIONS_PER_PAGE = 8
 
 const EMPTY_FORM = {
   title: '',
@@ -71,6 +74,11 @@ function ClubFinancePage({ clubId, userRole }) {
   const [dashboard, setDashboard] = useState({ balance: 0, approved_income: 0, approved_expense: 0, pending_requests: 0 })
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
+  const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    setPage(1)
+  }, [query, filter])
   const [selected, setSelected] = useState(null)
   const [formTarget, setFormTarget] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -119,6 +127,13 @@ function ClubFinancePage({ clubId, userRole }) {
     const normalized = query.trim().toLowerCase()
     return matchesFilter && (!normalized || [item.title, item.period, item.referenceCode, item.description, item.createdBy].some((value) => value && value.toLowerCase().includes(normalized)))
   }), [transactions, query, filter])
+
+  const totalPages = Math.max(1, Math.ceil(displayed.length / TRANSACTIONS_PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const paginatedTransactions = useMemo(() => {
+    const startIndex = (currentPage - 1) * TRANSACTIONS_PER_PAGE
+    return displayed.slice(startIndex, startIndex + TRANSACTIONS_PER_PAGE)
+  }, [displayed, currentPage])
 
   function openCreate() { setForm(EMPTY_FORM); setFormTarget('create') }
   function openEdit(item) { setForm({ title: item.title, type: item.type, period: item.period || 'FA26', amount: String(item.amount), dateInput: item.dateInput, description: item.description }); setSelected(null); setFormTarget(item) }
@@ -231,7 +246,67 @@ function ClubFinancePage({ clubId, userRole }) {
   return <main className="club-finance-page">
     <section className="club-finance-hero"><div><span>{clubName || 'Club'} · {isPresident ? 'President' : 'Treasurer'} workspace</span><h1>Financial Dashboard</h1><p>Track approved funds, manage transaction requests, and keep every club expense transparent.</p></div><div className="club-finance-hero__actions"><button type="button" onClick={exportReport}>⇩ Export report</button><button type="button" onClick={openCreate}>+ New request</button></div></section>
     <section className="club-finance-summary" aria-label="Financial overview"><SummaryCard label="Current balance" value={income - expense} accent="balance" /><SummaryCard label="Approved income" value={income} accent="income" /><SummaryCard label="Approved expenses" value={expense} accent="expense" /><div className="club-finance-summary__card club-finance-summary__card--pending"><span>Pending requests</span><strong>{transactions.filter((item) => item.status === 'pending').length}</strong><small>Awaiting review</small></div></section>
-    <section className="club-finance-transactions"><header><div><span>Transaction requests</span><h2>All transactions</h2></div><label className="club-finance-search"><SearchIcon size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, period, reference or requester..." /></label></header><div className="club-finance-filters">{[['all', 'All'], ['income', 'Income'], ['expense', 'Expenses'], ['pending', 'Pending'], ['approved', 'Approved']].map(([value, label]) => <button key={value} type="button" className={filter === value ? 'is-active' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div><div className="club-finance-table" role="table"><div className="club-finance-table__head" role="row"><span>Transaction</span><span>Type</span><span>Amount</span><span>Status</span><span /></div>{loading ? <div className="club-finance-empty">Loading transaction records...</div> : displayed.map((item) => <div className="club-finance-table__row" role="row" key={item.id}><div><strong>{item.title}</strong><small>{item.referenceCode} · {item.period || item.date}</small></div><span className={`club-finance-type club-finance-type--${item.type}`}>{item.type === 'income' ? 'Income' : 'Expense'}</span><strong className={item.type === 'income' ? 'is-income' : 'is-expense'}>{item.type === 'income' ? '+' : '-'}{currency.format(item.amount)}</strong><span className={`club-finance-status club-finance-status--${item.status}`}>{statusLabel[item.status]}</span><div className="club-finance-table__actions"><button type="button" onClick={() => setSelected(item)}>View</button></div></div>)}{!loading && !displayed.length && <div className="club-finance-empty">No transaction requests match this filter.</div>}</div></section>
+    <section className="club-finance-transactions">
+      <header>
+        <div>
+          <span>Transaction requests</span>
+          <h2>All transactions</h2>
+        </div>
+        <label className="club-finance-search">
+          <SearchIcon size={16} />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, period, reference or requester..." />
+        </label>
+      </header>
+      <div className="club-finance-filters">
+        {[['all', 'All'], ['income', 'Income'], ['expense', 'Expenses'], ['pending', 'Pending'], ['approved', 'Approved']].map(([value, label]) => (
+          <button key={value} type="button" className={filter === value ? 'is-active' : ''} onClick={() => setFilter(value)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="club-finance-table" role="table">
+        <div className="club-finance-table__head" role="row">
+          <span>Transaction</span>
+          <span>Type</span>
+          <span>Amount</span>
+          <span>Status</span>
+          <span />
+        </div>
+        {loading ? (
+          <div className="club-finance-empty">Loading transaction records...</div>
+        ) : (
+          paginatedTransactions.map((item) => (
+            <div className="club-finance-table__row" role="row" key={item.id}>
+              <div>
+                <strong>{item.title}</strong>
+                <small>{item.referenceCode} · {item.period || item.date}</small>
+              </div>
+              <span className={`club-finance-type club-finance-type--${item.type}`}>
+                {item.type === 'income' ? 'Income' : 'Expense'}
+              </span>
+              <strong className={item.type === 'income' ? 'is-income' : 'is-expense'}>
+                {item.type === 'income' ? '+' : '-'}{currency.format(item.amount)}
+              </strong>
+              <span className={`club-finance-status club-finance-status--${item.status}`}>
+                {statusLabel[item.status]}
+              </span>
+              <div className="club-finance-table__actions">
+                <button type="button" onClick={() => setSelected(item)}>View</button>
+              </div>
+            </div>
+          ))
+        )}
+        {!loading && !displayed.length && (
+          <div className="club-finance-empty">No transaction requests match this filter.</div>
+        )}
+      </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        ariaLabel="Transactions pagination"
+      />
+    </section>
     {selected && <TransactionDetail item={selected} clubId={clubId} isPresident={isPresident} handleApprove={handleApprove} handleReject={handleReject} onClose={() => setSelected(null)} onEdit={() => openEdit(selected)} />}
     {formTarget && <TransactionForm item={formTarget === 'create' ? null : formTarget} form={form} setForm={setForm} onClose={() => setFormTarget(null)} onSubmit={saveRequest} />}
   </main>

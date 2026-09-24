@@ -12,8 +12,11 @@ import { getMyClubs, getClubMembers } from '../../api/memberClubMembership.api'
 import { getClubMembersForManagement } from '../../api/clubMember.api'
 import { useToast } from '../../components/common/notificationContext'
 import { TrophyIcon, PlusIcon } from '../../components/common/Icons'
+import Pagination from '../../components/common/Pagination'
+import '../../components/common/Pagination.css'
 import '../../styles/club-point-rules.css'
 
+const RULES_PER_PAGE = 6
 const RULE_COLORS = ['blue', 'indigo', 'purple', 'pink']
 
 const DEFAULT_ACTION_OPTIONS = [
@@ -173,6 +176,7 @@ function ClubPointRulesPage({ clubId, isPresident = false, isLeader = false }) {
   const [actionTypes, setActionTypes] = useState([])
   const [editingRule, setEditingRule] = useState(null)
   const [draft, setDraft] = useState(createDraft())
+  const [page, setPage] = useState(1)
 
   // Award Points Modal State
   const [awardModalOpen, setAwardModalOpen] = useState(false)
@@ -260,6 +264,16 @@ function ClubPointRulesPage({ clubId, isPresident = false, isLeader = false }) {
     () => rulesList.filter((rule) => isManager || rule.status === 'ACTIVE'),
     [isManager, rulesList]
   )
+
+  useEffect(() => {
+    setPage(1)
+  }, [isManager, rulesList])
+
+  const totalPages = Math.max(1, Math.ceil(visibleRules.length / RULES_PER_PAGE))
+  const paginatedRules = useMemo(() => {
+    const startIndex = (page - 1) * RULES_PER_PAGE
+    return visibleRules.slice(startIndex, startIndex + RULES_PER_PAGE)
+  }, [visibleRules, page])
 
   async function refreshRules() {
     try {
@@ -470,7 +484,7 @@ function ClubPointRulesPage({ clubId, isPresident = false, isLeader = false }) {
       </section>
 
       <section className="club-point-rules-grid" aria-label="Point rules">
-        {visibleRules.map((rule) => {
+        {paginatedRules.map((rule) => {
           const isActive = rule.status === 'ACTIVE'
 
           return (
@@ -559,6 +573,12 @@ function ClubPointRulesPage({ clubId, isPresident = false, isLeader = false }) {
           </div>
         ) : null}
       </section>
+
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
 
       {/* Award Points Modal */}
       {awardModalOpen ? (

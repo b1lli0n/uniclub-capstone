@@ -17,6 +17,8 @@ const ADMIN_EVENT_SORT_OPTIONS = [
   { value: 'oldest', label: 'Oldest date' },
 ];
 
+const ADMIN_EVENT_PAGE_SIZE = 10;
+
 export default function AdminEventRequestsTab() {
   const confirm = useConfirm();
   const showToast = useToast();
@@ -26,7 +28,12 @@ export default function AdminEventRequestsTab() {
   const [sortMode, setSortMode] = useState('status');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const sortRef = useRef(null);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, sortMode]);
 
   useEffect(() => {
     fetchRequests();
@@ -92,6 +99,12 @@ export default function AdminEventRequestsTab() {
 
     return list;
   }, [requests, searchQuery, sortMode]);
+
+  const totalPages = Math.max(1, Math.ceil(visibleRequests.length / ADMIN_EVENT_PAGE_SIZE));
+  const paginatedRequests = useMemo(() => {
+    const startIndex = (currentPage - 1) * ADMIN_EVENT_PAGE_SIZE;
+    return visibleRequests.slice(startIndex, startIndex + ADMIN_EVENT_PAGE_SIZE);
+  }, [visibleRequests, currentPage]);
 
   const fetchRequests = async () => {
     try {
@@ -305,7 +318,7 @@ export default function AdminEventRequestsTab() {
         ) : visibleRequests.length === 0 ? (
           <p className="admin-table__empty">No event requests found.</p>
         ) : (
-          visibleRequests.map((item) => (
+          paginatedRequests.map((item) => (
             <div className="admin-table__row admin-table__row--body" role="row" key={item._id}>
               <div className="admin-club-cell">
                 <strong>{item.title}</strong>
@@ -361,6 +374,32 @@ export default function AdminEventRequestsTab() {
           ))
         )}
       </div>
+
+      {!loading && visibleRequests.length > 0 && totalPages > 1 && (
+        <div className="admin-pagination" aria-label="Event requests pagination">
+          <button
+            type="button"
+            aria-label="Previous page"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+              <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <span>{currentPage} / {totalPages}</span>
+          <button
+            type="button"
+            aria-label="Next page"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+              <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

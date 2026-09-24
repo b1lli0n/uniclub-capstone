@@ -6,7 +6,10 @@ import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getClubLeaderboard, getMyContributionLogs } from '../../api/pointRule.api'
 import { resolveClubLogo } from '../../utils/imageUtils'
 import { ClipboardListIcon, XIcon } from '../../components/common/Icons'
+import Pagination from '../../components/common/Pagination'
 import '../../styles/club-ranking.css'
+
+const RANKING_PER_PAGE = 10
 
 
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -104,6 +107,12 @@ function ClubRankingPage({ clubId }) {
   const [currentUser, setCurrentUser] = useState(null)
   const [rankedMembers, setRankedMembers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    setPage(1)
+  }, [selectedDate])
+
   const periodRef = useRef(null)
 
   // My Contribution Logs State
@@ -226,6 +235,13 @@ function ClubRankingPage({ clubId }) {
   const podium = useMemo(() => rankedMembers.slice(0, 3), [rankedMembers])
   // Table members starting from Rank #4 (Index 3 onwards)
   const tableMembers = useMemo(() => rankedMembers.slice(3), [rankedMembers])
+
+  const totalPages = Math.max(1, Math.ceil(tableMembers.length / RANKING_PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const paginatedMembers = useMemo(() => {
+    const startIndex = (currentPage - 1) * RANKING_PER_PAGE
+    return tableMembers.slice(startIndex, startIndex + RANKING_PER_PAGE)
+  }, [tableMembers, currentPage])
 
   const myRankInfo = useMemo(() => {
     if (!currentUser || !rankedMembers.length) return null
@@ -425,7 +441,7 @@ function ClubRankingPage({ clubId }) {
                     {rankedMembers.length > 0 ? 'All members are currently on the Top 3 Podium' : 'No members ranked yet'}
                   </p>
                 ) : (
-                  tableMembers.map((member) => {
+                  paginatedMembers.map((member) => {
                     const isMe = myRankInfo && (member.id === myRankInfo.id || member.userId === myRankInfo.userId)
                     return (
                       <article
@@ -472,6 +488,13 @@ function ClubRankingPage({ clubId }) {
                 </div>
               )}
             </div>
+
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              ariaLabel="Leaderboard rankings pagination"
+            />
           </section>
         </div>
       </section>

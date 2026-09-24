@@ -10,7 +10,10 @@ import {
 import { mapClubFromApi, mapPresidentJoinRequestFromApi } from '../../api/clubMappers'
 import { CLUB_JOIN_REQUEST_STATUS_OPTIONS } from '../../data/mockData'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
+import Pagination from '../../components/common/Pagination'
 import '../../styles/club-join-requests.css'
+
+const REQUESTS_PER_PAGE = 6
 
 function getStatusLabel(status) {
   return status.charAt(0).toUpperCase() + status.slice(1)
@@ -33,6 +36,11 @@ function ClubJoinRequestsPage({ clubId }) {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
   const [statusMenuOpen, setStatusMenuOpen] = useState(false)
+  const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter])
   const [detailRequest, setDetailRequest] = useState(null)
   const [requests, setRequests] = useState([])
 
@@ -97,6 +105,13 @@ function ClubJoinRequestsPage({ clubId }) {
     CLUB_JOIN_REQUEST_STATUS_OPTIONS[0]
 
   const visibleRequests = useMemo(() => requests, [requests])
+
+  const totalPages = Math.max(1, Math.ceil(visibleRequests.length / REQUESTS_PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const paginatedRequests = useMemo(() => {
+    const startIndex = (currentPage - 1) * REQUESTS_PER_PAGE
+    return visibleRequests.slice(startIndex, startIndex + REQUESTS_PER_PAGE)
+  }, [visibleRequests, currentPage])
 
   async function refreshRequests() {
     const response = await getClubJoinRequests(clubId, {
@@ -240,7 +255,7 @@ function ClubJoinRequestsPage({ clubId }) {
       </section>
 
       <section className="club-join-requests-list" aria-label="Join requests">
-        {visibleRequests.map((request) => (
+        {paginatedRequests.map((request) => (
           <article key={request.id} className="club-join-request-card">
             <div className="club-join-request-card__person">
               <div className="club-join-request-card__avatar" aria-hidden="true">
@@ -272,6 +287,13 @@ function ClubJoinRequestsPage({ clubId }) {
           </div>
         ) : null}
       </section>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        ariaLabel="Join requests pagination"
+      />
 
       {detailRequest ? (
         <div

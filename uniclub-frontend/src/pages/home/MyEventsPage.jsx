@@ -5,6 +5,7 @@ import { getMyRegistrations } from '../../api/event.api'
 import { formatDateVN, formatTime24 } from '../../utils/dateTimeUtils'
 import '../../styles/my-events.css'
 import CustomSelect from '../../components/common/CustomSelect'
+import Pagination from '../../components/common/Pagination'
 import {
   TicketIcon,
   LandmarkIcon,
@@ -24,6 +25,8 @@ const SORT_OPTIONS = [
   { value: 'date-desc', label: 'Date: Furthest First' },
   { value: 'newest', label: 'Recently Registered' },
 ]
+
+const MY_EVENTS_PER_PAGE = 6
 
 // ── QR Ticket Modal ──────────────────────────────────────────────────────────
 function QRModal({ registrationId, eventTitle, onClose }) {
@@ -194,6 +197,11 @@ export default function MyEventsPage() {
   const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'open' | 'upcoming' | 'attended' | 'past'
   const [selectedClub, setSelectedClub] = useState('')
   const [sortBy, setSortBy] = useState('date-asc') // 'date-asc' | 'date-desc' | 'newest'
+  const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    setPage(1)
+  }, [searchQuery, statusFilter, selectedClub, sortBy])
 
   useEffect(() => {
     let active = true
@@ -331,6 +339,13 @@ export default function MyEventsPage() {
   }, [registrations, statusFilter, selectedClub, searchQuery, sortBy])
 
   const hasActiveFilters = Boolean(searchQuery || selectedClub || statusFilter !== 'all')
+
+  const totalPages = Math.max(1, Math.ceil(filteredRegistrations.length / MY_EVENTS_PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const paginatedRegistrations = useMemo(() => {
+    const startIndex = (currentPage - 1) * MY_EVENTS_PER_PAGE
+    return filteredRegistrations.slice(startIndex, startIndex + MY_EVENTS_PER_PAGE)
+  }, [filteredRegistrations, currentPage])
 
   const resetFilters = () => {
     setSearchQuery('')
@@ -567,16 +582,25 @@ export default function MyEventsPage() {
           )}
         </div>
       ) : (
-        <div className="my-events-list">
-          {filteredRegistrations.map((reg) => (
-            <EventCard
-              key={reg._id}
-              reg={reg}
-              onShowQR={(target) => setQrReg(target)}
-              navigate={navigate}
-            />
-          ))}
-        </div>
+        <>
+          <div className="my-events-list">
+            {paginatedRegistrations.map((reg) => (
+              <EventCard
+                key={reg._id}
+                reg={reg}
+                onShowQR={(target) => setQrReg(target)}
+                navigate={navigate}
+              />
+            ))}
+          </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            ariaLabel="Registered events pagination"
+          />
+        </>
       )}
     </main>
   )
