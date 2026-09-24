@@ -9,12 +9,12 @@ import {
   sendClubInvitation,
 } from '../../api/secretaryInvitationManagement.api'
 import { apiRequest, toQueryString } from '../../api/api'
-import { mapClubFromApi, mapClubInvitationFromApi } from '../../api/clubMappers'
+import { mapClubFromApi, mapClubInvitationFromApi, formatRoleLabel } from '../../api/clubMappers'
 import { CLUB_INVITATION_STATUS_OPTIONS } from '../../data/clubInvitationsData'
 import { useToast } from '../../components/common/notificationContext'
 import '../../styles/club-invitations.css'
 
-const EMPTY_FORM = { invitedUserId: '', message: '' }
+const EMPTY_FORM = { invitedUserId: '', role: 'member', message: '' }
 
 function statusLabel(status) {
   if (status === 'declined') return 'Declined'
@@ -110,13 +110,14 @@ function ClubInvitationsPage({ clubId }) {
     setShowCreateModal(true)
   }
 
-  async function createInvitation(event) {
-    event.preventDefault()
-    if (!form.invitedUserId?.trim()) {
+  async function createInvitation(event, directTarget) {
+    if (event && event.preventDefault) event.preventDefault()
+    const targetUserId = directTarget || form.invitedUserId
+    if (!targetUserId?.trim()) {
       showToast({
         type: 'warning',
         title: 'Missing recipient',
-        message: 'Please search and select a student to invite.',
+        message: 'Please enter student email or select a student to invite.',
       })
       return
     }
@@ -128,7 +129,8 @@ function ClubInvitationsPage({ clubId }) {
         ? `We would love to invite you to join ${club.name}.`
         : ''
       await sendClubInvitation(clubId, {
-        invited_user_id: form.invitedUserId.trim(),
+        invited_user_id: targetUserId.trim(),
+        role: form.role || 'member',
         message: form.message.trim() || defaultMessage,
       })
       await loadInvitations()
@@ -375,6 +377,10 @@ function InvitationDetail({ invitation, canManage, onClose, onCancel, onResend }
             <strong>{invitation.recipientEmail}</strong>
           </div>
           <div>
+            <span>Assigned Role</span>
+            <strong>{formatRoleLabel(invitation.role)}</strong>
+          </div>
+          <div>
             <span>Invitation ID</span>
             <strong>{invitation.id}</strong>
           </div>
@@ -477,6 +483,19 @@ function InvitationForm({ clubName, form, setForm, submitting, onClose, onSubmit
     setStudentSearch('')
   }
 
+  function handleFormSubmit(e) {
+    e.preventDefault()
+    let target = form.invitedUserId?.trim()
+    if (!target && studentSearch.trim()) {
+      target = studentSearch.trim()
+      setForm((prev) => ({ ...prev, invitedUserId: target }))
+    }
+    if (!target) return
+    onSubmit(e, target)
+  }
+
+  const isEmailInput = studentSearch.trim().includes('@')
+
   return (
     <div className="club-invitation-modal" role="dialog" aria-modal="true" aria-labelledby="invitation-form-title">
       <button
@@ -485,7 +504,7 @@ function InvitationForm({ clubName, form, setForm, submitting, onClose, onSubmit
         aria-label="Close send invitation"
         onClick={onClose}
       />
-      <form className="club-invitation-modal__panel club-invitation-form" onSubmit={onSubmit}>
+      <form className="club-invitation-modal__panel club-invitation-form" onSubmit={handleFormSubmit}>
         <header>
           <div>
             <span>{clubName}</span>
@@ -498,7 +517,7 @@ function InvitationForm({ clubName, form, setForm, submitting, onClose, onSubmit
 
         <div style={{ textAlign: 'left' }}>
           <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.78rem', fontWeight: 900, color: '#6b5a4a', textTransform: 'uppercase' }}>
-            Recipient Student <span style={{ color: '#e11d48' }}>*</span>
+            Recipient Email / Student <span style={{ color: '#e11d48' }}>*</span>
           </label>
 
           {selectedStudent ? (
@@ -557,7 +576,7 @@ function InvitationForm({ clubName, form, setForm, submitting, onClose, onSubmit
                 type="text"
                 required={!form.invitedUserId}
                 value={studentSearch}
-                placeholder="Search student by name or email..."
+                placeholder="Enter student email or search by name..."
                 onChange={(e) => {
                   setStudentSearch(e.target.value)
                   setShowDropdown(true)
@@ -583,7 +602,7 @@ function InvitationForm({ clubName, form, setForm, submitting, onClose, onSubmit
                 }}
               />
 
-              {showDropdown && (suggestions.length > 0 || searchLoading) && (
+              {showDropdown && (suggestions.length > 0 || searchLoading || isEmailInput) && (
                 <ul style={{
                   position: 'absolute',
                   top: '100%',
@@ -600,6 +619,37 @@ function InvitationForm({ clubName, form, setForm, submitting, onClose, onSubmit
                   maxHeight: '220px',
                   overflowY: 'auto',
                 }}>
+                  {isEmailInput && !suggestions.some((s) => s.email?.toLowerCase() === studentSearch.trim().toLowerCase()) && (
+                    <li style={{ padding: 0 }}>
+                      <button
+                        type="button"
+                        style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '0.65rem 1rem',
+                          background: '#f0fdf4',
+                          borderBottom: '1px solid #dcfce7',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.15rem',
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          handleSelectStudent({
+                            value: studentSearch.trim(),
+                            name: studentSearch.trim().split('@')[0],
+                            email: studentSearch.trim(),
+                          })
+                        }}
+                      >
+                        <span style={{ fontWeight: 800, color: '#166534', fontSize: '0.88rem' }}>
+                          ✉️ Invite email directly:
+                        </span>
+                        <span style={{ color: '#15803d', fontSize: '0.8rem', fontWeight: 600 }}>{studentSearch.trim()}</span>
+                      </button>
+                    </li>
+                  )}
                   {searchLoading && (
                     <li style={{ padding: '0.65rem 1rem', color: '#64748b', fontSize: '0.82rem' }}>
                       Searching students...
@@ -639,7 +689,36 @@ function InvitationForm({ clubName, form, setForm, submitting, onClose, onSubmit
           )}
         </div>
 
-
+        <div style={{ textAlign: 'left' }}>
+          <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.78rem', fontWeight: 900, color: '#6b5a4a', textTransform: 'uppercase' }}>
+            Role to Assign <span style={{ color: '#e11d48' }}>*</span>
+          </label>
+          <select
+            value={form.role || 'member'}
+            onChange={(e) => setForm((prev) => ({ ...prev, role: e.target.value }))}
+            style={{
+              width: '100%',
+              minHeight: '44px',
+              padding: '0 0.85rem',
+              border: '1px solid #eaded4',
+              borderRadius: '12px',
+              background: '#ffffff',
+              color: '#2f2a3a',
+              font: 'inherit',
+              fontSize: '0.86rem',
+              fontWeight: 650,
+              outline: 'none',
+              boxSizing: 'border-box',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="member">Member</option>
+            <option value="president">President (Chủ tịch)</option>
+            <option value="secretary">Secretary (Thư ký)</option>
+            <option value="treasurer">Treasurer (Thủ quỹ)</option>
+            <option value="event_manager">Event Manager (Quản lý sự kiện)</option>
+          </select>
+        </div>
 
         <div style={{ textAlign: 'left' }}>
           <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.78rem', fontWeight: 900, color: '#6b5a4a', textTransform: 'uppercase' }}>
@@ -676,7 +755,7 @@ function InvitationForm({ clubName, form, setForm, submitting, onClose, onSubmit
           <button
             type="submit"
             className="club-invitation-modal__primary"
-            disabled={submitting || !form.invitedUserId}
+            disabled={submitting || (!form.invitedUserId && !studentSearch.trim())}
           >
             {submitting ? 'Sending...' : 'Send invitation'}
           </button>

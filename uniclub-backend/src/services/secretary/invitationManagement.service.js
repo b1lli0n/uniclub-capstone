@@ -69,6 +69,12 @@ const getInvitationDetail = async (clubId, invitationId) => {
   return invitation;
 };
 
+const isMockEmail = (email) => {
+  if (!email || typeof email !== "string") return false;
+  const e = email.toLowerCase().trim();
+  return e.endsWith("@uniclub.local") || e.endsWith("@example.com") || e.endsWith("@test.local");
+};
+
 const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, message }) => {
   const mongoose = require("mongoose");
   let invitedUser = null;
@@ -96,7 +102,7 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
         role: "student",
       });
     } else {
-      throw getStatusError("User not found with email or student ID: " + invited_user_id, 404);
+      throw getStatusError("User not found with email: " + invited_user_id, 404);
     }
   }
 
@@ -158,8 +164,8 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
   const expirationDays = 3;
   const expiresAt = new Date(Date.now() + expirationDays * 24 * 60 * 60 * 1000);
 
-  const isDemo = invitedUser.email && invitedUser.email.toLowerCase().includes("demo");
-  const invitationStatus = isDemo ? "accepted" : "pending";
+  const isMock = isMockEmail(invitedUser.email);
+  const invitationStatus = isMock ? "accepted" : "pending";
 
   const invitation = await Invitation.create({
     club_id: clubId,
@@ -171,8 +177,8 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
     expires_at: expiresAt,
   });
 
-  if (isDemo) {
-    // Auto-accept into ClubMember for demo users
+  if (isMock) {
+    // Auto-accept into ClubMember for dummy mock users
     let cm = await ClubMember.findOne({
       club_id: clubId,
       user_id: resolvedUserId,
@@ -195,7 +201,8 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
     try {
       const club = await Club.findById(clubId);
       if (invitedUser?.email && club) {
-        sendInvitationEmail({
+        console.log(`[INVITATION] Sending invitation email to ${invitedUser.email} for club ${club.name}...`);
+        await sendInvitationEmail({
           toEmail: invitedUser.email,
           userName: invitedUser.full_name || "Student",
           clubName: club.name || "Club",
@@ -203,7 +210,8 @@ const sendInvitation = async (secretaryId, clubId, { invited_user_id, role, mess
           message: typeof message === "string" ? message.trim() : "",
           expiresAt,
           isResend: false,
-        }).catch((err) => console.error("Invitation email error:", err.message));
+        });
+        console.log(`[INVITATION] Invitation email sent to ${invitedUser.email}`);
       }
     } catch (err) {
       console.error("Failed to trigger invitation email:", err.message);
@@ -305,8 +313,9 @@ const resendInvitation = async (secretaryId, clubId, invitationId, { role, messa
       Club.findById(clubId),
       User.findById(invitation.invited_user_id),
     ]);
-    if (invitedUser?.email && club) {
-      sendInvitationEmail({
+    if (invitedUser?.email && club && !isMockEmail(invitedUser.email)) {
+      console.log(`[INVITATION RESEND] Sending resend invitation email to ${invitedUser.email} for club ${club.name}...`);
+      await sendInvitationEmail({
         toEmail: invitedUser.email,
         userName: invitedUser.full_name || "Student",
         clubName: club.name || "Club",
@@ -314,7 +323,8 @@ const resendInvitation = async (secretaryId, clubId, invitationId, { role, messa
         message: invitation.message || "",
         expiresAt,
         isResend: true,
-      }).catch((err) => console.error("Resend invitation email error:", err.message));
+      });
+      console.log(`[INVITATION RESEND] Resend invitation email sent to ${invitedUser.email}`);
     }
   } catch (err) {
     console.error("Failed to trigger resend invitation email:", err.message);

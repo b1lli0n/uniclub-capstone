@@ -431,8 +431,8 @@ const sendFeeNotificationEmail = async ({ toEmail, userName, clubName, title, am
 };
 
 const ROLE_NAMES_EN = {
-  president: "Leader",
-  leader: "Leader",
+  president: "President",
+  leader: "President",
   secretary: "Secretary",
   treasurer: "Treasurer",
   event_manager: "Event Manager",
@@ -447,18 +447,25 @@ const sendInvitationEmail = async ({ toEmail, userName, clubName, role, message,
       : `[UniClub] 📩 Invitation to join ${clubName}`;
     const roleDisplay = ROLE_NAMES_EN[role] || role || "Member";
     const formattedExpires = expiresAt ? new Date(expiresAt).toLocaleDateString("en-GB") : "3 days";
+    const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+    const requestsUrl = `${frontendUrl}/my-requests?tab=received`;
+
     const html = `
-      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
-        <h2 style="color: #2563eb;">📩 Hello ${userName}!</h2>
+      <div style="font-family: Arial, sans-serif; padding: 24px; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <h2 style="color: #2563eb; margin-top: 0;">📩 Hello ${userName}!</h2>
         <p>The Board of <strong>${clubName}</strong> ${isResend ? "has re-sent an invitation for you" : "cordially invites you"} to join the club as a <strong>${roleDisplay}</strong>!</p>
-        ${message ? `<blockquote style="background: #f8fafc; padding: 12px; border-left: 4px solid #2563eb; margin: 15px 0;">"${message}"</blockquote>` : ""}
+        ${message ? `<blockquote style="background: #f8fafc; padding: 12px; border-left: 4px solid #2563eb; margin: 15px 0; font-style: italic;">"${message}"</blockquote>` : ""}
         <div style="background: #fffbeb; padding: 10px 14px; border-radius: 6px; border-left: 4px solid #f59e0b; margin: 15px 0; font-size: 0.95em;">
           <p style="margin: 0; color: #b45309;">⏳ <strong>Expiration Period:</strong> Default 3 days (Deadline: <strong>${formattedExpires}</strong>). The invitation will automatically transition to <strong>Expired</strong> if not responded to in time.</p>
         </div>
-        <p>Please visit <strong>UniClub</strong> ➔ <strong>My Requests</strong> to Accept or Decline this invitation.</p>
-        <br/>
-        <p>Best regards,</p>
-        <p><strong>${clubName} Board</strong></p>
+        <p>Please click below to Accept or Decline this invitation in your UniClub account:</p>
+        <div style="margin: 25px 0; text-align: center;">
+          <a href="${requestsUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">View Invitation in My Requests</a>
+        </div>
+        <p style="font-size: 0.85em; color: #64748b;">Or visit UniClub &gt; My Requests (Received tab) to respond.</p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+        <p style="margin-bottom: 0;">Best regards,</p>
+        <p style="margin-top: 4px;"><strong>${clubName} Board</strong></p>
       </div>
     `;
 

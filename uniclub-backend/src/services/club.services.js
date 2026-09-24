@@ -243,13 +243,19 @@ const requestCreateClub = async ({
     userEmailMap[String(u._id)] = u.email || "";
   });
 
+  const isMockEmail = (email) => {
+    if (!email || typeof email !== "string") return false;
+    const e = email.toLowerCase().trim();
+    return e.endsWith("@uniclub.local") || e.endsWith("@example.com") || e.endsWith("@test.local");
+  };
+
   const membersList = uniqueMemberIds.map((id) => {
     const email = (userEmailMap[String(id)] || "").toLowerCase();
-    const isDemo = email.includes("demo");
+    const isMock = isMockEmail(email);
     return {
       user_id: id,
-      status: isDemo ? "accepted" : "pending",
-      responded_at: isDemo ? new Date() : null,
+      status: isMock ? "accepted" : "pending",
+      responded_at: isMock ? new Date() : null,
     };
   });
 
@@ -284,7 +290,7 @@ const requestCreateClub = async ({
     const requester = await User.findById(requested_by);
 
     // 1. Send confirmation receipt email to Requester
-    if (requester?.email && !requester.email.toLowerCase().includes("demo")) {
+    if (requester?.email && !isMockEmail(requester.email)) {
       try {
         await sendClubCreationSubmittedEmailToRequester({
           toEmail: requester.email.trim(),
@@ -298,12 +304,12 @@ const requestCreateClub = async ({
       }
     }
 
-    // 2. Send invitation emails to real (non-demo) founding members
+    // 2. Send invitation emails to real (non-mock) founding members
     const safeDescription = (reason ? reason.trim() : "") || description || "";
     for (const member of invitedUsers) {
       if (
         member?.email &&
-        !member.email.toLowerCase().includes("demo") &&
+        !isMockEmail(member.email) &&
         String(member._id) !== String(requested_by)
       ) {
         try {
