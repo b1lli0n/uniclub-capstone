@@ -222,7 +222,10 @@ function CreateClubPage({ onCancel, onSubmit }) {
                 <span className="create-club-card__icon" aria-hidden="true">
                   <SectionIcon type="people" />
                 </span>
-                Add Members
+                <span>Add Members</span>
+                <span className={`create-club-card__counter${members.length >= 10 ? ' is-met' : ''}`}>
+                  {members.length} / 10 members
+                </span>
               </h2>
 
               <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '-0.25rem 0 0.75rem 0', lineHeight: 1.4 }}>
@@ -283,16 +286,22 @@ function CreateClubPage({ onCancel, onSubmit }) {
 
               {members.length > 0 ? (
                 <ul className="create-club-member-list">
-                  {members.map((member) => (
+                  {members.map((member, index) => (
                     <li key={String(member.value)}>
-                      <span>{member.label}</span>
+                      <div className="create-club-member-list__item-left">
+                        <span className="create-club-member-list__index" title={`Member #${index + 1}`}>
+                          {index + 1}
+                        </span>
+                        <span className="create-club-member-list__text">{member.label}</span>
+                      </div>
                       <button
                         type="button"
                         className="create-club-member-list__remove"
                         onClick={() => handleRemoveMember(member.value)}
                         aria-label={`Remove ${member.label}`}
+                        title="Remove member"
                       >
-                        x
+                        ✕
                       </button>
                     </li>
                   ))}
