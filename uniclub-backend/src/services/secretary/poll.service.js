@@ -167,6 +167,10 @@ const updatePoll = async (clubId, pollId, payload, userId) => {
     throw getStatusError("Closed poll cannot be updated", 400);
   }
 
+  if (poll.votes && poll.votes.length > 0) {
+    throw getStatusError("Cannot update poll after members have already voted", 400);
+  }
+
   const {
     title,
     description,

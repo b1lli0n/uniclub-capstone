@@ -185,6 +185,12 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
 
   function openEdit(poll) {
     if (!canManagePolls) return
+    const votes = totalVotes(poll)
+    const hasVotes = votes > 0 || (Number(poll.voters) || 0) > 0 || (Array.isArray(poll.rawVotes) && poll.rawVotes.length > 0)
+    if (hasVotes) {
+      notify('Cannot edit poll because members have already voted.')
+      return
+    }
     setForm({
       title: poll.title,
       description: poll.description,
@@ -503,6 +509,7 @@ function PollCard({ poll, onDetails }) {
 
 function PollDetail({ poll, canManagePolls, onVote, onDismiss, onEdit, onClose }) {
   const votes = totalVotes(poll)
+  const hasVotes = votes > 0 || (Number(poll.voters) || 0) > 0 || (Array.isArray(poll.rawVotes) && poll.rawVotes.length > 0)
 
   return (
     <Modal title={poll.status === 'open' ? 'Poll Details & Voting' : 'Poll Results'} onDismiss={onDismiss}>
@@ -602,19 +609,22 @@ function PollDetail({ poll, canManagePolls, onVote, onDismiss, onEdit, onClose }
           <>
             <button
               type="button"
+              disabled={hasVotes}
+              title={hasVotes ? 'Cannot edit poll because members have already voted' : 'Edit poll'}
               style={{
-                background: '#fd7e14',
+                background: hasVotes ? '#94a3b8' : '#fd7e14',
                 color: '#ffffff',
                 border: 'none',
                 fontWeight: 800,
                 borderRadius: '8px',
                 padding: '0.45rem 0.9rem',
-                cursor: 'pointer',
+                cursor: hasVotes ? 'not-allowed' : 'pointer',
+                opacity: hasVotes ? 0.5 : 1,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.35rem',
               }}
-              onClick={onEdit}
+              onClick={hasVotes ? undefined : onEdit}
             >
               <EditIcon size={14} /> Edit poll
             </button>
