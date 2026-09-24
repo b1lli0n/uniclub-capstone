@@ -78,10 +78,12 @@ const requestCreateClub = async (req, res) => {
 
     const { club_name, slogan, category, description, reason, logo_url, member_ids } = req.body;
 
-    if (!club_name || !reason || !logo_url) {
+    const effectiveReason = (reason || description || club_name || "").trim();
+
+    if (!club_name || !logo_url) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: name, reason, logo",
+        message: "Missing required fields: name, logo",
       });
     }
 
@@ -97,7 +99,7 @@ const requestCreateClub = async (req, res) => {
       slogan,
       category,
       description,
-      reason,
+      reason: effectiveReason,
       logo_url,
       requested_by: requestedBy,
       member_ids,

@@ -451,7 +451,7 @@ const swaggerDocument = {
             "application/json": {
               schema: {
                 type: "object",
-                required: ["club_name", "category", "reason", "logo_url", "member_ids"],
+                required: ["club_name", "category", "logo_url", "member_ids"],
                 properties: {
                   club_name: { type: "string", example: "FPT Chess Club" },
                   category: { type: "string", example: "Sports" },
