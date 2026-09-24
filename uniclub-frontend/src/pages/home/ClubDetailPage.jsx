@@ -459,7 +459,7 @@ function ClubDetailPage({ clubId, onBack }) {
               {(club.leader || memberRows.find((m) => m.rawRole === 'president')?.name) && (
                 <div>
                   <strong>{club.leader || memberRows.find((m) => m.rawRole === 'president')?.name}</strong>
-                  <small>Leader</small>
+                  <small>President</small>
                 </div>
               )}
             </div>
@@ -809,7 +809,7 @@ function ClubDetailPage({ clubId, onBack }) {
                   <div className="club-profile-modal__tags">
                     <span className="club-profile-modal__role-tag">{selectedMemberProfile.role}</span>
                     {selectedMemberProfile.rawRole === 'president' && (
-                      <span className="club-profile-modal__leader-tag">Club Leader</span>
+                      <span className="club-profile-modal__leader-tag">Club President</span>
                     )}
                   </div>
                 </div>
