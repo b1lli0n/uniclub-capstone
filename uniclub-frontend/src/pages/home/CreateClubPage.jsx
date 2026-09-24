@@ -113,6 +113,26 @@ function CreateClubPage({ onCancel, onSubmit }) {
 
   async function handleSubmit(event) {
     event.preventDefault()
+
+    if (!logoUrl && !logoName) {
+      showToast({
+        type: 'warning',
+        title: 'Logo is required',
+        message: 'Please choose a club logo before submitting.',
+      })
+      fileInputRef.current?.focus()
+      return
+    }
+
+    if (members.length < 10) {
+      showToast({
+        type: 'warning',
+        title: 'Members required',
+        message: 'Minimum 10 founding members are required to create a club.',
+      })
+      return
+    }
+
     setSubmitting(true)
     try {
       await requestCreateClub({
@@ -121,7 +141,7 @@ function CreateClubPage({ onCancel, onSubmit }) {
         category,
         description,
         reason: description,
-        logo_url: logoUrl || 'https://placehold.co/200x200/png',
+        logo_url: logoUrl,
         member_ids: members.map((member) => member.value),
       })
       // Display notification when club creation request is submitted.
@@ -314,7 +334,9 @@ function CreateClubPage({ onCancel, onSubmit }) {
                 <span className="create-club-card__icon" aria-hidden="true">
                   <SectionIcon type="image" />
                 </span>
-                Club Logo
+                <span>
+                  Club Logo <span className="create-club-required">*</span>
+                </span>
               </h2>
 
               <div className="create-club-file">
@@ -333,6 +355,11 @@ function CreateClubPage({ onCancel, onSubmit }) {
                 >
                   Choose File
                 </button>
+                {logoUrl && (
+                  <div className="create-club-file__preview" title="Logo preview">
+                    <img src={logoUrl} alt="Logo preview" />
+                  </div>
+                )}
                 <span className="create-club-file__name">
                   {logoName || 'No file selected'}
                 </span>
