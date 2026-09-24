@@ -1993,6 +1993,10 @@
 }
 
 @media (max-width: 860px) {
+  .clubs-page {
+    padding: 0 1rem 6.5rem;
+  }
+
   .clubs-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2011,6 +2015,30 @@
     max-width: none;
   }
 
+  .clubs-filters {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.25rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    justify-content: flex-start;
+  }
+
+  .clubs-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .clubs-filter {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    white-space: nowrap;
+  }
+
   .event-detail-page {
     padding: 0 1rem 2rem;
   }
@@ -2020,18 +2048,49 @@
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 600px) {
   .clubs-page {
-    padding: 1rem;
-  }
-
-  .clubs-shell {
-    padding: 1rem;
-    border-radius: 20px;
+    padding: 0 0.75rem 6.5rem;
   }
 
   .clubs-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .clubs-header__title {
+    font-size: 1.45rem;
+  }
+
+  .clubs-header__tools {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+
+  .clubs-search {
+    width: 100%;
+  }
+
+  .custom-select-trigger {
+    width: 100%;
+  }
+
+  .events-detail-modal__panel {
+    max-height: 90vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 520px) {
+  .clubs-page {
+    padding: 0 0.6rem 6.5rem;
+  }
+
+  .clubs-shell {
+    padding: 1rem 0.75rem;
+    border-radius: 18px;
   }
 
   .events-detail-modal__header,

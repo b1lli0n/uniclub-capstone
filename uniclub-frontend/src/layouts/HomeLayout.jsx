@@ -21,6 +21,7 @@ function HomeLayout({
   canManagePolls = false,
   canManageFinance = false,
 }) {
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const userMenuRef = useRef(null)
@@ -30,6 +31,11 @@ function HomeLayout({
   const avatarStyle = currentUser?.avatarUrl
     ? { backgroundImage: `url(${currentUser.avatarUrl})` }
     : undefined
+
+  const handleNavigate = (target) => {
+    setMobileSidebarOpen(false)
+    onNavigate?.(target)
+  }
 
   useEffect(() => {
     let rafId = null
@@ -67,23 +73,53 @@ function HomeLayout({
 
   return (
     <div className="home-shell">
-      <HomeSidebar activeItem={activeItem} onNavigate={onNavigate} onLogout={onLogout} />
+      {mobileSidebarOpen && (
+        <div
+          className="home-sidebar-backdrop"
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <HomeSidebar
+        activeItem={activeItem}
+        onNavigate={handleNavigate}
+        onLogout={onLogout}
+        mobileOpen={mobileSidebarOpen}
+        onCloseMobile={() => setMobileSidebarOpen(false)}
+      />
 
       <div ref={mainRef} className={`home-shell__main home-shell__main--${pageId}`}>
         <div className="home-layout-topbar-container">
           <header className="home-topbar">
-            <button
-              type="button"
-              className="home-topbar__brand"
-              onClick={() => onNavigate?.('home')}
-            >
-              <img
-                src={fptUniversityLogo}
-                alt="FPT University"
-                className="home-topbar__brand-logo"
-              />
-              <span>UniClub</span>
-            </button>
+            <div className="home-topbar__left">
+              <button
+                type="button"
+                className="home-topbar__hamburger"
+                aria-label="Toggle navigation menu"
+                aria-expanded={mobileSidebarOpen}
+                onClick={() => setMobileSidebarOpen((prev) => !prev)}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                className="home-topbar__brand"
+                onClick={() => handleNavigate('home')}
+              >
+                <img
+                  src={fptUniversityLogo}
+                  alt="FPT University"
+                  className="home-topbar__brand-logo"
+                />
+                <span>UniClub</span>
+              </button>
+            </div>
 
 
             <div className="home-topbar__actions">

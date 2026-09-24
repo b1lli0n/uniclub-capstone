@@ -1226,6 +1226,13 @@
   }
 }
 
+@media (max-width: 768px) {
+  .club-detail-page,
+  .club-events-page {
+    padding-bottom: 6rem;
+  }
+}
+
 @media (max-width: 620px) {
   .club-detail-page,
   .club-events-page {

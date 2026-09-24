@@ -34,17 +34,34 @@ const logoutIcon = (
   </svg>
 )
 
-function HomeSidebar({ activeItem, onNavigate, onLogout }) {
+function HomeSidebar({ activeItem, onNavigate, onLogout, mobileOpen = false, onCloseMobile }) {
   return (
-    <aside className="home-sidebar" aria-label="Main navigation">
+    <aside
+      className={`home-sidebar${mobileOpen ? ' is-mobile-open' : ''}`}
+      aria-label="Main navigation"
+    >
       <div className="home-sidebar__top">
-        <button type="button" className="home-sidebar__menu" aria-label="Open menu">
+        <button type="button" className="home-sidebar__menu" aria-label="Menu icon">
           <span className="home-sidebar__icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
             </svg>
           </span>
         </button>
+
+        {onCloseMobile && (
+          <button
+            type="button"
+            className="home-sidebar__close-btn"
+            onClick={onCloseMobile}
+            aria-label="Close navigation menu"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        )}
       </div>
 
       <nav className="home-sidebar__nav">
@@ -54,7 +71,10 @@ function HomeSidebar({ activeItem, onNavigate, onLogout }) {
               <button
                 type="button"
                 className={`home-sidebar__link${activeItem === item.id ? ' is-active' : ''}`}
-                onClick={() => onNavigate?.(item.id)}
+                onClick={() => {
+                  onNavigate?.(item.id)
+                  onCloseMobile?.()
+                }}
                 title={item.label}
               >
                 <span className="home-sidebar__icon">{item.icon}</span>
@@ -69,7 +89,10 @@ function HomeSidebar({ activeItem, onNavigate, onLogout }) {
         <button
           type="button"
           className="home-sidebar__link home-sidebar__link--logout"
-          onClick={onLogout}
+          onClick={() => {
+            onCloseMobile?.()
+            onLogout?.()
+          }}
           title="Logout"
         >
           <span className="home-sidebar__icon">{logoutIcon}</span>

@@ -578,7 +578,10 @@
 }
 
 @media (max-width: 680px) {
-  .schedule-page { width: min(100% - 2rem, 1180px); }
+  .schedule-page {
+    width: min(100% - 1.25rem, 1180px);
+    padding-bottom: 6rem;
+  }
   .schedule-header { align-items: stretch; flex-direction: column; }
   .schedule-header > div:last-child { align-items: stretch !important; flex-direction: column; }
   .schedule-nav { justify-content: space-between; }
