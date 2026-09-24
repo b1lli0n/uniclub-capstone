@@ -11,6 +11,7 @@ import { getClubById } from '../../api/club.api'
 import { getMyClubs, getClubMembers } from '../../api/memberClubMembership.api'
 import { getClubMembersForManagement } from '../../api/clubMember.api'
 import { useToast } from '../../components/common/notificationContext'
+import { TrophyIcon, PlusIcon } from '../../components/common/Icons'
 import '../../styles/club-point-rules.css'
 
 const RULE_COLORS = ['blue', 'indigo', 'purple', 'pink']
@@ -458,11 +459,11 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
         </div>
         {isManager ? (
           <div className="club-point-rules-hero__actions">
-            <button type="button" className="club-point-rules-hero__award-btn" onClick={openAwardModal}>
-              🏆 Award Points
+            <button type="button" className="club-point-rules-hero__award-btn" onClick={openAwardModal} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+              <TrophyIcon size={16} /> Award Points
             </button>
-            <button type="button" onClick={openCreateModal}>
-              + Create Point Rule
+            <button type="button" onClick={openCreateModal} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+              <PlusIcon size={16} /> Create Point Rule
             </button>
           </div>
         ) : null}
@@ -565,7 +566,9 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
           <button type="button" className="club-point-rules-modal__backdrop" aria-label="Close award modal" onClick={() => setAwardModalOpen(false)} />
           <form className="club-point-rules-modal__panel" onSubmit={submitAwardPoints}>
             <div className="club-point-rules-modal__header">
-              <h2 id="award-points-title">🏆 Award Points to Member</h2>
+              <h2 id="award-points-title" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                <TrophyIcon size={20} /> Award Points to Member
+              </h2>
               <button type="button" onClick={() => setAwardModalOpen(false)}>Close</button>
             </div>
 

@@ -4,11 +4,27 @@ import { useToast } from '../../components/common/notificationContext'
 import { getFeeList, createPaymentUrl } from '../../api/payment.api'
 import '../../styles/club-fees.css'
 import CustomSelect from '../../components/common/CustomSelect'
+import {
+  ZapIcon,
+  BanknoteIcon,
+  CreditCardIcon,
+  CheckIcon,
+  CheckCircleIcon,
+  ArrowRightIcon,
+  XIcon,
+  MegaphoneIcon,
+  LandmarkIcon,
+  CoinsIcon,
+  ClockIcon,
+  AlertTriangleIcon,
+  FileTextIcon,
+  SearchIcon,
+} from '../../components/common/Icons'
 
 const METHOD_OPTIONS = [
   { value: 'all', label: 'All Methods' },
-  { value: 'vnpay', label: '⚡ VNPay' },
-  { value: 'cash', label: '💵 Cash (Tiền mặt)' },
+  { value: 'vnpay', label: 'VNPay Gateway' },
+  { value: 'cash', label: 'Cash (Tiền mặt)' },
 ]
 
 const SORT_OPTIONS = [
@@ -192,7 +208,10 @@ export default function ClubFeesPage({ clubId: propClubId }) {
       {/* Hero Banner with UniClub Signature Gradient */}
       <section className="club-fees-hero">
         <div>
-          <span className="club-fees-hero__eyebrow">💰 Financial Dues & Contributions</span>
+          <span className="club-fees-hero__eyebrow">
+            <CoinsIcon size={15} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '6px' }} />
+            Financial Dues & Contributions
+          </span>
           <h1 className="club-fees-hero__title">Club Membership Fees</h1>
           <p className="club-fees-hero__subtitle">
             Manage, review, and settle your club membership dues, activity funds, and fee obligations securely via VNPay or Cash.
@@ -211,7 +230,9 @@ export default function ClubFeesPage({ clubId: propClubId }) {
       {/* Summary Cards Grid */}
       <section className="club-fees-stats" aria-label="Fee statistics">
         <div className="club-fees-stat-card club-fees-stat-card--unpaid">
-          <div className="club-fees-stat-card__icon">⏱️</div>
+          <div className="club-fees-stat-card__icon">
+            <ClockIcon size={24} strokeWidth={2} />
+          </div>
           <div className="club-fees-stat-card__info">
             <span className="club-fees-stat-card__label">Unpaid Dues</span>
             <strong className="club-fees-stat-card__value">{feesData.summary?.unpaid || 0}</strong>
@@ -220,7 +241,9 @@ export default function ClubFeesPage({ clubId: propClubId }) {
         </div>
 
         <div className="club-fees-stat-card club-fees-stat-card--paid">
-          <div className="club-fees-stat-card__icon">✓</div>
+          <div className="club-fees-stat-card__icon">
+            <CheckCircleIcon size={24} strokeWidth={2} />
+          </div>
           <div className="club-fees-stat-card__info">
             <span className="club-fees-stat-card__label">Paid Invoices</span>
             <strong className="club-fees-stat-card__value">{feesData.summary?.paid || 0}</strong>
@@ -229,7 +252,9 @@ export default function ClubFeesPage({ clubId: propClubId }) {
         </div>
 
         <div className="club-fees-stat-card club-fees-stat-card--failed">
-          <div className="club-fees-stat-card__icon">✕</div>
+          <div className="club-fees-stat-card__icon">
+            <XIcon size={24} strokeWidth={2} />
+          </div>
           <div className="club-fees-stat-card__info">
             <span className="club-fees-stat-card__label">Failed / Cancelled</span>
             <strong className="club-fees-stat-card__value">{feesData.summary?.failed || 0}</strong>
@@ -238,7 +263,9 @@ export default function ClubFeesPage({ clubId: propClubId }) {
         </div>
 
         <div className="club-fees-stat-card">
-          <div className="club-fees-stat-card__icon">📋</div>
+          <div className="club-fees-stat-card__icon">
+            <FileTextIcon size={24} strokeWidth={2} />
+          </div>
           <div className="club-fees-stat-card__info">
             <span className="club-fees-stat-card__label">Total Invoices</span>
             <strong className="club-fees-stat-card__value">{feesData.summary?.all || 0}</strong>
@@ -263,24 +290,30 @@ export default function ClubFeesPage({ clubId: propClubId }) {
             type="button"
             className={`club-fees-tab ${activeTab === '0' || activeTab === 'pending' ? 'is-active' : ''}`}
             onClick={() => setActiveTab('pending')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
           >
-            ⏱️ Unpaid
+            <ClockIcon size={14} />
+            <span>Unpaid</span>
             <span className="club-fees-tab__badge">{feesData.summary?.unpaid || 0}</span>
           </button>
           <button
             type="button"
             className={`club-fees-tab ${activeTab === '1' || activeTab === 'success' ? 'is-active' : ''}`}
             onClick={() => setActiveTab('success')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
           >
-            ✓ Paid
+            <CheckIcon size={14} strokeWidth={2.5} />
+            <span>Paid</span>
             <span className="club-fees-tab__badge">{feesData.summary?.paid || 0}</span>
           </button>
           <button
             type="button"
             className={`club-fees-tab ${activeTab === '2' || activeTab === 'failed' ? 'is-active' : ''}`}
             onClick={() => setActiveTab('failed')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
           >
-            ✕ Failed
+            <XIcon size={14} strokeWidth={2.5} />
+            <span>Failed</span>
             <span className="club-fees-tab__badge">{feesData.summary?.failed || 0}</span>
           </button>
         </div>
@@ -309,7 +342,7 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                 onClick={() => setSearchQuery('')}
                 aria-label="Clear fee search"
               >
-                ✕
+                <XIcon size={14} />
               </button>
             )}
           </div>
@@ -355,14 +388,20 @@ export default function ClubFeesPage({ clubId: propClubId }) {
       {/* Fee List & Empty State */}
       {loading ? (
         <div className="club-fees-empty">
-          <div className="club-fees-empty__icon">⏳</div>
+          <div className="club-fees-empty__icon">
+            <ClockIcon size={40} color="#94a3b8" />
+          </div>
           <h3 className="club-fees-empty__title">Loading membership fees...</h3>
           <p className="club-fees-empty__text">Please wait a moment while we retrieve your fee records.</p>
         </div>
       ) : sortedItems.length === 0 ? (
         <div className="club-fees-empty">
           <div className="club-fees-empty__icon">
-            {hasActiveFilters ? '🔍' : '🧧'}
+            {hasActiveFilters ? (
+              <SearchIcon size={44} strokeWidth={1.5} color="#94a3b8" />
+            ) : (
+              <CoinsIcon size={44} strokeWidth={1.5} color="#cbd5e1" />
+            )}
           </div>
           <h3 className="club-fees-empty__title">
             {hasActiveFilters ? 'No matching fees found' : 'No membership fees found'}
@@ -403,7 +442,9 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                     {item.club_logo ? (
                       <img src={item.club_logo} alt={item.club_name} className="club-fee-card__club-logo" />
                     ) : (
-                      <div className="club-fee-card__avatar-fallback">🏛️</div>
+                      <div className="club-fee-card__avatar-fallback">
+                        <LandmarkIcon size={24} color="#ea580c" />
+                      </div>
                     )}
                   </div>
 
@@ -428,8 +469,18 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                       {isSuccess && (
                         <>
                           <span>•</span>
-                          <span className="club-fee-card__method-tag">
-                            {String(item.payment_method).toLowerCase() === 'cash' ? '💵 Cash' : '💳 VNPay'}
+                          <span className="club-fee-card__method-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            {String(item.payment_method).toLowerCase() === 'cash' ? (
+                              <>
+                                <BanknoteIcon size={13} />
+                                <span>Cash</span>
+                              </>
+                            ) : (
+                              <>
+                                <CreditCardIcon size={13} />
+                                <span>VNPay</span>
+                              </>
+                            )}
                           </span>
                         </>
                       )}
@@ -443,16 +494,28 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                     <strong className="club-fee-card__amount">{formatVND(item.amount)}</strong>
                     {isPending && (
                       isOverdue ? (
-                        <span className="club-fee-badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontWeight: 800 }}>⚠️ Quá hạn</span>
+                        <span className="club-fee-badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <AlertTriangleIcon size={12} strokeWidth={2.5} />
+                          <span>Quá hạn</span>
+                        </span>
                       ) : (
-                        <span className="club-fee-badge club-fee-badge--pending">⏱️ Chưa đóng</span>
+                        <span className="club-fee-badge club-fee-badge--pending" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <ClockIcon size={12} strokeWidth={2.5} />
+                          <span>Chưa đóng</span>
+                        </span>
                       )
                     )}
                     {isSuccess && (
-                      <span className="club-fee-badge club-fee-badge--success">✓ Paid</span>
+                      <span className="club-fee-badge club-fee-badge--success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <CheckIcon size={12} strokeWidth={2.5} />
+                        <span>Paid</span>
+                      </span>
                     )}
                     {isFailed && (
-                      <span className="club-fee-badge club-fee-badge--failed">✕ Failed</span>
+                      <span className="club-fee-badge club-fee-badge--failed" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <XIcon size={12} strokeWidth={2.5} />
+                        <span>Failed</span>
+                      </span>
                     )}
                   </div>
 
@@ -463,8 +526,10 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                         className="club-fee-btn club-fee-btn--pay"
                         onClick={() => handleStartPayment(item)}
                         id={`btn-pay-${item._id}`}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                       >
-                        💳 Pay Now
+                        <CreditCardIcon size={14} />
+                        <span>Pay Now</span>
                       </button>
                     )}
 
@@ -474,8 +539,10 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                         className="club-fee-btn club-fee-btn--receipt"
                         onClick={() => navigate(`/clubs/${clubId || item.club_id}/receipts/${item._id}`)}
                         id={`btn-receipt-${item._id}`}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                       >
-                        📄 View Receipt
+                        <FileTextIcon size={14} />
+                        <span>View Receipt</span>
                       </button>
                     )}
                   </div>
@@ -507,7 +574,7 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                 onClick={() => setSelectedPayment(null)}
                 aria-label="Close"
               >
-                ×
+                <XIcon size={18} strokeWidth={2.5} />
               </button>
             </header>
 
@@ -523,8 +590,15 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                   onClick={() => setPaymentMethod('vnpay')}
                 >
                   <div className="club-fees-modal__method-btn-head">
-                    <span className="club-fees-modal__method-name">⚡ VNPay Gateway</span>
-                    {paymentMethod === 'vnpay' && <span className="club-fees-modal__check">✓</span>}
+                    <span className="club-fees-modal__method-name">
+                      <ZapIcon size={18} strokeWidth={2.5} style={{ color: '#f57c00' }} />
+                      <span>VNPay Gateway</span>
+                    </span>
+                    {paymentMethod === 'vnpay' && (
+                      <span className="club-fees-modal__check">
+                        <CheckIcon size={16} strokeWidth={2.5} />
+                      </span>
+                    )}
                   </div>
                   <span className="club-fees-modal__method-sub">ATM / Internet Banking / QR Code / Cards</span>
                 </button>
@@ -535,8 +609,15 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                   onClick={() => setPaymentMethod('cash')}
                 >
                   <div className="club-fees-modal__method-btn-head">
-                    <span className="club-fees-modal__method-name">💵 Cash (Tiền mặt)</span>
-                    {paymentMethod === 'cash' && <span className="club-fees-modal__check is-green">✓</span>}
+                    <span className="club-fees-modal__method-name">
+                      <BanknoteIcon size={18} strokeWidth={2} style={{ color: '#16a34a' }} />
+                      <span>Cash (Tiền mặt)</span>
+                    </span>
+                    {paymentMethod === 'cash' && (
+                      <span className="club-fees-modal__check is-green">
+                        <CheckIcon size={16} strokeWidth={2.5} />
+                      </span>
+                    )}
                   </div>
                   <span className="club-fees-modal__method-sub">Nộp trực tiếp cho Thủ quỹ CLB</span>
                 </button>
@@ -555,8 +636,18 @@ export default function ClubFeesPage({ clubId: propClubId }) {
               </div>
               <div className="club-fees-summary-row">
                 <span>Method:</span>
-                <strong style={{ color: paymentMethod === 'cash' ? '#16a34a' : '#ea580c' }}>
-                  {paymentMethod === 'vnpay' ? '⚡ VNPay Online' : '💵 Cash / Tiền mặt'}
+                <strong style={{ color: paymentMethod === 'cash' ? '#16a34a' : '#ea580c', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  {paymentMethod === 'vnpay' ? (
+                    <>
+                      <ZapIcon size={15} strokeWidth={2.5} />
+                      <span>VNPay Online</span>
+                    </>
+                  ) : (
+                    <>
+                      <BanknoteIcon size={15} strokeWidth={2} />
+                      <span>Cash / Tiền mặt</span>
+                    </>
+                  )}
                 </strong>
               </div>
               <div className="club-fees-summary-row club-fees-summary-row--total">
@@ -567,7 +658,9 @@ export default function ClubFeesPage({ clubId: propClubId }) {
 
             {paymentMethod === 'cash' && (
               <div className="club-fees-cash-notice">
-                <span className="club-fees-cash-notice__icon">📢</span>
+                <span className="club-fees-cash-notice__icon">
+                  <MegaphoneIcon size={20} strokeWidth={2} style={{ color: '#166534' }} />
+                </span>
                 <div className="club-fees-cash-notice__body">
                   <strong>Lưu ý nộp Tiền mặt:</strong>
                   <div>Vui lòng liên hệ và nộp tiền mặt trực tiếp cho <strong>Thủ quỹ CLB</strong>.</div>
@@ -591,8 +684,14 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                   className="club-fee-btn club-fee-btn--pay"
                   onClick={handleConfirmVNPay}
                   disabled={processing}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                 >
-                  {processing ? 'Connecting to VNPay...' : 'Proceed to VNPay ➔'}
+                  {processing ? 'Connecting to VNPay...' : (
+                    <>
+                      <span>Proceed to VNPay</span>
+                      <ArrowRightIcon size={16} strokeWidth={2.5} />
+                    </>
+                  )}
                 </button>
               ) : (
                 <button

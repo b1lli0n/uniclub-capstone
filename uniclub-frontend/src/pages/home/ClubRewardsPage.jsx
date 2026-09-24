@@ -17,6 +17,7 @@ import {
 } from '../../api/reward.api'
 import '../../styles/club-rewards.css'
 import CustomSelect from '../../components/common/CustomSelect'
+import { EyeIcon, CalendarIcon, UserIcon } from '../../components/common/Icons'
 
 const STOCK_OPTIONS = [
   { value: 'all', label: 'All Rewards' },
@@ -190,7 +191,9 @@ function HistoryDetailModal({ item, onClose, isManager = false, onApprove, onRej
                 📦 Current Available Inventory: <strong>{item.stock} item(s)</strong>
               </p>
             )}
-            <p style={{ marginTop: '0.25rem', fontSize: '0.85rem', color: '#64748b' }}>📅 Date Requested: {item.date}</p>
+            <p style={{ marginTop: '0.25rem', fontSize: '0.85rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <CalendarIcon size={14} /> Date Requested: {item.date}
+            </p>
             <div style={{ marginTop: '0.6rem' }}>
               <Status value={item.status} />
             </div>
@@ -199,7 +202,7 @@ function HistoryDetailModal({ item, onClose, isManager = false, onApprove, onRej
             {(item.member || item.studentCode || item.email || item.phone) && (
               <div style={{ marginTop: '0.85rem', padding: '0.75rem 0.9rem', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.85rem', lineHeight: 1.6 }}>
                 <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  👤 Requester Information
+                  <UserIcon size={16} /> Requester Information
                 </div>
                 {item.member && <div><strong>Name:</strong> {item.member}</div>}
                 {item.studentCode && <div><strong>Student ID (MSSV):</strong> <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{item.studentCode}</span></div>}
@@ -789,7 +792,7 @@ function ClubRewardsPage({ isManager = false }) {
                       }}
                       onClick={() => setDetailHistory(item)}
                     >
-                      👁️ View Details
+                      <EyeIcon size={14} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '4px' }} /> View Details
                     </button>
                   </td>
                 </tr>

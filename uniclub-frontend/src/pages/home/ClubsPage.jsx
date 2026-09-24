@@ -7,6 +7,7 @@ import {
   CLUBS_PER_PAGE,
 } from '../../data/mockData'
 import ClubLogo from '../../components/home/ClubLogo'
+import { SearchIcon } from '../../components/common/Icons'
 import '../../styles/clubs.css'
 
 function ChevronIcon({ direction }) {
@@ -355,7 +356,9 @@ function ClubsPage({ onSelectClub }) {
             </div>
           ) : filteredClubs.length === 0 ? (
             <div className="clubs-empty-state">
-              <div className="clubs-empty-state__icon" aria-hidden="true">🔍</div>
+              <div className="clubs-empty-state__icon" aria-hidden="true" style={{ display: 'flex', justifyContent: 'center' }}>
+                <SearchIcon size={40} />
+              </div>
               <h3>No matching clubs found</h3>
               <p>Try adjusting your search query or category filter to find what you are looking for.</p>
             </div>

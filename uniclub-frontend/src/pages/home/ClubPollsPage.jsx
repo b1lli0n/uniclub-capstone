@@ -10,6 +10,7 @@ import {
   closePoll as closePollApi,
 } from '../../api/poll.api'
 import '../../styles/club-polls.css'
+import { CheckIcon, ClipboardListIcon, LightbulbIcon, EditIcon, LockIcon } from '../../components/common/Icons'
 
 const EMPTY_FORM = { title: '', description: '', closesAt: '', options: ['', ''] }
 
@@ -457,7 +458,7 @@ function PollCard({ poll, onDetails }) {
                 gap: '0.25rem',
               }}
             >
-              ✓ You voted
+              <CheckIcon size={12} /> You voted
             </span>
           )}
           <small>Closes: {poll.closesAt}</small>
@@ -525,8 +526,8 @@ function PollDetail({ poll, canManagePolls, onVote, onDismiss, onEdit, onClose }
 
         <div className="club-poll-results" style={{ marginTop: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#2b2521' }}>
-              🗳️ Options ({poll.options.length})
+            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#2b2521', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+              <ClipboardListIcon size={16} /> Options ({poll.options.length})
             </h4>
             <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#786659' }}>
               {votes} {votes === 1 ? 'total vote' : 'total votes'}
@@ -566,7 +567,7 @@ function PollDetail({ poll, canManagePolls, onVote, onDismiss, onEdit, onClose }
                   <div className="club-poll-option-inner">
                     <div className="club-poll-option-left">
                       <div className="club-poll-radio-indicator">
-                        {isMyVote ? <span>✓</span> : null}
+                        {isMyVote ? <CheckIcon size={12} strokeWidth={2.5} /> : null}
                       </div>
                       <span className="club-poll-option-label">{option.label}</span>
                       {isMyVote && (
@@ -587,7 +588,7 @@ function PollDetail({ poll, canManagePolls, onVote, onDismiss, onEdit, onClose }
 
           {poll.status === 'open' && (
             <div className="club-poll-helper-tip">
-              <span>💡</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center' }}><LightbulbIcon size={16} /></span>
               <span>Click any option to vote or switch your vote · Click your chosen option to cancel</span>
             </div>
           )}
@@ -609,10 +610,13 @@ function PollDetail({ poll, canManagePolls, onVote, onDismiss, onEdit, onClose }
                 borderRadius: '8px',
                 padding: '0.45rem 0.9rem',
                 cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
               }}
               onClick={onEdit}
             >
-              ✏️ Edit poll
+              <EditIcon size={14} /> Edit poll
             </button>
             <button
               type="button"
@@ -622,10 +626,13 @@ function PollDetail({ poll, canManagePolls, onVote, onDismiss, onEdit, onClose }
                 padding: '0.45rem 0.9rem',
                 cursor: 'pointer',
                 fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
               }}
               onClick={onClose}
             >
-              🔒 Close poll
+              <LockIcon size={14} /> Close poll
             </button>
           </>
         )}

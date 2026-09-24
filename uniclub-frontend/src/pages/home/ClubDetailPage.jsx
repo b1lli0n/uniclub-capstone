@@ -18,6 +18,7 @@ import { formatRoleLabel, mapClubFromApi, mapMemberFromApi } from '../../api/clu
 import { CLUB_DETAIL_COPY } from '../../data/mockData'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 import { formatDateVN, formatTimeRange24 } from '../../utils/dateTimeUtils'
+import { StarIcon, XIcon } from '../../components/common/Icons'
 import '../../styles/club-detail.css'
 
 
@@ -781,7 +782,9 @@ function ClubDetailPage({ clubId, onBack }) {
           <div className="club-profile-modal__panel">
             <div className="club-profile-modal__header">
               <h2 id="member-profile-modal-title">Member Profile</h2>
-              <button type="button" onClick={() => setProfileModalOpen(false)} aria-label="Close">✕</button>
+              <button type="button" onClick={() => setProfileModalOpen(false)} aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <XIcon size={18} />
+              </button>
             </div>
 
             <div className="club-profile-modal__body">
@@ -856,8 +859,8 @@ function ClubDetailPage({ clubId, onBack }) {
 
                   <div className="club-profile-modal__field">
                     <span className="club-profile-modal__label">Achievement Points</span>
-                    <strong className="club-profile-modal__val" style={{ color: '#eb6c18' }}>
-                      ⭐ {selectedMemberProfile.rankingPoint || 0} pts
+                    <strong className="club-profile-modal__val" style={{ color: '#eb6c18', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <StarIcon size={14} fill="#eb6c18" strokeWidth={1.5} /> {selectedMemberProfile.rankingPoint || 0} pts
                     </strong>
                   </div>
                 </div>

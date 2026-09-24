@@ -10,6 +10,7 @@ import {
 } from '../../api/joinFormManagement.api'
 import { mapClubFromApi } from '../../api/clubMappers'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
+import { LockIcon, EditIcon, TrashIcon } from '../../components/common/Icons'
 import '../../styles/club-join-form.css'
 
 const DEFAULT_ANSWER_PLACEHOLDER = 'Type your answer...'
@@ -392,8 +393,11 @@ function ClubJoinFormPage({ clubId }) {
                       border: '1px solid #ffd8a8',
                       borderRadius: '4px',
                       padding: '0.15rem 0.45rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
                     }}>
-                      🔒 Locked ({form.responseCount} response{form.responseCount > 1 ? 's' : ''})
+                      <LockIcon size={12} /> Locked ({form.responseCount} response{form.responseCount > 1 ? 's' : ''})
                     </span>
                   )}
                   <small>{form.updatedAt}</small>
@@ -442,8 +446,8 @@ function ClubJoinFormPage({ clubId }) {
                 <p>
                   {detailForm.status === 'active' ? 'Active' : 'Inactive'} - {detailForm.updatedAt}
                   {detailForm.isLocked && (
-                    <strong style={{ color: '#d9480f', marginLeft: '0.5rem' }}>
-                      • 🔒 Locked ({detailForm.responseCount} student response{detailForm.responseCount > 1 ? 's' : ''})
+                    <strong style={{ color: '#d9480f', marginLeft: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      • <LockIcon size={13} /> Locked ({detailForm.responseCount} student response{detailForm.responseCount > 1 ? 's' : ''})
                     </strong>
                   )}
                 </p>
@@ -463,10 +467,10 @@ function ClubJoinFormPage({ clubId }) {
             <div className="club-join-form-modal__actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                style={{ background: '#fd7e14', color: '#ffffff', fontWeight: 800 }}
+                style={{ background: '#fd7e14', color: '#ffffff', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                 onClick={() => openEditModal(detailForm)}
               >
-                ✏️ Update Form
+                <EditIcon size={14} /> Update Form
               </button>
               <button
                 type="button"
@@ -483,10 +487,13 @@ function ClubJoinFormPage({ clubId }) {
                   color: '#ffffff',
                   cursor: detailForm.isLocked ? 'not-allowed' : 'pointer',
                   opacity: detailForm.isLocked ? 0.7 : 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
                 }}
                 title={detailForm.isLocked ? 'Locked by BR-24: Form has received student responses' : 'Delete form'}
               >
-                🗑️ Delete Form
+                <TrashIcon size={14} /> Delete Form
               </button>
             </div>
           </section>
@@ -523,7 +530,7 @@ function ClubJoinFormPage({ clubId }) {
                 alignItems: 'center',
                 gap: '0.5rem',
               }}>
-                <span style={{ fontSize: '1.2rem' }}>🔒</span>
+                <LockIcon size={20} />
                 <span>
                   <strong>Form is locked:</strong> This form has received {draft.responseCount} student response{draft.responseCount > 1 ? 's' : ''}.
                   Questions cannot be modified, added, or removed. You can still update the title and description.

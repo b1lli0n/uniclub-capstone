@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { requestCreateClub } from '../../api/club.api'
 import { apiRequest, toQueryString } from '../../api/api'
 import { useToast } from '../../components/common/notificationContext'
+import { XIcon } from '../../components/common/Icons'
 import '../../styles/create-club.css'
 
 const CREATE_CLUB_CATEGORIES = [
@@ -320,8 +321,9 @@ function CreateClubPage({ onCancel, onSubmit }) {
                         onClick={() => handleRemoveMember(member.value)}
                         aria-label={`Remove ${member.label}`}
                         title="Remove member"
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                       >
-                        ✕
+                        <XIcon size={14} />
                       </button>
                     </li>
                   ))}

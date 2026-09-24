@@ -3,6 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useToast } from '../../components/common/notificationContext'
 import { getReceiptDetail } from '../../api/payment.api'
 import '../../styles/club-fees.css'
+import {
+  LandmarkIcon,
+  CalendarIcon,
+  ZapIcon,
+  BanknoteIcon,
+  CreditCardIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  AlertTriangleIcon,
+  FileTextIcon,
+  UserIcon,
+  HashIcon,
+} from '../../components/common/Icons'
 
 function formatVND(amount) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount || 0)
@@ -54,7 +67,9 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
   if (loading) {
     return (
       <div className="club-fees-container" style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⌛</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+          <ClockIcon size={40} color="#94a3b8" />
+        </div>
         <p style={{ color: '#86868b' }}>Loading receipt details...</p>
       </div>
     )
@@ -63,7 +78,9 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
   if (!receipt) {
     return (
       <div className="club-fees-container" style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⚠️</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+          <AlertTriangleIcon size={40} color="#ef4444" />
+        </div>
         <p style={{ color: '#86868b' }}>Payment receipt not found</p>
         <button
           type="button"
@@ -94,8 +111,10 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
           className="club-fee-btn club-fee-btn--pay"
           onClick={() => window.print()}
           id="btn-receipt-print"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
         >
-          🖨️ Print / Download Receipt
+          <FileTextIcon size={16} />
+          <span>Print / Download Receipt</span>
         </button>
       </div>
 
@@ -103,7 +122,9 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
       <article className="club-receipt-paper" id="official-e-receipt">
         <header className="club-receipt-header">
           <div className="club-receipt-header__brand">
-            <span className="club-receipt-header__logo-icon">🏛️</span>
+            <span className="club-receipt-header__logo-icon" style={{ display: 'flex', alignItems: 'center' }}>
+              <LandmarkIcon size={32} color="#ea580c" />
+            </span>
             <div>
               <h1 className="club-receipt-header__title">UNICLUB MANAGEMENT SYSTEM</h1>
               <p className="club-receipt-header__sub">Official Digital Payment Receipt</p>
@@ -111,8 +132,9 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
           </div>
 
           <div className="club-receipt-header__badge-wrap">
-            <span className="club-receipt-badge">
-              ✓ PAYMENT SUCCESSFUL
+            <span className="club-receipt-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <CheckCircleIcon size={14} strokeWidth={2.5} />
+              <span>PAYMENT SUCCESSFUL</span>
             </span>
             <span className="club-receipt-id">
               ID: #{receipt.receiptId || receipt._id}
@@ -122,40 +144,71 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
 
         <section className="club-receipt-grid">
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">🏛️ Organizing Club</span>
+            <span className="club-receipt-field__label" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <LandmarkIcon size={14} />
+              <span>Organizing Club</span>
+            </span>
             <span className="club-receipt-field__value">{receipt.club?.name || 'N/A'}</span>
           </div>
 
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">👤 Member Name</span>
+            <span className="club-receipt-field__label" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <UserIcon size={14} />
+              <span>Member Name</span>
+            </span>
             <span className="club-receipt-field__value">{receipt.user?.full_name || 'N/A'}</span>
           </div>
 
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">✉️ Member Email</span>
+            <span className="club-receipt-field__label" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <FileTextIcon size={14} />
+              <span>Member Email</span>
+            </span>
             <span className="club-receipt-field__value">{receipt.user?.email || 'N/A'}</span>
           </div>
 
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">📅 Billing Period</span>
+            <span className="club-receipt-field__label" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <CalendarIcon size={14} />
+              <span>Billing Period</span>
+            </span>
             <span className="club-receipt-field__value">Period {receipt.period}</span>
           </div>
 
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">📝 Fee Description</span>
+            <span className="club-receipt-field__label" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <FileTextIcon size={14} />
+              <span>Fee Description</span>
+            </span>
             <span className="club-receipt-field__value">{receipt.order_info || `Membership Fee - ${receipt.period}`}</span>
           </div>
 
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">💳 Payment Method</span>
-            <span className="club-receipt-field__value">
-              {String(receipt.payment_method).toLowerCase() === 'cash' || receipt.payment_method === 0 ? '💵 Cash Payment' : '💳 VNPay Online Gateway'}
+            <span className="club-receipt-field__label" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <CreditCardIcon size={14} />
+              <span>Payment Method</span>
+            </span>
+            <span className="club-receipt-field__value" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              {String(receipt.payment_method).toLowerCase() === 'cash' || receipt.payment_method === 0 ? (
+                <>
+                  <BanknoteIcon size={14} color="#16a34a" />
+                  <span>Cash Payment</span>
+                </>
+              ) : (
+                <>
+                  <ZapIcon size={14} color="#ea580c" />
+                  <span>VNPay Online Gateway</span>
+                </>
+              )}
             </span>
           </div>
 
           {receipt.txn_ref && (
             <div className="club-receipt-field">
-              <span className="club-receipt-field__label">🔢 VNPay TxnRef</span>
+              <span className="club-receipt-field__label" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                <HashIcon size={14} />
+                <span>VNPay TxnRef</span>
+              </span>
               <span className="club-receipt-field__value" style={{ fontFamily: 'monospace' }}>
                 {receipt.txn_ref}
               </span>
@@ -164,7 +217,10 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
 
           {receipt.vnp_response_code && (
             <div className="club-receipt-field">
-              <span className="club-receipt-field__label">⚡ VNPay Response Code</span>
+              <span className="club-receipt-field__label" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                <ZapIcon size={14} color="#16a34a" />
+                <span>VNPay Response Code</span>
+              </span>
               <span className="club-receipt-field__value" style={{ color: '#16a34a' }}>
                 {receipt.vnp_response_code} (Success)
               </span>
@@ -172,7 +228,10 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
           )}
 
           <div className="club-receipt-field">
-            <span className="club-receipt-field__label">⏰ Paid At</span>
+            <span className="club-receipt-field__label" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <ClockIcon size={14} />
+              <span>Paid At</span>
+            </span>
             <span className="club-receipt-field__value">{formatDate(receipt.paid_at || receipt.created_at)}</span>
           </div>
         </section>
@@ -185,8 +244,9 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
 
         {/* Official Footer Note */}
         <footer className="club-receipt-footer">
-          <p style={{ margin: '0 0 0.35rem 0', fontWeight: 600, color: '#6e5e52' }}>
-            🎉 Thank you for fulfilling your club membership dues and supporting club activities!
+          <p style={{ margin: '0 0 0.35rem 0', fontWeight: 600, color: '#6e5e52', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <CheckCircleIcon size={16} color="#16a34a" />
+            <span>Thank you for fulfilling your club membership dues and supporting club activities!</span>
           </p>
           <p style={{ margin: 0, fontSize: '0.78rem' }}>
             This digital receipt serves as verifiable official proof of payment within the UniClub Platform.

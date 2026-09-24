@@ -771,12 +771,18 @@
 }
 
 .club-fees-modal__method-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-weight: 850;
   font-size: 0.9rem;
   color: #1b202e;
 }
 
 .club-fees-modal__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: #f57c00;
   font-weight: 900;
 }

@@ -5,6 +5,19 @@ import { getMyRegistrations } from '../../api/event.api'
 import { formatDateVN, formatTime24 } from '../../utils/dateTimeUtils'
 import '../../styles/my-events.css'
 import CustomSelect from '../../components/common/CustomSelect'
+import {
+  TicketIcon,
+  LandmarkIcon,
+  CalendarIcon,
+  MapPinIcon,
+  ArrowRightIcon,
+  CheckIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  SearchIcon,
+  XIcon,
+  ZapIcon,
+} from '../../components/common/Icons'
 
 const SORT_OPTIONS = [
   { value: 'date-asc', label: 'Date: Soonest First' },
@@ -24,11 +37,14 @@ function QRModal({ registrationId, eventTitle, onClose }) {
           onClick={onClose}
           aria-label="Close QR Modal"
           className="my-events-modal__close"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          ✕
+          <XIcon size={16} />
         </button>
 
-        <div className="my-events-modal__icon">🎟️</div>
+        <div className="my-events-modal__icon" style={{ display: 'flex', justifyContent: 'center', color: '#ea580c' }}>
+          <TicketIcon size={40} />
+        </div>
         <h2 className="my-events-modal__title">Check-in Entrance Ticket</h2>
         <p className="my-events-modal__subtitle">
           {eventTitle || 'Event Check-in Ticket'}
@@ -108,13 +124,19 @@ function EventCard({ reg, onShowQR, navigate }) {
           </div>
 
           <div className="my-event-card__meta">
-            <span className="my-event-card__club-tag">🏛️ {club.name || 'UniClub'}</span>
+            <span className="my-event-card__club-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+              <LandmarkIcon size={13} /> {club.name || 'UniClub'}
+            </span>
             <span>•</span>
-            <span>📅 {formattedDate} {formattedTime}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+              <CalendarIcon size={13} /> {formattedDate} {formattedTime}
+            </span>
             {event.location && (
               <>
                 <span>•</span>
-                <span className="my-event-card__location">📍 {event.location}</span>
+                <span className="my-event-card__location" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <MapPinIcon size={13} /> {event.location}
+                </span>
               </>
             )}
           </div>
@@ -136,8 +158,9 @@ function EventCard({ reg, onShowQR, navigate }) {
               onClick={() => onShowQR(reg)}
               title={checkInOpen ? 'Open QR Check-in Ticket' : 'View Check-in Ticket'}
               id={`btn-qr-${reg._id}`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
             >
-              🎟️ {checkInOpen ? 'QR Check-in' : 'View Ticket'}
+              <TicketIcon size={14} /> {checkInOpen ? 'QR Check-in' : 'View Ticket'}
             </button>
           )}
 
@@ -148,8 +171,9 @@ function EventCard({ reg, onShowQR, navigate }) {
             onClick={() => navigate(`/events/${event._id}`)}
             title="View event details"
             id={`btn-details-${reg._id}`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
           >
-            Details ➔
+            Details <ArrowRightIcon size={13} />
           </button>
         </div>
       </div>
@@ -329,7 +353,9 @@ export default function MyEventsPage() {
       {/* Hero Header */}
       <section className="my-events-hero">
         <div>
-          <span className="my-events-hero__eyebrow">🎟️ Activity Pass & Tickets</span>
+          <span className="my-events-hero__eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+            <TicketIcon size={16} /> Activity Pass & Tickets
+          </span>
           <h1 className="my-events-hero__title">My Registered Events</h1>
           <p className="my-events-hero__subtitle">
             Keep track of all your event registrations, check-in schedules, and quick QR entrance passes.
@@ -348,7 +374,9 @@ export default function MyEventsPage() {
       {/* Stats Row */}
       <section className="my-events-stats" aria-label="Event statistics">
         <div className={`my-events-stat-card ${openCount > 0 ? 'my-events-stat-card--highlight' : ''}`}>
-          <div className="my-events-stat-card__icon">🟢</div>
+          <div className="my-events-stat-card__icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ZapIcon size={22} />
+          </div>
           <div className="my-events-stat-card__info">
             <strong className="my-events-stat-card__number">{openCount}</strong>
             <span className="my-events-stat-card__label">Check-in Open</span>
@@ -357,16 +385,20 @@ export default function MyEventsPage() {
         </div>
 
         <div className="my-events-stat-card">
-          <div className="my-events-stat-card__icon">⏳</div>
+          <div className="my-events-stat-card__icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ClockIcon size={22} />
+          </div>
           <div className="my-events-stat-card__info">
             <strong className="my-events-stat-card__number">{upcomingCount}</strong>
             <span className="my-events-stat-card__label">Upcoming</span>
-            <small className="my-events-stat-card__sub">Scheduled events</small>
+            <small className="my-events-stat-card__sub">{upcomingCount > 0 ? 'Scheduled events' : 'None'}</small>
           </div>
         </div>
 
         <div className="my-events-stat-card">
-          <div className="my-events-stat-card__icon">✓</div>
+          <div className="my-events-stat-card__icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CheckCircleIcon size={22} />
+          </div>
           <div className="my-events-stat-card__info">
             <strong className="my-events-stat-card__number">{attendedCount}</strong>
             <span className="my-events-stat-card__label">Attended</span>
@@ -375,7 +407,9 @@ export default function MyEventsPage() {
         </div>
 
         <div className="my-events-stat-card">
-          <div className="my-events-stat-card__icon">🏛️</div>
+          <div className="my-events-stat-card__icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <LandmarkIcon size={22} />
+          </div>
           <div className="my-events-stat-card__info">
             <strong className="my-events-stat-card__number">{clubsCount}</strong>
             <span className="my-events-stat-card__label">My Clubs</span>
@@ -400,32 +434,36 @@ export default function MyEventsPage() {
             type="button"
             className={`my-events-tab ${statusFilter === 'open' ? 'is-active is-open-tab' : ''}`}
             onClick={() => setStatusFilter('open')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
           >
-            🟢 Check-in Open
+            <ZapIcon size={14} /> Check-in Open
             <span className="my-events-tab__badge">{openCount}</span>
           </button>
           <button
             type="button"
             className={`my-events-tab ${statusFilter === 'upcoming' ? 'is-active' : ''}`}
             onClick={() => setStatusFilter('upcoming')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
           >
-            ⏳ Upcoming
+            <ClockIcon size={14} /> Upcoming
             <span className="my-events-tab__badge">{upcomingCount}</span>
           </button>
           <button
             type="button"
             className={`my-events-tab ${statusFilter === 'attended' ? 'is-active' : ''}`}
             onClick={() => setStatusFilter('attended')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
           >
-            ✓ Attended
+            <CheckIcon size={14} /> Attended
             <span className="my-events-tab__badge">{attendedCount}</span>
           </button>
           <button
             type="button"
             className={`my-events-tab ${statusFilter === 'past' ? 'is-active' : ''}`}
             onClick={() => setStatusFilter('past')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
           >
-            📅 Past / Other
+            <CalendarIcon size={14} /> Past / Other
             <span className="my-events-tab__badge">{pastCount}</span>
           </button>
         </div>
@@ -453,8 +491,9 @@ export default function MyEventsPage() {
                 className="my-events-search__clear"
                 onClick={() => setSearchQuery('')}
                 aria-label="Clear event search"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
-                ✕
+                <XIcon size={14} />
               </button>
             )}
           </div>
@@ -489,14 +528,16 @@ export default function MyEventsPage() {
       {/* Events List / Empty States */}
       {loading ? (
         <div className="my-events-empty">
-          <div className="my-events-empty__icon">⏳</div>
+          <div className="my-events-empty__icon" style={{ display: 'flex', justifyContent: 'center' }}>
+            <ClockIcon size={40} />
+          </div>
           <h3 className="my-events-empty__title">Loading registered events...</h3>
           <p className="my-events-empty__text">Retrieving your event passes and check-in statuses.</p>
         </div>
       ) : filteredRegistrations.length === 0 ? (
         <div className="my-events-empty">
-          <div className="my-events-empty__icon">
-            {hasActiveFilters ? '🔍' : '🎟️'}
+          <div className="my-events-empty__icon" style={{ display: 'flex', justifyContent: 'center' }}>
+            {hasActiveFilters ? <SearchIcon size={40} /> : <TicketIcon size={40} />}
           </div>
           <h3 className="my-events-empty__title">
             {hasActiveFilters ? 'No matching registered events found' : 'No event registrations yet'}
@@ -519,8 +560,9 @@ export default function MyEventsPage() {
               type="button"
               className="my-events-empty__btn"
               onClick={() => navigate('/events')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
             >
-              Explore Club Events ➔
+              Explore Club Events <ArrowRightIcon size={14} />
             </button>
           )}
         </div>

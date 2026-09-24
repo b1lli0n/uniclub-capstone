@@ -12,6 +12,7 @@ import { apiRequest, toQueryString } from '../../api/api'
 import { mapClubFromApi, mapClubInvitationFromApi, formatRoleLabel } from '../../api/clubMappers'
 import { CLUB_INVITATION_STATUS_OPTIONS } from '../../data/clubInvitationsData'
 import { useToast } from '../../components/common/notificationContext'
+import { MailIcon } from '../../components/common/Icons'
 import '../../styles/club-invitations.css'
 
 const EMPTY_FORM = { invitedUserId: '', role: 'member', message: '' }
@@ -643,8 +644,8 @@ function InvitationForm({ clubName, form, setForm, submitting, onClose, onSubmit
                           })
                         }}
                       >
-                        <span style={{ fontWeight: 800, color: '#166534', fontSize: '0.88rem' }}>
-                          ✉️ Invite email directly:
+                        <span style={{ fontWeight: 800, color: '#166534', fontSize: '0.88rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <MailIcon size={14} /> Invite email directly:
                         </span>
                         <span style={{ color: '#15803d', fontSize: '0.8rem', fontWeight: 600 }}>{studentSearch.trim()}</span>
                       </button>

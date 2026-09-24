@@ -5,6 +5,7 @@ import { getMyProfile } from '../../api/profile.api'
 import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getClubLeaderboard, getMyContributionLogs } from '../../api/pointRule.api'
 import { resolveClubLogo } from '../../utils/imageUtils'
+import { ClipboardListIcon, XIcon } from '../../components/common/Icons'
 import '../../styles/club-ranking.css'
 
 
@@ -383,7 +384,7 @@ function ClubRankingPage({ clubId }) {
                   gap: '6px',
                 }}
               >
-                📋 My Point History
+                <ClipboardListIcon size={16} /> My Point History
               </button>
             </div>
           </div>
@@ -525,7 +526,7 @@ function ClubRankingPage({ clubId }) {
               }}
             >
               <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>📋</span> My Point History
+                <ClipboardListIcon size={20} /> My Point History
               </h2>
               <button
                 type="button"
@@ -539,6 +540,9 @@ function ClubRankingPage({ clubId }) {
                   fontSize: '0.85rem',
                   padding: '7px 16px',
                   cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
                   transition: 'all 0.2s',
                 }}
                 onMouseOver={(e) => {
@@ -550,7 +554,7 @@ function ClubRankingPage({ clubId }) {
                   e.currentTarget.style.color = '#475569'
                 }}
               >
-                ✕ Close
+                <XIcon size={14} /> Close
               </button>
             </div>
 
