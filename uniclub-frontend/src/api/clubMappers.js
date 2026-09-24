@@ -3,6 +3,7 @@ const CATEGORY_GRADIENTS = {
   academic: 'linear-gradient(135deg, #a8d8ff 0%, #7eb8f0 100%)',
   art: 'linear-gradient(135deg, #f5b0d8 0%, #e88fc4 100%)',
   event: 'linear-gradient(135deg, #c4f0a8 0%, #9ed87e 100%)',
+  other: 'linear-gradient(135deg, #e2d9f3 0%, #c5b4e8 100%)',
 }
 
 const ROLE_LABELS = {
@@ -52,6 +53,9 @@ export function mapClubFromApi(club, extras = {}) {
   if (category === 'arts') category = 'art'
   if (category === 'sports') category = 'sport'
   if (category === 'events') category = 'event'
+  // Normalize unknown categories to 'other'
+  const knownCategories = ['academic', 'sport', 'art', 'event', 'other']
+  if (!knownCategories.includes(category)) category = 'other'
 
   const leader = club.president_id || extras.leader || {}
   const leaderName =
@@ -90,7 +94,7 @@ export function mapClubFromApi(club, extras = {}) {
     events: eventsVal,
     logoUrl: club.logo_url || '',
     status: club.status || 'active',
-    gradient: CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.academic,
+    gradient: CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.other,
   }
 }
 

@@ -122,6 +122,13 @@ const CATEGORY_ICONS = {
       <path d="M13 5v14" />
     </svg>
   ),
+  other: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+      <circle cx="5" cy="12" r="1" />
+    </svg>
+  ),
 }
 
 function CustomSelect({ value, onChange, options }) {
@@ -219,8 +226,13 @@ function ClubsPage({ onSelectClub }) {
     let result = [...clubs]
 
     if (activeCategory !== 'all') {
+      const knownCategories = ['academic', 'sport', 'art', 'event']
       result = result.filter((club) => {
         const clubCat = (club.category || '').toLowerCase().replace(/s$/, '')
+        if (activeCategory === 'other') {
+          // "Other" shows clubs that don't match any of the known categories
+          return !knownCategories.includes(clubCat)
+        }
         const activeCat = activeCategory.toLowerCase().replace(/s$/, '')
         return clubCat === activeCat
       })

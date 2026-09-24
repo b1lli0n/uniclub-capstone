@@ -105,6 +105,7 @@ export const CLUB_FILTER_CATEGORIES = [
   { id: 'sport', label: 'Sports', icon: 'S' },
   { id: 'art', label: 'Arts', icon: 'R' },
   { id: 'event', label: 'Events', icon: 'E' },
+  { id: 'other', label: 'Other', icon: 'O' },
 ]
 
 export const CLUB_SORT_OPTIONS = [
