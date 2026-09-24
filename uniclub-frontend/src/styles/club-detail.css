@@ -173,6 +173,7 @@
 .club-detail-page .club-logo img {
   width: 100%;
   height: 100%;
+  aspect-ratio: 1 / 1;
   object-fit: cover;
 }
 
@@ -250,6 +251,46 @@
   background: #f57c00;
   color: #ffffff;
   box-shadow: 0 12px 24px rgba(245, 124, 0, 0.18);
+}
+
+.club-product-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.club-product-card__description .club-product-card__pending-btn {
+  border: 1.5px solid rgba(245, 158, 11, 0.5);
+  background: #fffbeb;
+  color: #b45309;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.12);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: default;
+}
+
+.club-product-card__description .club-product-card__pending-btn:hover {
+  transform: none;
+  background: #fef3c7;
+  color: #92400e;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.15);
+}
+
+.club-product-card__description .club-product-card__cancel-btn {
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  background: #fff5f5;
+  color: #dc2626;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, transform 0.15s;
+}
+
+.club-product-card__description .club-product-card__cancel-btn:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+  transform: translateY(-1px);
 }
 
 .club-detail-section {
@@ -727,6 +768,8 @@
 .club-detail-member__avatar {
   width: 44px;
   height: 44px;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
   margin-bottom: auto;
   border-radius: 50%;
   display: flex;
@@ -735,6 +778,15 @@
   background: rgba(255, 255, 255, 0.24);
   font-weight: 900;
   font-size: 1.2rem;
+  overflow: hidden;
+}
+
+.club-detail-member__avatar img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .club-detail-member strong,
@@ -1070,6 +1122,7 @@
 .club-members-modal__avatar {
   width: 40px;
   height: 40px;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
@@ -1081,6 +1134,15 @@
   box-shadow: 0 4px 12px rgba(92, 64, 51, 0.16);
   font-size: 0.98rem;
   font-weight: 900;
+  overflow: hidden;
+}
+
+.club-members-modal__avatar img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .club-members-modal__item strong,
@@ -1341,6 +1403,7 @@
 .club-profile-modal__avatar {
   width: 64px;
   height: 64px;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -1356,6 +1419,7 @@
 .club-profile-modal__avatar img {
   width: 100%;
   height: 100%;
+  aspect-ratio: 1 / 1;
   object-fit: cover;
 }
 

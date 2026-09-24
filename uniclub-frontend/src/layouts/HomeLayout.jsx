@@ -157,20 +157,22 @@ function HomeLayout({
           {children}
         </div>
 
-        {pageId === 'club-detail' ||
-        pageId === 'club-ranking' ||
-        pageId === 'member-approval' ||
-        pageId === 'invitations' ||
-        pageId === 'polls' ||
-        pageId === 'join-form' ||
-        pageId === 'manage-events' ||
-        pageId === 'attendance' ||
-        pageId === 'point-rules' ||
-        pageId === 'fees' ||
-        pageId === 'finance' ||
-        pageId === 'activity-schedule' ||
-        pageId === 'manage-activity-schedule' ||
-        pageId === 'rewards' ? (
+        {canViewFees && (
+          pageId === 'club-detail' ||
+          pageId === 'club-ranking' ||
+          pageId === 'member-approval' ||
+          pageId === 'invitations' ||
+          pageId === 'polls' ||
+          pageId === 'join-form' ||
+          pageId === 'manage-events' ||
+          pageId === 'attendance' ||
+          pageId === 'point-rules' ||
+          pageId === 'fees' ||
+          pageId === 'finance' ||
+          pageId === 'activity-schedule' ||
+          pageId === 'manage-activity-schedule' ||
+          pageId === 'rewards'
+        ) ? (
           <>
             <div className="home-bottom-dock-spacer" aria-hidden="true" />
 

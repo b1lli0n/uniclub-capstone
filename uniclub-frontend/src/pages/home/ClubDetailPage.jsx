@@ -7,6 +7,8 @@ import { getClubMembers, getMyClubs, leaveClub } from '../../api/memberClubMembe
 import {
   getClubJoinForm,
   submitJoinRequest,
+  getMyJoinRequests,
+  cancelJoinRequest,
 } from '../../api/studentClubMembership.api'
 import {
   getPublicEvents,
@@ -92,6 +94,7 @@ function ClubDetailPage({ clubId, onBack }) {
   const [club, setClub] = useState(null)
   const [memberRows, setMemberRows] = useState([])
   const [currentMembership, setCurrentMembership] = useState(null)
+  const [pendingJoinRequest, setPendingJoinRequest] = useState(null)
   const [joinForm, setJoinForm] = useState(null)
   const [joinAnswers, setJoinAnswers] = useState([])
   const [events, setEvents] = useState([])
@@ -164,16 +167,28 @@ function ClubDetailPage({ clubId, onBack }) {
 
         const isMember = Boolean(membership)
 
+        // If not a member, check if the student already submitted a join request
+        const pendingReqPromise = !isMember
+          ? getMyJoinRequests({ status: 'pending' }).catch(() => ({ data: [] }))
+          : Promise.resolve({ data: [] })
+
         // Now fire all remaining fetches in parallel
-        const [clubResponse, membersResponse, eventsRes] = await Promise.all([
+        const [clubResponse, membersResponse, eventsRes, pendingReqRes] = await Promise.all([
           getClubById(clubId),
           getClubMembers(clubId).catch(() => ({ data: [] })),
           isMember
             ? getClubEventsForMember(clubId).catch(() => ({ data: [] }))
             : getPublicEvents({ clubId }).catch(() => ({ data: [] })),
+          pendingReqPromise,
         ])
 
         if (cancelled) return
+
+        const pendingReq = (pendingReqRes.data || []).find((r) => {
+          const cId = r.club_id?._id || r.club_id
+          return String(cId) === String(clubId)
+        })
+        setPendingJoinRequest(pendingReq || null)
 
         setClub(mapClubFromApi(clubResponse.data, { memberCount: membersResponse.data?.length }))
         setMemberRows((membersResponse.data || []).map((member, index) => mapMemberFromApi(member, index)))
@@ -194,6 +209,7 @@ function ClubDetailPage({ clubId, onBack }) {
           setClub(null)
           setMemberRows([])
           setCurrentMembership(null)
+          setPendingJoinRequest(null)
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -275,10 +291,11 @@ function ClubDetailPage({ clubId, onBack }) {
         value: (joinAnswers[idx] || '').trim(),
       }))
 
-      await submitJoinRequest(clubId, {
+      const submitRes = await submitJoinRequest(clubId, {
         form_id: joinForm._id,
         answers: answersPayload,
       })
+      setPendingJoinRequest(submitRes?.data || { status: 'pending' })
       setJoinModalOpen(false)
       // Display notification when club join request is submitted.
       showToast({
@@ -295,6 +312,39 @@ function ClubDetailPage({ clubId, onBack }) {
       })
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function handleCancelJoinRequest() {
+    if (!pendingJoinRequest?._id) {
+      setPendingJoinRequest(null)
+      return
+    }
+
+    const ok = await confirm({
+      title: 'Cancel Join Request',
+      message: 'Are you sure you want to cancel your join request to this club?',
+      confirmText: 'Yes, Cancel',
+      cancelText: 'Keep Request',
+      tone: 'danger',
+    })
+    if (!ok) return
+
+    try {
+      await cancelJoinRequest(pendingJoinRequest._id)
+      setPendingJoinRequest(null)
+      showToast({
+        type: 'success',
+        title: 'Request Cancelled',
+        message: 'Your join request has been cancelled.',
+      })
+    } catch (error) {
+      console.error(error)
+      showToast({
+        type: 'error',
+        title: 'Cancel Failed',
+        message: error.message || 'Could not cancel your join request.',
+      })
     }
   }
 
@@ -387,7 +437,6 @@ function ClubDetailPage({ clubId, onBack }) {
           <div className="club-product-card__copy">
             <span>Club slogan</span>
             <h2>{club.slogan || CLUB_DETAIL_COPY.slogan}</h2>
-            <p>{club.description}</p>
           </div>
 
           <div className="club-product-card__logo-wrap">
@@ -414,20 +463,48 @@ function ClubDetailPage({ clubId, onBack }) {
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              className={isClubMember ? 'club-product-card__leave-btn' : undefined}
-              onClick={() => {
-                if (isClubMember) {
-                  setLeaveModalOpen(true)
-                  return
-                }
-
-                openJoinModal()
-              }}
-            >
-              {isClubMember ? 'Leave Club' : 'Join Now'}
-            </button>
+            {isClubMember ? (
+              <button
+                type="button"
+                className="club-product-card__leave-btn"
+                onClick={() => setLeaveModalOpen(true)}
+              >
+                Leave Club
+              </button>
+            ) : pendingJoinRequest ? (
+              <div className="club-product-card__actions">
+                <button
+                  type="button"
+                  className="club-product-card__pending-btn"
+                  title="Your application is awaiting review by club leaders"
+                  onClick={() => {
+                    showToast({
+                      type: 'warning',
+                      title: 'Request Pending',
+                      message: 'Your join request is currently under review by club leaders.',
+                    })
+                  }}
+                >
+                  <span aria-hidden="true">⏳</span> Pending
+                </button>
+                {pendingJoinRequest._id && (
+                  <button
+                    type="button"
+                    className="club-product-card__cancel-btn"
+                    onClick={handleCancelJoinRequest}
+                  >
+                    Cancel Request
+                  </button>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={openJoinModal}
+              >
+                Join Now
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -442,7 +519,7 @@ function ClubDetailPage({ clubId, onBack }) {
                 : 'Public activities available to all students'}
             </p>
           </div>
-          <button type="button" onClick={() => navigate(`/clubs/${club.id}/events`)}>
+          <button type="button" onClick={() => navigate(`/clubs/${clubId || club?.id}/events`)}>
             View all
           </button>
         </div>
@@ -455,11 +532,11 @@ function ClubDetailPage({ clubId, onBack }) {
                 className="club-event-card club-event-card--clickable"
                 role="button"
                 tabIndex={0}
-                onClick={() => navigate(`/clubs/${club.id}/events/${event.id}`)}
+                onClick={() => navigate(`/clubs/${clubId || club?.id}/events/${event.id}`)}
                 onKeyDown={(keyEvent) => {
                   if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
                     keyEvent.preventDefault()
-                    navigate(`/clubs/${club.id}/events/${event.id}`)
+                    navigate(`/clubs/${clubId || club?.id}/events/${event.id}`)
                   }
                 }}
               >
@@ -528,6 +605,10 @@ function ClubDetailPage({ clubId, onBack }) {
                     <img
                       src={member.avatarUrl}
                       alt={member.name}
+                      width="44"
+                      height="44"
+                      loading="lazy"
+                      decoding="async"
                       style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
                     />
                   ) : (
@@ -647,6 +728,10 @@ function ClubDetailPage({ clubId, onBack }) {
                         <img
                           src={member.avatarUrl}
                           alt={member.name}
+                          width="40"
+                          height="40"
+                          loading="lazy"
+                          decoding="async"
                           style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
                         />
                       ) : (
@@ -706,7 +791,15 @@ function ClubDetailPage({ clubId, onBack }) {
                   style={{ background: selectedMemberProfile.tone || '#f5b87a' }}
                 >
                   {selectedMemberProfile.avatarUrl ? (
-                    <img src={selectedMemberProfile.avatarUrl} alt={selectedMemberProfile.name} />
+                    <img
+                      src={selectedMemberProfile.avatarUrl}
+                      alt={selectedMemberProfile.name}
+                      width="60"
+                      height="60"
+                      loading="lazy"
+                      decoding="async"
+                      style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                    />
                   ) : (
                     selectedMemberProfile.name?.slice(0, 1).toUpperCase() || 'U'
                   )}

@@ -209,7 +209,11 @@ function MyClubsPage({ onSelectClub }) {
     let result = [...clubs]
 
     if (activeCategory !== 'all') {
-      result = result.filter((club) => club.category === activeCategory)
+      result = result.filter((club) => {
+        const clubCat = (club.category || '').toLowerCase().replace(/s$/, '')
+        const activeCat = activeCategory.toLowerCase().replace(/s$/, '')
+        return clubCat === activeCat
+      })
     }
 
     const query = search.trim().toLowerCase()

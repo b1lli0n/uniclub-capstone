@@ -118,11 +118,14 @@ const getClubList = async ({ query, currentUser }) => {
       }
     }
 
+    // Gom các club cần sync president_id để batch update sau khi map xong
+    const clubsToSync = [];
+
     clubsWithCounts = clubs.map((club) => {
       const leaderUser = club.president_id || presidentMap.get(String(club._id)) || null;
 
       if (!club.president_id && leaderUser?._id) {
-        Club.updateOne({ _id: club._id }, { president_id: leaderUser._id }).catch(() => {});
+        clubsToSync.push({ _id: club._id, president_id: leaderUser._id });
       }
 
       return {
@@ -133,6 +136,15 @@ const getClubList = async ({ query, currentUser }) => {
         event_count: eventCountMap.get(String(club._id)) || 0,
       };
     });
+
+    // Batch sync president_id sau khi đã build response — không block GET
+    if (clubsToSync.length > 0) {
+      Promise.all(
+        clubsToSync.map(({ _id, president_id }) =>
+          Club.updateOne({ _id }, { president_id }).catch(() => {})
+        )
+      ).catch(() => {});
+    }
   }
 
   return {

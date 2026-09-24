@@ -491,7 +491,7 @@ function ClubJoinFormRoute() {
 
 function ClubEventsRoute() {
   return (
-    <ClubRoute pageId="club-events" guard="member">
+    <ClubRoute pageId="club-events" guard="none">
       {() => <ClubEventsPage />}
     </ClubRoute>
   )
@@ -748,7 +748,7 @@ function AppRouter() {
       <Route
         path="/clubs/:clubId/events/:eventId"
         element={
-          <ClubRoute pageId="event-detail" guard="member">
+          <ClubRoute pageId="event-detail" guard="none">
             {() => <EventDetailPage />}
           </ClubRoute>
         }

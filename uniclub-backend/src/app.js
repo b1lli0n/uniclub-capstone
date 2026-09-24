@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const path = require("path");
+const compression = require("compression");
+const { rateLimit } = require("express-rate-limit");
 const memberInvitationManagementRoutes = require("./routes/member/invitationManagement.routes");
 const secretaryInvitationManagementRoutes = require("./routes/secretary/invitationManagement.routes");
 const passport = require("passport");
@@ -55,25 +57,42 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.some((o) => origin.startsWith(o))) {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin) || allowedOrigins.some((o) => origin.startsWith(o))) {
         return callback(null, true);
       }
-      return callback(null, true);
+      return callback(new Error(`CORS: origin '${origin}' is not allowed`), false);
     },
     credentials: true,
   })
 );
 
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+// Gzip compression — giảm bandwidth đáng kể cho JSON response
+app.use(compression());
+
+// Rate limiting cho auth endpoints — chống brute force
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 30,                  // tối đa 30 request/IP trong 15 phút
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many requests, please try again later." },
+  skip: (req) => req.method === "GET",
+});
+
+// Giảm giới hạn body xuống 2mb cho API thông thường.
+// Upload file ảnh dùng multer riêng (không đi qua JSON body).
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ limit: "2mb", extended: true }));
 app.use(morgan("dev"));
 app.use(cookieParser());
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.use(passport.initialize());
 
-app.use("/auth", authRoutes);
-app.use("/api/auth", authRoutes);
+app.use("/auth", authLimiter, authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 
 app.use("/api/clubs", clubDiscoveryRoutes);
 app.use("/api/profile", profileRoutes);

@@ -16,6 +16,27 @@ import {
   rejectRedemption
 } from '../../api/reward.api'
 import '../../styles/club-rewards.css'
+import CustomSelect from '../../components/common/CustomSelect'
+
+const STOCK_OPTIONS = [
+  { value: 'all', label: 'All Rewards' },
+  { value: 'in_stock', label: 'In Stock' },
+  { value: 'out_of_stock', label: 'Out of Stock' },
+]
+
+const SORT_OPTIONS = [
+  { value: 'default', label: 'Default' },
+  { value: 'points_asc', label: 'Points: Low to High' },
+  { value: 'points_desc', label: 'Points: High to Low' },
+  { value: 'name_asc', label: 'Name: A - Z' },
+]
+
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'All Statuses' },
+  { value: 'pending', label: 'Pending Only' },
+  { value: 'approved', label: 'Approved Only' },
+  { value: 'rejected', label: 'Rejected Only' },
+]
 
 const EMPTY_REWARD = { title: '', points: '', type: '', stock: '', image: '🎁', description: '' }
 
@@ -634,50 +655,35 @@ function ClubRewardsPage({ isManager = false }) {
               aria-label="Search rewards"
             />
 
-            <select
-              id="rewards-stock"
-              className="club-rewards-select"
+            <CustomSelect
               value={stockFilter}
-              onChange={(e) => setStockFilter(e.target.value)}
-              aria-label="Filter by stock"
-            >
-              <option value="all">All Rewards</option>
-              <option value="in_stock">In Stock</option>
-              <option value="out_of_stock">Out of Stock</option>
-            </select>
+              onChange={setStockFilter}
+              options={STOCK_OPTIONS}
+              ariaLabel="Filter by stock"
+            />
 
-            <select
-              id="rewards-sort"
-              className="club-rewards-select"
+            <CustomSelect
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              aria-label="Sort rewards"
-            >
-              <option value="default">Default</option>
-              <option value="points_asc">Points: Low to High</option>
-              <option value="points_desc">Points: High to Low</option>
-              <option value="name_asc">Name: A - Z</option>
-            </select>
+              onChange={setSortBy}
+              options={SORT_OPTIONS}
+              align="right"
+              ariaLabel="Sort rewards"
+            />
           </div>
         )}
 
         {tab === 'requests' && (
           <div className="club-rewards-controls">
             <div className="club-rewards-control-group">
-              <label htmlFor="requests-status" className="club-rewards-control-label">
+              <label className="club-rewards-control-label">
                 STATUS
               </label>
-              <select
-                id="requests-status"
-                className="club-rewards-select"
+              <CustomSelect
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="all">All Statuses</option>
-                <option value="pending">Pending Only</option>
-                <option value="approved">Approved Only</option>
-                <option value="rejected">Rejected Only</option>
-              </select>
+                onChange={setStatusFilter}
+                options={STATUS_OPTIONS}
+                ariaLabel="Filter by status"
+              />
             </div>
           </div>
         )}

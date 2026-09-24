@@ -218,6 +218,14 @@ function ClubsPage({ onSelectClub }) {
   const filteredClubs = useMemo(() => {
     let result = [...clubs]
 
+    if (activeCategory !== 'all') {
+      result = result.filter((club) => {
+        const clubCat = (club.category || '').toLowerCase().replace(/s$/, '')
+        const activeCat = activeCategory.toLowerCase().replace(/s$/, '')
+        return clubCat === activeCat
+      })
+    }
+
     const query = search.trim().toLowerCase()
     if (query) {
       result = result.filter(
@@ -237,7 +245,7 @@ function ClubsPage({ onSelectClub }) {
     }
 
     return result
-  }, [clubs, search, sort])
+  }, [clubs, activeCategory, search, sort])
 
   const totalPages = Math.max(1, Math.ceil(filteredClubs.length / CLUBS_PER_PAGE))
   const currentPage = Math.min(page, totalPages)

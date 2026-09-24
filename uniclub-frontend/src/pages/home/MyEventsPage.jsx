@@ -4,6 +4,13 @@ import { getMyClubs } from '../../api/memberClubMembership.api'
 import { getMyRegistrations } from '../../api/event.api'
 import { formatDateVN, formatTime24 } from '../../utils/dateTimeUtils'
 import '../../styles/my-events.css'
+import CustomSelect from '../../components/common/CustomSelect'
+
+const SORT_OPTIONS = [
+  { value: 'date-asc', label: 'Date: Soonest First' },
+  { value: 'date-desc', label: 'Date: Furthest First' },
+  { value: 'newest', label: 'Recently Registered' },
+]
 
 // ── QR Ticket Modal ──────────────────────────────────────────────────────────
 function QRModal({ registrationId, eventTitle, onClose }) {
@@ -198,6 +205,14 @@ export default function MyEventsPage() {
     })
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
   }, [registrations])
+
+  const clubOptions = useMemo(
+    () => [
+      { value: '', label: `All Clubs (${availableClubs.length})` },
+      ...availableClubs.map((c) => ({ value: c.id, label: c.name })),
+    ],
+    [availableClubs]
+  )
 
   // Counts for tabs & stats
   const openCount = useMemo(
@@ -447,36 +462,26 @@ export default function MyEventsPage() {
           {/* Club Dropdown Filter */}
           {availableClubs.length > 0 && (
             <div className="my-events-control-group">
-              <label htmlFor="my-events-club-select" className="my-events-control-label">CLUB</label>
-              <select
-                id="my-events-club-select"
-                className="my-events-select"
+              <label className="my-events-control-label">CLUB</label>
+              <CustomSelect
                 value={selectedClub}
-                onChange={(e) => setSelectedClub(e.target.value)}
-              >
-                <option value="">All Clubs ({availableClubs.length})</option>
-                {availableClubs.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedClub}
+                options={clubOptions}
+                ariaLabel="Filter by club"
+              />
             </div>
           )}
 
           {/* Sort Dropdown */}
           <div className="my-events-control-group">
-            <label htmlFor="my-events-sort-select" className="my-events-control-label">SORT</label>
-            <select
-              id="my-events-sort-select"
-              className="my-events-select"
+            <label className="my-events-control-label">SORT</label>
+            <CustomSelect
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="date-asc">Date: Soonest First</option>
-              <option value="date-desc">Date: Furthest First</option>
-              <option value="newest">Recently Registered</option>
-            </select>
+              onChange={setSortBy}
+              options={SORT_OPTIONS}
+              align="right"
+              ariaLabel="Sort events"
+            />
           </div>
         </div>
       </div>

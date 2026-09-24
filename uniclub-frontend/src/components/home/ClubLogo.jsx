@@ -30,6 +30,10 @@ function ClubLogo({ club, className = '' }) {
         <img
           src={club.logoUrl}
           alt={club?.name || 'Club logo'}
+          width="108"
+          height="108"
+          loading="eager"
+          decoding="async"
           onError={() => setImgError(true)}
         />
       ) : (

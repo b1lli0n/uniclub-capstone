@@ -44,7 +44,6 @@ function MyProfilePage({ currentUser }) {
     campus: 'CT',
   })
   const [isSavingProfile, setIsSavingProfile] = useState(false)
-  const [phoneError, setPhoneError] = useState('')
 
   // State cho Modal "Cắt và xoay" kiểu Google Profile
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false)
@@ -129,39 +128,20 @@ function MyProfilePage({ currentUser }) {
       phone: profile.phone || '',
       campus: profile.campus || 'CT',
     })
-    setPhoneError('')
     setIsEditModalOpen(true)
   }
 
   // Đóng Popup chỉnh sửa hồ sơ
   function handleCloseEditModal() {
     setIsEditModalOpen(false)
-    setPhoneError('')
   }
 
   // Cập nhật trường trong Form popup
   function handleEditFieldChange(field, value) {
-    if (field === 'phone') {
-      setPhoneError('')
-    }
     setEditFormData((prev) => ({
       ...prev,
       [field]: value,
     }))
-  }
-
-  // Kiểm tra số điện thoại sau khi người dùng gõ xong và rời khỏi ô nhập (onBlur)
-  function handlePhoneBlur() {
-    const cleanPhone = (editFormData.phone || '').trim()
-    if (!cleanPhone) {
-      setPhoneError('')
-      return
-    }
-    if (!VN_PHONE_REGEX.test(cleanPhone)) {
-      setPhoneError('Invalid phone number')
-    } else {
-      setPhoneError('')
-    }
   }
 
   // Lưu thông tin từ Popup chỉnh sửa
@@ -172,7 +152,6 @@ function MyProfilePage({ currentUser }) {
     const cleanPhone = (editFormData.phone || '').trim()
     if (cleanPhone) {
       if (!VN_PHONE_REGEX.test(cleanPhone)) {
-        setPhoneError('Invalid phone number')
         showToast({
           type: 'error',
           title: 'Invalid phone number',
@@ -182,7 +161,6 @@ function MyProfilePage({ currentUser }) {
       }
     }
 
-    setPhoneError('')
     setIsSavingProfile(true)
 
     try {
@@ -842,7 +820,6 @@ function MyProfilePage({ currentUser }) {
                       value={editFormData.phone}
                       placeholder="e.g. 0912345678"
                       onChange={(e) => handleEditFieldChange('phone', e.target.value)}
-                      onBlur={handlePhoneBlur}
                     />
                   </label>
 
@@ -855,12 +832,6 @@ function MyProfilePage({ currentUser }) {
                       onChange={(e) => handleEditFieldChange('campus', e.target.value)}
                     />
                   </label>
-
-                  {phoneError && (
-                    <div className="my-profile-field-error" role="alert">
-                      {phoneError}
-                    </div>
-                  )}
                 </div>
 
                 <div className="my-profile-edit-modal__footer">

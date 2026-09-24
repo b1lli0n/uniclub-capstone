@@ -48,7 +48,11 @@ export function formatDate(value) {
 }
 
 export function mapClubFromApi(club, extras = {}) {
-  const category = (club.category || 'academic').toLowerCase()
+  let category = (club.category || 'academic').toLowerCase().trim()
+  if (category === 'arts') category = 'art'
+  if (category === 'sports') category = 'sport'
+  if (category === 'events') category = 'event'
+
   const leader = club.president_id || extras.leader || {}
   const leaderName =
     (typeof leader === 'object' && leader?.full_name) ||

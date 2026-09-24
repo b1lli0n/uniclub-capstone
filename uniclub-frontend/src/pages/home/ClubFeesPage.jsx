@@ -3,6 +3,22 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useToast } from '../../components/common/notificationContext'
 import { getFeeList, createPaymentUrl } from '../../api/payment.api'
 import '../../styles/club-fees.css'
+import CustomSelect from '../../components/common/CustomSelect'
+
+const METHOD_OPTIONS = [
+  { value: 'all', label: 'All Methods' },
+  { value: 'vnpay', label: '⚡ VNPay' },
+  { value: 'cash', label: '💵 Cash (Tiền mặt)' },
+]
+
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'Newest First' },
+  { value: 'oldest', label: 'Oldest First' },
+  { value: 'amount-desc', label: 'Amount: High to Low' },
+  { value: 'amount-asc', label: 'Amount: Low to High' },
+  { value: 'period-desc', label: 'Period: Z - A' },
+  { value: 'period-asc', label: 'Period: A - Z' },
+]
 
 function formatVND(amount) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount || 0)
@@ -63,6 +79,14 @@ export default function ClubFeesPage({ clubId: propClubId }) {
     const list = feesData.items.map((i) => i.period).filter(Boolean)
     return Array.from(new Set(list))
   }, [feesData.items])
+
+  const periodOptions = useMemo(
+    () => [
+      { value: '', label: 'All Periods' },
+      ...periods.map((p) => ({ value: p, label: `Period ${p}` })),
+    ],
+    [periods]
+  )
 
   // Calculated totals
   const totalUnpaidAmount = useMemo(() => {
@@ -293,52 +317,37 @@ export default function ClubFeesPage({ clubId: propClubId }) {
           {/* Period Filter Dropdown */}
           {periods.length > 0 && (
             <div className="club-fees-control-group">
-              <label htmlFor="period-filter" className="club-fees-control-label">PERIOD</label>
-              <select
-                id="period-filter"
-                className="club-fees-select"
+              <label className="club-fees-control-label">PERIOD</label>
+              <CustomSelect
                 value={selectedPeriod}
-                onChange={(e) => setSelectedPeriod(e.target.value)}
-              >
-                <option value="">All Periods</option>
-                {periods.map((p) => (
-                  <option key={p} value={p}>Period {p}</option>
-                ))}
-              </select>
+                onChange={setSelectedPeriod}
+                options={periodOptions}
+                ariaLabel="Filter by period"
+              />
             </div>
           )}
 
           {/* Payment Method Filter */}
           <div className="club-fees-control-group">
-            <label htmlFor="method-filter" className="club-fees-control-label">METHOD</label>
-            <select
-              id="method-filter"
-              className="club-fees-select"
+            <label className="club-fees-control-label">METHOD</label>
+            <CustomSelect
               value={selectedMethod}
-              onChange={(e) => setSelectedMethod(e.target.value)}
-            >
-              <option value="all">All Methods</option>
-              <option value="vnpay">⚡ VNPay</option>
-              <option value="cash">💵 Cash (Tiền mặt)</option>
-            </select>
+              onChange={setSelectedMethod}
+              options={METHOD_OPTIONS}
+              ariaLabel="Filter by payment method"
+            />
           </div>
 
           {/* Sort By Dropdown */}
           <div className="club-fees-control-group">
-            <label htmlFor="fees-sort" className="club-fees-control-label">SORT</label>
-            <select
-              id="fees-sort"
-              className="club-fees-select"
+            <label className="club-fees-control-label">SORT</label>
+            <CustomSelect
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="amount-desc">Amount: High to Low</option>
-              <option value="amount-asc">Amount: Low to High</option>
-              <option value="period-desc">Period: Z - A</option>
-              <option value="period-asc">Period: A - Z</option>
-            </select>
+              onChange={setSortBy}
+              options={SORT_OPTIONS}
+              align="right"
+              ariaLabel="Sort membership fees"
+            />
           </div>
         </div>
       </div>

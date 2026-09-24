@@ -8,8 +8,9 @@ const User = require("../models/user.model");
 const buildClubQuery = ({ category, search }) => {
   const filter = { status: "active" };
 
-  if (category) {
-    filter.category = category;
+  if (category && category !== "all") {
+    const cleanCat = category.toLowerCase().trim().replace(/s$/, "");
+    filter.category = { $regex: new RegExp(`^${cleanCat}s?$`, "i") };
   }
 
   if (search) {

@@ -1,3 +1,5 @@
+import { useRef, useEffect } from 'react'
+
 const dockItems = [
   {
     id: 'overview',
@@ -14,6 +16,7 @@ const dockItems = [
   {
     id: 'ranking',
     label: 'Ranking',
+    access: 'member',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
         <path d="M8 21h8M12 17v4" strokeLinecap="round" />
@@ -178,18 +181,24 @@ function HomeBottomDock({
   canManageSchedule = false,
   canManagePolls = false,
 }) {
+  const isMember = canViewFees
+
   const visibleDockItems = dockItems.filter((item) => {
-    if (item.id === 'activity-schedule') return !canManageSchedule
+    if (item.id === 'activity-schedule') return isMember && !canManageSchedule
     if (item.id === 'manage-activity-schedule') return canManageSchedule
     if (item.access === 'member-management') return canManageMembers
     if (item.access === 'invitation-management') return canManageInvitations
     if (item.access === 'event-management') return canManageEvents
     if (item.access === 'schedule-management') return canManageSchedule
-    if (item.access === 'member') return canViewFees
+    if (item.access === 'member') return isMember
     if (item.access === 'finance-management') return canManageFinance
     if (item.access === 'poll-management') return canManagePolls
     return true
   })
+
+  if (visibleDockItems.length <= 1) {
+    return null
+  }
 
   function handleClick(itemId) {
     if (itemId === 'overview') {
@@ -241,8 +250,18 @@ function HomeBottomDock({
     return false
   }
 
+  const dockRef = useRef(null)
+
+  useEffect(() => {
+    if (!dockRef.current) return
+    const activeEl = dockRef.current.querySelector('.is-active')
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    }
+  }, [pageId])
+
   return (
-    <nav className="home-bottom-dock" aria-label="Quick club navigation">
+    <nav ref={dockRef} className="home-bottom-dock" aria-label="Quick club navigation">
       {visibleDockItems.map((item) => (
         <button
           key={item.id}
