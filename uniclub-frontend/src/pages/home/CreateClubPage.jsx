@@ -3,10 +3,10 @@ import { requestCreateClub } from '../../api/club.api'
 import { apiRequest, toQueryString } from '../../api/api'
 import { useToast } from '../../components/common/notificationContext'
 import { XIcon } from '../../components/common/Icons'
+import CustomSelect from '../../components/common/CustomSelect'
 import '../../styles/create-club.css'
 
 const CREATE_CLUB_CATEGORIES = [
-  { value: '', label: 'Select category...' },
   { value: 'Academic', label: 'Academic' },
   { value: 'Sports', label: 'Sports' },
   { value: 'Arts', label: 'Arts' },
@@ -115,6 +115,15 @@ function CreateClubPage({ onCancel, onSubmit }) {
   async function handleSubmit(event) {
     event.preventDefault()
 
+    if (!category) {
+      showToast({
+        type: 'warning',
+        title: 'Category is required',
+        message: 'Please select a club category before submitting.',
+      })
+      return
+    }
+
     if (!logoUrl && !logoName) {
       showToast({
         type: 'warning',
@@ -209,19 +218,16 @@ function CreateClubPage({ onCancel, onSubmit }) {
               <label htmlFor="club-category">
                 Category <span className="create-club-required">*</span>
               </label>
-              <select
+              <CustomSelect
                 id="club-category"
                 data-testid="create-club-category-select"
                 value={category}
-                onChange={(event) => setCategory(event.target.value)}
-                required
-              >
-                {CREATE_CLUB_CATEGORIES.map((option) => (
-                  <option key={option.value || 'empty'} value={option.value} disabled={option.value === ''}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setCategory(val)}
+                options={CREATE_CLUB_CATEGORIES}
+                placeholder="Select category..."
+                className="create-club-custom-select"
+                ariaLabel="Select club category"
+              />
             </div>
 
             <div className="create-club-field">
@@ -274,29 +280,21 @@ function CreateClubPage({ onCancel, onSubmit }) {
                     autoComplete="off"
                   />
                   {showDropdown && (memberSuggestions.length > 0 || searchLoading) && (
-                    <ul style={{
-                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
-                      background: '#ffffff', border: '1px solid #cbd5e1',
-                      borderRadius: '0.5rem', margin: '0.25rem 0 0 0', padding: '0.25rem 0', listStyle: 'none',
-                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15)', maxHeight: '220px', overflowY: 'auto',
-                    }}>
-                      {searchLoading && <li style={{ padding: '0.6rem 1rem', color: '#64748b', fontSize: '0.85rem' }}>Loading students...</li>}
+                    <ul className="create-club-member-dropdown">
+                      {searchLoading && (
+                        <li className="create-club-member-dropdown__loading">
+                          Loading students...
+                        </li>
+                      )}
                       {!searchLoading && memberSuggestions.map((option) => (
-                        <li key={String(option.value)} style={{ padding: 0 }}>
+                        <li key={String(option.value)} className="create-club-member-dropdown__item">
                           <button
                             type="button"
-                            style={{
-                              width: '100%', textAlign: 'left', padding: '0.6rem 1rem',
-                              background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.9rem',
-                              color: '#0f172a', display: 'flex', flexDirection: 'column', gap: '0.15rem',
-                              transition: 'background 0.15s ease',
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9' }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                            className="create-club-member-dropdown__btn"
                             onMouseDown={(e) => { e.preventDefault(); handleAddMember(option) }}
                           >
-                            <span style={{ fontWeight: 600, color: '#0f172a' }}>{option.name}</span>
-                            <span style={{ color: '#475569', fontSize: '0.8rem' }}>{option.email}</span>
+                            <span className="create-club-member-dropdown__name">{option.name}</span>
+                            <span className="create-club-member-dropdown__email">{option.email}</span>
                           </button>
                         </li>
                       ))}

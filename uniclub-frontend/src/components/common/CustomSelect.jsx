@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import '../../styles/custom-select.css'
 
 export default function CustomSelect({
+  id,
   value,
   onChange,
   options = [],
@@ -10,6 +11,7 @@ export default function CustomSelect({
   placeholder = 'Select...',
   ariaLabel,
   disabled = false,
+  'data-testid': dataTestId,
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef(null)
@@ -46,6 +48,8 @@ export default function CustomSelect({
     >
       <button
         type="button"
+        id={id}
+        data-testid={dataTestId}
         className={`custom-select-trigger ${isOpen ? 'is-open' : ''}`.trim()}
         onClick={() => !disabled && setIsOpen((prev) => !prev)}
         aria-haspopup="listbox"
@@ -53,8 +57,8 @@ export default function CustomSelect({
         aria-label={ariaLabel}
         disabled={disabled}
       >
-        <span className="custom-select-label">
-          {activeOption ? activeOption.label : placeholder}
+        <span className={`custom-select-label ${!activeOption || !activeOption.value ? 'is-placeholder' : ''}`.trim()}>
+          {activeOption && activeOption.value ? activeOption.label : placeholder}
         </span>
         <span className="custom-select-arrow" aria-hidden="true">
           <svg

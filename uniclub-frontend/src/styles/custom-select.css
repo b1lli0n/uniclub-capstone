@@ -54,6 +54,11 @@
   white-space: nowrap;
 }
 
+.custom-select-label.is-placeholder {
+  color: #9a8b7e;
+  font-weight: 500;
+}
+
 .custom-select-arrow {
   display: flex;
   align-items: center;
