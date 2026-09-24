@@ -85,26 +85,6 @@ function HomeLayout({
               <span>UniClub</span>
             </button>
 
-            <div className="home-topbar__center">
-              {activeItem !== 'clubs' &&
-              activeItem !== 'events' &&
-              pageId !== 'profile' &&
-              pageId !== 'create-club' ? (
-                <div className="home-search">
-                  <span className="home-search__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="11" cy="11" r="7" />
-                      <path d="M20 20l-3-3" strokeLinecap="round" />
-                    </svg>
-                  </span>
-                  <input
-                    type="search"
-                    placeholder="Search here..."
-                    aria-label="Search"
-                  />
-                </div>
-              ) : null}
-            </div>
 
             <div className="home-topbar__actions">
               <div className="home-user-wrap">

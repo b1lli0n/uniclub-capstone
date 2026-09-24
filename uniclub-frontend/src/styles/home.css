@@ -226,10 +226,10 @@ body:has(.home-shell) #root {
 }
 
 .home-topbar {
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr) minmax(280px, 560px) minmax(180px, 1fr);
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
