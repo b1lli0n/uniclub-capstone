@@ -138,6 +138,21 @@ const updateEvent = async (clubId, eventId, payload) => {
     throw getStatusError("Cannot update cancelled event", 400);
   }
 
+  if (event.progress_status === "completed") {
+    throw getStatusError("Cannot update an event that is already completed", 400);
+  }
+
+  if (payload.progress_status === "completed") {
+    const EventTimeline = require("../../models/event_timeline.model");
+    const timelineCount = await EventTimeline.countDocuments({ event_id: eventId });
+    if (timelineCount === 0) {
+      throw getStatusError(
+        "Cannot complete event without a timeline. Please add at least one timeline item before marking the event as complete.",
+        400
+      );
+    }
+  }
+
   if (payload.progress_status === "draft" && event.progress_status === "completed") {
     if (event.status !== "coming_soon") {
       throw getStatusError(

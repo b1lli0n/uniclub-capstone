@@ -379,9 +379,78 @@ function ClubEventManagementPage({ clubId }) {
     setDraft(createEmptyDraft(activeClub.id))
   }
 
-  function openUpdateEditor(eventItem) {
+  async function openUpdateEditor(eventItem) {
+    if (eventItem.publicationStatus === 'complete' || eventItem.progress_status === 'completed') {
+      showToast({
+        type: 'warning',
+        title: 'Event Completed',
+        message: 'Completed events cannot be updated.',
+      })
+      return
+    }
     setEditorMode('update')
-    setDraft({ ...eventItem })
+    const initialTimelines = detailEvent && detailEvent.id === eventItem.id ? detailEventTimelines : []
+    setDraft({ ...eventItem, timeline: initialTimelines })
+
+    try {
+      const res = await getEventTimelines(eventItem.id || eventItem._id)
+      const timelines = res?.data || []
+      setDraft((cur) => ({ ...cur, timeline: timelines }))
+    } catch {
+      // ignore
+    }
+  }
+
+  async function handleCompleteEvent(targetEvent) {
+    let timelineCount = detailEventTimelines.length
+    if (timelineCount === 0) {
+      try {
+        const res = await getEventTimelines(targetEvent.id || targetEvent._id)
+        timelineCount = (res?.data || []).length
+      } catch {
+        timelineCount = 0
+      }
+    }
+
+    if (timelineCount === 0) {
+      showToast({
+        type: 'error',
+        title: 'Timeline Required',
+        message: 'You must add at least one timeline item before completing this event.',
+      })
+      return
+    }
+
+    const accepted = await confirm({
+      title: 'Complete and Publish Event?',
+      message: 'Once marked as Complete, event details can no longer be updated. Are you sure you want to complete this event?',
+      confirmText: 'Complete Event',
+      tone: 'primary',
+    })
+
+    if (!accepted) return
+
+    try {
+      const targetClubId = club?._id || club?.id || activeClub?._id || activeClub?.id || clubId
+      await updateManagedEvent(targetClubId, targetEvent.id, { progress_status: 'completed' })
+      showToast({
+        type: 'success',
+        title: 'Event Completed!',
+        message: 'The event has been successfully marked as Complete and published.',
+      })
+      const fresh = await getClubEventsForManager(targetClubId)
+      const list = Array.isArray(fresh) ? fresh : (fresh?.data || [])
+      if (Array.isArray(list)) {
+        setEvents(list.map(mapEventFromApi))
+      }
+      setDetailEvent(null)
+    } catch (err) {
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: err.message || 'Failed to complete event',
+      })
+    }
   }
 
   function closeEditor() {
@@ -509,6 +578,26 @@ function ClubEventManagementPage({ clubId }) {
     }
 
     if (editorMode === 'update') {
+      if (draft.publicationStatus === 'complete') {
+        let timelineCount = Array.isArray(draft.timeline) ? draft.timeline.length : 0
+        if (timelineCount === 0) {
+          try {
+            const res = await getEventTimelines(draft.id)
+            timelineCount = (res?.data || []).length
+          } catch {
+            timelineCount = 0
+          }
+        }
+
+        if (timelineCount === 0) {
+          showToast({
+            type: 'error',
+            title: 'Timeline Required',
+            message: 'You must add at least one timeline item before completing this event.',
+          })
+          return
+        }
+      }
       payload.status = draft.lifecycleStatus || 'opening'
       payload.progress_status = draft.publicationStatus === 'draft' ? 'draft' : 'completed'
     }
@@ -817,7 +906,9 @@ function ClubEventManagementPage({ clubId }) {
 
             <div className="club-event-management-actions">
               <button type="button" onClick={() => setDetailEvent(eventItem)}>View</button>
-              <button type="button" onClick={() => openUpdateEditor(eventItem)}>Update</button>
+              {eventItem.publicationStatus === 'draft' ? (
+                <button type="button" onClick={() => openUpdateEditor(eventItem)}>Update</button>
+              ) : null}
               <button
                 type="button"
                 className="is-danger"
@@ -944,7 +1035,26 @@ function ClubEventManagementPage({ clubId }) {
               )}
             </section>
             <footer>
-              <button type="button" onClick={() => openUpdateEditor(detailEvent)}>Update Event</button>
+              {detailEvent.publicationStatus === 'draft' ? (
+                <>
+                  <button type="button" onClick={() => openUpdateEditor(detailEvent)}>Update Event</button>
+                  <button
+                    type="button"
+                    style={{
+                      background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontWeight: 600,
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => handleCompleteEvent(detailEvent)}
+                  >
+                    ✓ Complete Event
+                  </button>
+                </>
+              ) : null}
               <button
                 type="button"
                 className="is-danger"
@@ -1082,6 +1192,11 @@ function ClubEventManagementPage({ clubId }) {
                         }
                         onChange={(value) => updateDraft('publicationStatus', value)}
                       />
+                      {draft.publicationStatus === 'complete' && (!draft.timeline || draft.timeline.length === 0) && (
+                        <small style={{ fontSize: '0.78rem', color: '#dc2626', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                          ⚠️ Event must have at least one timeline item before it can be marked as Complete.
+                        </small>
+                      )}
                       {draft.publicationStatus === 'complete' && draft.lifecycleStatus !== 'coming_soon' && (
                         <small style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
                           * Cannot revert to Draft because the event is already &quot;{draft.lifecycleStatus === 'opening' ? 'Opening' : draft.lifecycleStatus === 'closed' ? 'Closed' : 'Cancelled'}&quot;. Reverting to Draft is only allowed when status is &quot;Coming Soon&quot;.
