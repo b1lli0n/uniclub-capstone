@@ -505,9 +505,12 @@ function ClubEventManagementPage({ clubId }) {
       end_time: draft.endAt,
       capacity: Number(draft.participants) || 150,
       is_public: draft.visibility === 'public',
-      status: draft.lifecycleStatus || 'opening',
-      progress_status: draft.publicationStatus === 'draft' ? 'draft' : 'completed',
       approval_document_url: (draft.approvalDocumentUrl || '').trim(),
+    }
+
+    if (editorMode === 'update') {
+      payload.status = draft.lifecycleStatus || 'opening'
+      payload.progress_status = draft.publicationStatus === 'draft' ? 'draft' : 'completed'
     }
 
     if (draft.imageUrl) {
@@ -1042,50 +1045,67 @@ function ClubEventManagementPage({ clubId }) {
                 />
               </div>
 
-              <div className="club-event-management-editor__grid">
-                <label className="club-event-management-field" style={{ alignSelf: 'start' }}>
-                  <span>Max capacity</span>
+              {editorMode === 'create' ? (
+                <label className="club-event-management-field club-event-management-field--full">
+                  <span>Max capacity *</span>
                   <input
                     type="number"
                     min="1"
                     value={draft.participants}
                     onChange={(event) => updateDraft('participants', event.target.value)}
                     style={{ height: '38px', maxHeight: '38px' }}
+                    required
                   />
                 </label>
-                <div>
-                  <CustomSelect
-                    label="Progress Status"
-                    value={draft.publicationStatus}
-                    options={
-                      draft.publicationStatus === 'complete' && draft.lifecycleStatus !== 'coming_soon'
-                        ? [{ value: 'complete', label: 'Complete' }]
-                        : EVENT_STATUSES
-                    }
-                    onChange={(value) => updateDraft('publicationStatus', value)}
-                  />
-                  {draft.publicationStatus === 'complete' && draft.lifecycleStatus !== 'coming_soon' && (
-                    <small style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                      * Cannot revert to Draft because the event is already &quot;{draft.lifecycleStatus === 'opening' ? 'Opening' : draft.lifecycleStatus === 'closed' ? 'Closed' : 'Cancelled'}&quot;. Reverting to Draft is only allowed when status is &quot;Coming Soon&quot;.
-                    </small>
-                  )}
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="club-event-management-editor__grid">
+                    <label className="club-event-management-field" style={{ alignSelf: 'start' }}>
+                      <span>Max capacity *</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={draft.participants}
+                        onChange={(event) => updateDraft('participants', event.target.value)}
+                        style={{ height: '38px', maxHeight: '38px' }}
+                        required
+                      />
+                    </label>
+                    <div>
+                      <CustomSelect
+                        label="Progress Status"
+                        value={draft.publicationStatus}
+                        options={
+                          draft.publicationStatus === 'complete' && draft.lifecycleStatus !== 'coming_soon'
+                            ? [{ value: 'complete', label: 'Complete' }]
+                            : EVENT_STATUSES
+                        }
+                        onChange={(value) => updateDraft('publicationStatus', value)}
+                      />
+                      {draft.publicationStatus === 'complete' && draft.lifecycleStatus !== 'coming_soon' && (
+                        <small style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                          * Cannot revert to Draft because the event is already &quot;{draft.lifecycleStatus === 'opening' ? 'Opening' : draft.lifecycleStatus === 'closed' ? 'Closed' : 'Cancelled'}&quot;. Reverting to Draft is only allowed when status is &quot;Coming Soon&quot;.
+                        </small>
+                      )}
+                    </div>
+                  </div>
 
-              <div>
-                <CustomSelect
-                  label="Operational Status"
-                  value={draft.lifecycleStatus || 'opening'}
-                  options={OPERATIONAL_STATUS_OPTIONS}
-                  onChange={(value) => updateDraft('lifecycleStatus', value)}
-                  disabled={draft.publicationStatus === 'draft'}
-                />
-                {draft.publicationStatus === 'draft' && (
-                  <small style={{ fontSize: '0.78rem', color: '#ea580c', marginTop: '4px', display: 'block', fontWeight: 600 }}>
-                    🔒 Operational status is locked while in Draft. Switch Progress Status to "Complete" to manage.
-                  </small>
-                )}
-              </div>
+                  <div>
+                    <CustomSelect
+                      label="Operational Status"
+                      value={draft.lifecycleStatus || 'opening'}
+                      options={OPERATIONAL_STATUS_OPTIONS}
+                      onChange={(value) => updateDraft('lifecycleStatus', value)}
+                      disabled={draft.publicationStatus === 'draft'}
+                    />
+                    {draft.publicationStatus === 'draft' && (
+                      <small style={{ fontSize: '0.78rem', color: '#ea580c', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                        🔒 Operational status is locked while in Draft. Switch Progress Status to "Complete" to manage.
+                      </small>
+                    )}
+                  </div>
+                </>
+              )}
 
               <div className="club-event-management-field club-event-management-field--full" style={{ marginTop: '12px' }}>
                 <span style={{ display: 'block', marginBottom: '6px', fontWeight: '700', fontSize: '0.9rem', color: '#1e293b' }}>

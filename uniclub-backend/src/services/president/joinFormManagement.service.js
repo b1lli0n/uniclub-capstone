@@ -209,7 +209,7 @@ const deleteJoinForm = async ({ clubId, formId }) => {
   if (responseCount > 0) {
     throw getStatusError(
       `Cannot delete form that has received ${responseCount} student response(s). ` +
-      "The form is locked by business rule BR-24.",
+      "The form is locked because it has already received responses.",
       400
     );
   }

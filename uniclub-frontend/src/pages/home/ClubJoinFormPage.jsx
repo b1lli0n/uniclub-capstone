@@ -298,7 +298,7 @@ function ClubJoinFormPage({ clubId }) {
       showToast({
         type: 'error',
         title: 'Cannot delete form',
-        message: `This form has already received ${targetForm.responseCount} student response(s). Deletion is disallowed by BR-24.`,
+        message: `This form has already received ${targetForm.responseCount} student response(s). Forms with responses cannot be deleted.`,
       })
       return
     }
@@ -491,7 +491,7 @@ function ClubJoinFormPage({ clubId }) {
                   alignItems: 'center',
                   gap: '0.35rem',
                 }}
-                title={detailForm.isLocked ? 'Locked by BR-24: Form has received student responses' : 'Delete form'}
+                title={detailForm.isLocked ? 'Form cannot be deleted because it has received student responses' : 'Delete form'}
               >
                 <TrashIcon size={14} /> Delete Form
               </button>

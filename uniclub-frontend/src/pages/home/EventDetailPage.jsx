@@ -1103,7 +1103,7 @@ function EventDetailPage() {
                   ) : registration.checkedIn ? (
                     <p>Cancellation is unavailable after check-in.</p>
                   ) : (
-                    <p>Cancellation is locked within 24 hours of the event start time (BR-27).</p>
+                    <p>Cancellation is locked within 24 hours of the event start time.</p>
                   )}
 
                   {registration.status === 'pending' ? (

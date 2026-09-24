@@ -405,7 +405,7 @@ const assignManagementRole = async ({ clubId, memberId, role }) => {
   // BR-72: Không thể trực tiếp hạ Chủ tịch hiện tại xuống vai trò khác. Muốn thay đổi cần bổ nhiệm một Chủ tịch mới thay thế.
   if (member.role === "president" && role !== "president") {
     const error = new Error(
-      "BR-72: Cannot demote the current President directly. Please appoint a new President to replace."
+      "Cannot demote the current President directly. Please appoint a new President to replace."
     );
     error.statusCode = 400;
     throw error;
