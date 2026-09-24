@@ -240,11 +240,8 @@ function ClubsPage({ onSelectClub }) {
 
     const query = search.trim().toLowerCase()
     if (query) {
-      result = result.filter(
-        (club) =>
-          club.name.toLowerCase().includes(query) ||
-          club.description.toLowerCase().includes(query) ||
-          (club.categoryLabel && club.categoryLabel.toLowerCase().includes(query))
+      result = result.filter((club) =>
+        club.name.toLowerCase().includes(query)
       )
     }
 
@@ -329,7 +326,7 @@ function ClubsPage({ onSelectClub }) {
               </span>
               <input
                 type="search"
-                placeholder="Search by name or description..."
+                placeholder="Search by name..."
                 value={search}
                 onChange={handleSearchChange}
                 aria-label="Search clubs"
