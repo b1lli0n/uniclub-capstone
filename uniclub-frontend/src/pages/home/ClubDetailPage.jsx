@@ -18,7 +18,7 @@ import { formatRoleLabel, mapClubFromApi, mapMemberFromApi } from '../../api/clu
 import { CLUB_DETAIL_COPY } from '../../data/mockData'
 import { useConfirm, useToast } from '../../components/common/notificationContext'
 import { formatDateVN, formatTimeRange24 } from '../../utils/dateTimeUtils'
-import { StarIcon, XIcon } from '../../components/common/Icons'
+import { StarIcon, XIcon, EyeIcon, TrashIcon } from '../../components/common/Icons'
 import '../../styles/club-detail.css'
 
 
@@ -639,7 +639,9 @@ function ClubDetailPage({ clubId, onBack }) {
           <form className="club-join-modal__panel" onSubmit={handleJoinSubmit}>
             <div className="club-join-modal__header">
               <h2 id="club-join-title">Join {club.name}</h2>
-              <button type="button" onClick={() => setJoinModalOpen(false)} aria-label="Close">X</button>
+              <button type="button" onClick={() => setJoinModalOpen(false)} aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <XIcon size={18} />
+              </button>
             </div>
 
             {(joinForm?.questions || []).map((question, index) => {
@@ -712,7 +714,14 @@ function ClubDetailPage({ clubId, onBack }) {
                 <h2 id="club-members-title">All members</h2>
                 <p>{club.name} - {memberRows.length} members</p>
               </div>
-              <button type="button" onClick={() => setMembersModalOpen(false)}>Close</button>
+              <button
+                type="button"
+                onClick={() => setMembersModalOpen(false)}
+                aria-label="Close"
+                className="club-members-modal__close-btn"
+              >
+                <XIcon size={18} />
+              </button>
             </div>
 
             <div className="club-members-modal__list">
@@ -722,7 +731,7 @@ function ClubDetailPage({ clubId, onBack }) {
                     className="club-members-modal__member-info"
                     style={{ cursor: canManageMembers ? 'pointer' : 'default' }}
                     onClick={canManageMembers ? () => handleViewMemberProfile(member) : undefined}
-                    title={canManageMembers ? 'Click to view member profile' : undefined}
+                    title={canManageMembers ? `Click to view ${member.name}'s profile` : undefined}
                   >
                     <div className="club-members-modal__avatar">
                       {member.avatarUrl ? (
@@ -739,31 +748,35 @@ function ClubDetailPage({ clubId, onBack }) {
                         member.name.slice(0, 1).toUpperCase()
                       )}
                     </div>
-                    <div>
-                      <strong>{member.name}</strong>
+                    <div className="club-members-modal__member-text">
+                      <strong title={member.name}>{member.name}</strong>
                       <span>{member.role}</span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    {canManageMembers ? (
+                  {canManageMembers && (
+                    <div className="club-members-modal__actions">
                       <button
                         type="button"
                         className="club-members-modal__view-btn"
                         onClick={() => handleViewMemberProfile(member)}
+                        title="View Profile"
+                        aria-label={`View profile of ${member.name}`}
                       >
-                        View Profile
+                        <EyeIcon size={16} />
                       </button>
-                    ) : null}
-                    {canManageMembers && member.rawRole !== 'president' ? (
-                      <button
-                        type="button"
-                        className="club-members-modal__remove"
-                        onClick={() => handleRemoveMember(member.id)}
-                      >
-                        Remove
-                      </button>
-                    ) : null}
-                  </div>
+                      {member.rawRole !== 'president' ? (
+                        <button
+                          type="button"
+                          className="club-members-modal__remove"
+                          onClick={() => handleRemoveMember(member.id)}
+                          title="Remove Member"
+                          aria-label={`Remove ${member.name} from club`}
+                        >
+                          <TrashIcon size={15} />
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
                 </article>
               ))}
             </div>
