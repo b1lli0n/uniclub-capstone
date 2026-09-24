@@ -69,10 +69,12 @@ export default function DateTimePicker({
   disabled = false,
   style = {},
   popoverAlign = 'left',
+  minDate = null,
 }) {
   const selectedDate = parseInputDateTime(value)
+  const minDateStart = minDate ? new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate()) : null
   const [isOpen, setIsOpen] = useState(false)
-  const [viewDate, setViewDate] = useState(() => selectedDate || new Date())
+  const [viewDate, setViewDate] = useState(() => selectedDate || (minDateStart && minDateStart > new Date() ? minDateStart : new Date()))
   const selectedTime = selectedDate
     ? `${String(selectedDate.getHours()).padStart(2, '0')}:${String(selectedDate.getMinutes()).padStart(2, '0')}`
     : '09:00'
@@ -173,20 +175,22 @@ export default function DateTimePicker({
           </div>
 
           <div className="club-event-management-date-grid">
-            {calendarDays.map((day) =>
-              day.date ? (
+            {calendarDays.map((day) => {
+              if (!day.date) return <span key={day.id} aria-hidden="true" />
+              const isPast = minDateStart && day.date < minDateStart
+              return (
                 <button
                   key={day.id}
                   type="button"
+                  disabled={isPast}
+                  style={isPast ? { opacity: 0.28, cursor: 'not-allowed', pointerEvents: 'none' } : {}}
                   className={sameDate(day.date, selectedDate) ? 'is-selected' : ''}
-                  onClick={() => chooseDate(day.date)}
+                  onClick={() => !isPast && chooseDate(day.date)}
                 >
                   {day.date.getDate()}
                 </button>
-              ) : (
-                <span key={day.id} aria-hidden="true" />
               )
-            )}
+            })}
           </div>
 
           <div className="club-event-management-time-row">

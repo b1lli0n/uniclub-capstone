@@ -200,29 +200,49 @@ const redeemReward = async ({ clubId, rewardId, userId }) => {
 
   await redemption.populate("reward_id", "_id name description points_required quantity image_url");
 
-  // Trigger Email notification to Leader
+  // Trigger Email notifications to Leader & Student
   try {
-    const { sendRedemptionRequestEmailToLeader } = require("../email.service");
+    const { 
+      sendRedemptionRequestEmailToLeader,
+      sendRedemptionSubmittedEmailToStudent,
+    } = require("../email.service");
     const User = require("../../models/user.model");
+    const ClubMember = require("../../models/club_member.model");
     const userDoc = await User.findById(userId);
 
-    const ClubMember = require("../../models/club_member.model");
-    let leaderEmail = process.env.EMAIL_USER || "uniclub2402@gmail.com";
+    let leaderEmail = "";
     if (club?.president_id) {
-      const leaderUser = await User.findById(club.president_id);
+      const leaderId = club.president_id._id || club.president_id;
+      const leaderUser = await User.findById(leaderId);
       if (leaderUser?.email) leaderEmail = leaderUser.email;
-    } else if (club?._id) {
+    }
+    if (!leaderEmail && club?._id) {
       const currentPresident = await ClubMember.findOne({ club_id: club._id, role: "president", status: "active" }).populate("user_id");
       if (currentPresident?.user_id?.email) leaderEmail = currentPresident.user_id.email;
     }
+    if (!leaderEmail) {
+      leaderEmail = process.env.EMAIL_USER || "uniclub2402@gmail.com";
+    }
 
-    sendRedemptionRequestEmailToLeader({
-      leaderEmail,
-      userName: userDoc?.full_name || "UniClub Student",
-      clubName: club?.name || "Club",
-      rewardTitle: reward?.name || "Reward",
-      pointCost: cost,
-    });
+    if (leaderEmail) {
+      sendRedemptionRequestEmailToLeader({
+        leaderEmail,
+        userName: userDoc?.full_name || "UniClub Student",
+        clubName: club?.name || "Club",
+        rewardTitle: reward?.name || "Reward",
+        pointCost: cost,
+      }).catch((err) => console.error("[Redeem Leader Email Error]:", err));
+    }
+
+    if (userDoc?.email) {
+      sendRedemptionSubmittedEmailToStudent({
+        toEmail: userDoc.email,
+        userName: userDoc.full_name || "Member",
+        clubName: club?.name || "Club",
+        rewardTitle: reward?.name || "Reward",
+        pointCost: cost,
+      }).catch((err) => console.error("[Redeem Student Email Error]:", err));
+    }
   } catch (emailErr) {
     console.error("[Redeem Hook] Email trigger error:", emailErr);
   }

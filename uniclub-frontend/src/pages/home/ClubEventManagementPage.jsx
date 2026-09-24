@@ -205,7 +205,7 @@ function mapEventFromApi(apiEvent) {
     startAt: formatForInput(apiEvent.start_time),
     endAt: formatForInput(apiEvent.end_time),
     imageUrl: resolveEventUploadImage(apiEvent.media_uris || apiEvent.image_url || apiEvent.imageUrl, apiEvent.category),
-    approvalDocumentUrl: apiEvent.approval_document_url || 'https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I/view?usp=sharing',
+    approvalDocumentUrl: apiEvent.approval_document_url || '',
     gradient: 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)',
     updatedAt: new Date(apiEvent.updatedAt || Date.now()).toLocaleDateString('en-GB'),
   }
@@ -433,19 +433,81 @@ function ClubEventManagementPage({ clubId }) {
   async function submitEvent(eventSubmit) {
     eventSubmit.preventDefault()
 
+    const trimmedName = (draft.name || '').trim()
+    const trimmedLocation = (draft.location || '').trim()
+    const trimmedDetails = (draft.details || '').trim()
+
+    if (!trimmedName) {
+      showToast({
+        type: 'warning',
+        title: 'Event Name Required',
+        message: 'Please enter a valid event name (cannot be empty or spaces only).',
+      })
+      return
+    }
+
+    if (!trimmedLocation) {
+      showToast({
+        type: 'warning',
+        title: 'Location Required',
+        message: 'Event location is required. Please specify a valid location.',
+      })
+      return
+    }
+
+    if (!draft.startAt) {
+      showToast({
+        type: 'warning',
+        title: 'Start Time Required',
+        message: 'Please select an event start date and time.',
+      })
+      return
+    }
+
+    if (!draft.endAt) {
+      showToast({
+        type: 'warning',
+        title: 'End Time Required',
+        message: 'Please select an event end date and time.',
+      })
+      return
+    }
+
+    const startDate = new Date(draft.startAt)
+    const endDate = new Date(draft.endAt)
+    const now = new Date()
+
+    if (editorMode === 'create' && startDate < now) {
+      showToast({
+        type: 'warning',
+        title: 'Invalid Start Time',
+        message: 'Event start time cannot be in the past. Please select a future date and time.',
+      })
+      return
+    }
+
+    if (startDate >= endDate) {
+      showToast({
+        type: 'warning',
+        title: 'Invalid Time Range',
+        message: 'Event start time must be before end time. Please select a valid event time range.',
+      })
+      return
+    }
+
     const payload = {
-      title: draft.name.trim(),
-      description: draft.details.trim() || draft.name.trim(),
-      content: draft.details.trim() || draft.name.trim(),
+      title: trimmedName,
+      description: trimmedDetails || trimmedName,
+      content: trimmedDetails || trimmedName,
       category: draft.category.trim() || 'Other',
-      location: draft.location.trim() || 'Hall A101',
-      start_time: draft.startAt || new Date().toISOString(),
-      end_time: draft.endAt || new Date(Date.now() + 7200000).toISOString(),
+      location: trimmedLocation,
+      start_time: draft.startAt,
+      end_time: draft.endAt,
       capacity: Number(draft.participants) || 150,
       is_public: draft.visibility === 'public',
       status: draft.lifecycleStatus || 'opening',
       progress_status: draft.publicationStatus === 'draft' ? 'draft' : 'completed',
-      approval_document_url: draft.approvalDocumentUrl || 'https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I/view?usp=sharing',
+      approval_document_url: (draft.approvalDocumentUrl || '').trim(),
     }
 
     if (draft.imageUrl) {
@@ -968,12 +1030,14 @@ function ClubEventManagementPage({ clubId }) {
                   label="Event Start *"
                   value={draft.startAt}
                   onChange={(value) => updateDraft('startAt', value)}
+                  minDate={editorMode === 'create' ? new Date() : null}
                   required
                 />
                 <DateTimePicker
                   label="Event End *"
                   value={draft.endAt}
                   onChange={(value) => updateDraft('endAt', value)}
+                  minDate={draft.startAt ? new Date(draft.startAt) : (editorMode === 'create' ? new Date() : null)}
                   required
                 />
               </div>
@@ -1141,7 +1205,7 @@ function ClubEventManagementPage({ clubId }) {
 
               <label className="club-event-management-field club-event-management-field--full" style={{ marginTop: '14px' }}>
                 <span style={{ fontWeight: '800', color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>📄 School Approval / Contract Document (Google Drive PDF) *</span>
+                  <span>📄 School Approval / Contract Document (Google Drive PDF)</span>
                   {editorMode === 'update' && (
                     <span style={{ fontSize: '0.75rem', color: '#0284c7', background: '#e0f2fe', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
                       🔒 Locked (Approved by School)
@@ -1150,16 +1214,16 @@ function ClubEventManagementPage({ clubId }) {
                 </span>
                 <input
                   type="url"
-                  value={draft.approvalDocumentUrl || 'https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I/view?usp=sharing'}
+                  value={draft.approvalDocumentUrl || ''}
                   onChange={(event) => updateDraft('approvalDocumentUrl', event.target.value)}
                   disabled={editorMode === 'update'}
                   style={editorMode === 'update' ? { backgroundColor: '#f1f5f9', cursor: 'not-allowed', color: '#64748b' } : {}}
-                  placeholder="https://drive.google.com/file/d/... (Signed Contract Document Link)"
+                  placeholder="https://drive.google.com/file/d/... (Optional link to document)"
                 />
                 <small style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
                   {editorMode === 'update'
                     ? '* Document link is locked after approval to maintain contractual integrity.'
-                    : '* Enter the Google Drive link to the signed school event contract or permit document.'}
+                    : '* Optional: Enter the Google Drive link to the signed school event contract or permit document if available.'}
                 </small>
               </label>
             </div>

@@ -48,8 +48,12 @@ const createEventRequest = async ({ clubId, userId, userEmail, body }) => {
   const startTime = parseDate(body.start_time, "start_time");
   const endTime = parseDate(body.end_time, "end_time");
 
+  if (startTime < new Date()) {
+    throw getStatusError("Event start time cannot be in the past. Please select a future date and time.", 400);
+  }
+
   if (startTime >= endTime) {
-    throw getStatusError("start_time must be before end_time", 400);
+    throw getStatusError("Start time must be before end time. Please select a valid event time range.", 400);
   }
 
   const capacity = Number(body.capacity);

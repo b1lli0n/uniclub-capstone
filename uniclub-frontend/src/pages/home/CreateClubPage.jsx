@@ -115,6 +115,37 @@ function CreateClubPage({ onCancel, onSubmit }) {
   async function handleSubmit(event) {
     event.preventDefault()
 
+    const trimmedName = (name || '').trim()
+    const trimmedSlogan = (slogan || '').trim()
+    const trimmedDesc = (description || '').trim()
+
+    if (!trimmedName) {
+      showToast({
+        type: 'warning',
+        title: 'Club Name is required',
+        message: 'Please enter a valid club name (cannot be empty or spaces only).',
+      })
+      return
+    }
+
+    if (!trimmedSlogan) {
+      showToast({
+        type: 'warning',
+        title: 'Slogan is required',
+        message: 'Please enter a valid club slogan (cannot be empty or spaces only).',
+      })
+      return
+    }
+
+    if (!trimmedDesc) {
+      showToast({
+        type: 'warning',
+        title: 'Description is required',
+        message: 'Please enter a valid club description (cannot be empty or spaces only).',
+      })
+      return
+    }
+
     if (!category) {
       showToast({
         type: 'warning',
@@ -146,11 +177,11 @@ function CreateClubPage({ onCancel, onSubmit }) {
     setSubmitting(true)
     try {
       await requestCreateClub({
-        club_name: name,
-        slogan,
+        club_name: trimmedName,
+        slogan: trimmedSlogan,
         category,
-        description,
-        reason: description,
+        description: trimmedDesc,
+        reason: trimmedDesc,
         logo_url: logoUrl,
         member_ids: members.map((member) => member.value),
       })

@@ -78,12 +78,30 @@ const requestCreateClub = async (req, res) => {
 
     const { club_name, slogan, category, description, reason, logo_url, member_ids } = req.body;
 
-    const effectiveReason = (reason || description || club_name || "").trim();
+    const trimmedClubName = (club_name || "").trim();
+    const trimmedLogoUrl = (logo_url || "").trim();
+    const trimmedSlogan = (slogan || "").trim();
+    const effectiveReason = (reason || description || "").trim();
+    const effectiveDescription = (description || reason || "").trim();
 
-    if (!club_name || !logo_url) {
+    if (!trimmedClubName) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: name, logo",
+        message: "Club name cannot be empty or only spaces",
+      });
+    }
+
+    if (!trimmedLogoUrl) {
+      return res.status(400).json({
+        success: false,
+        message: "Club logo cannot be empty",
+      });
+    }
+
+    if (!effectiveReason) {
+      return res.status(400).json({
+        success: false,
+        message: "Club description cannot be empty or only spaces",
       });
     }
 
@@ -95,12 +113,12 @@ const requestCreateClub = async (req, res) => {
     }
 
     const data = await clubService.requestCreateClub({
-      club_name,
-      slogan,
+      club_name: trimmedClubName,
+      slogan: trimmedSlogan,
       category,
-      description,
+      description: effectiveDescription,
       reason: effectiveReason,
-      logo_url,
+      logo_url: trimmedLogoUrl,
       requested_by: requestedBy,
       member_ids,
     });
@@ -113,6 +131,14 @@ const requestCreateClub = async (req, res) => {
   } catch (error) {
     console.error("Request create club error:", error);
 
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors || {}).map((e) => e.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(", ") || "Validation error",
+      });
+    }
+
     if (error.statusCode) {
       return res.status(error.statusCode).json({
         success: false,
@@ -122,7 +148,7 @@ const requestCreateClub = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Server error while submitting club creation request",
+      message: error.message || "Server error while submitting club creation request",
     });
   }
 };

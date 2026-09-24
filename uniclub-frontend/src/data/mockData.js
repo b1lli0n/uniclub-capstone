@@ -351,10 +351,11 @@ export const JOIN_FORM_QUESTIONS = [
 // Event list data
 export const EVENT_CATEGORIES = [
   { id: 'all', label: 'All' },
-  { id: 'workshop', label: 'Workshops' },
+  { id: 'academic', label: 'Academic' },
   { id: 'sport', label: 'Sports' },
-  { id: 'entertainment', label: 'Entertainment' },
-  { id: 'community', label: 'Community' },
+  { id: 'art', label: 'Arts' },
+  { id: 'event', label: 'Events' },
+  { id: 'other', label: 'Other' },
 ]
 
 export const EVENT_SORT_OPTIONS = [

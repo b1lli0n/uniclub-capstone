@@ -15,23 +15,29 @@ const CATEGORY_GRADIENTS = {
   academic: 'linear-gradient(135deg, #a8d8ff 0%, #7eb8f0 100%)',
   art: 'linear-gradient(135deg, #f5b0d8 0%, #e88fc4 100%)',
   event: 'linear-gradient(135deg, #c4f0a8 0%, #9ed87e 100%)',
+  other: 'linear-gradient(135deg, #e2d9f3 0%, #c5b4e8 100%)',
 }
 
 function mapEventFromApi(apiEvent) {
   if (!apiEvent) return null
   const startDate = apiEvent.start_time ? new Date(apiEvent.start_time) : null
   const formattedDate = startDate ? startDate.toLocaleDateString('vi-VN') : ''
-  const category = (apiEvent.category || 'academic').toLowerCase()
+  let rawCategory = (apiEvent.category || 'other').toLowerCase().trim()
+  if (rawCategory === 'arts') rawCategory = 'art'
+  if (rawCategory === 'sports') rawCategory = 'sport'
+  if (rawCategory === 'events') rawCategory = 'event'
+  const knownCategories = ['academic', 'sport', 'art', 'event', 'other']
+  const category = knownCategories.includes(rawCategory) ? rawCategory : 'other'
   
   return {
     id: apiEvent._id || apiEvent.id,
     name: apiEvent.title || '',
     description: apiEvent.description || '',
     category,
-    categoryLabel: category.toUpperCase(),
+    categoryLabel: (apiEvent.category || category).toUpperCase(),
     date: formattedDate,
     participants: apiEvent.capacity || 0,
-    gradient: CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.academic,
+    gradient: CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.other,
     status: apiEvent.status === 'coming soon' ? 'coming_soon' : (apiEvent.status || 'coming_soon'),
     imageUrl: resolveEventUploadImage(apiEvent.media_uris || apiEvent.image_url, category),
   }
@@ -63,10 +69,10 @@ const CATEGORY_ICONS = {
       <path d="M12 2c0 5.523 4.477 10 10 10-5.523 0-10 4.477-10 10 0-5.523-4.477-10-10-10 5.523 0 10-4.477 10-10z" />
     </svg>
   ),
-  workshop: (
+  academic: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M8 3h8M9 3v5l-5 9a3 3 0 0 0 2.6 4.5h10.8A3 3 0 0 0 20 17l-5-9V3" />
-      <path d="M8 14h8" />
+      <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+      <path d="M6 12v5c3 3 9 3 12 0v-5" />
     </svg>
   ),
   sport: (
@@ -75,15 +81,26 @@ const CATEGORY_ICONS = {
       <path d="M2 12h20M12 2v20" />
     </svg>
   ),
-  entertainment: (
+  art: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="7" width="18" height="12" rx="2" />
-      <path d="M8 7V5h8v2M8 13h.01M12 13h.01M16 13h.01" />
+      <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+      <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+      <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+      <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z" />
     </svg>
   ),
-  community: (
+  event: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  ),
+  other: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+      <circle cx="18" cy="12" r="1.5" fill="currentColor" />
+      <circle cx="6" cy="12" r="1.5" fill="currentColor" />
     </svg>
   ),
 }
@@ -260,7 +277,16 @@ function EventsPage() {
       .filter(Boolean)
 
     if (activeCategory !== 'all') {
-      result = result.filter((event) => event.category === activeCategory)
+      result = result.filter((event) => {
+        let cat = (event.category || '').toLowerCase().trim()
+        if (cat === 'arts') cat = 'art'
+        if (cat === 'sports') cat = 'sport'
+        if (cat === 'events') cat = 'event'
+        if (activeCategory === 'other') {
+          return !['academic', 'sport', 'art', 'event'].includes(cat) || cat === 'other'
+        }
+        return cat === activeCategory
+      })
     }
 
     if (statusFilter !== 'all') {

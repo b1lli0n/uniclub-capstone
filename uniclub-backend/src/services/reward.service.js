@@ -800,6 +800,22 @@ const rejectRewardRedemption = async ({
     );
   }
 
+  try {
+    const { sendRedemptionRejectedEmailToStudent } = require("./email.service");
+    const studentEmail = redemption?.membership_id?.user_id?.email;
+    if (studentEmail) {
+      sendRedemptionRejectedEmailToStudent({
+        toEmail: studentEmail,
+        userName: redemption?.membership_id?.user_id?.full_name || "Member",
+        clubName: redemption?.membership_id?.club_id?.name || "Club",
+        rewardTitle: redemption?.reward_id?.name || "Reward",
+        rejectionReason: rejectionReason.trim(),
+      }).catch((emailErr) => console.error("[Reject Redeem Email Async Error]", emailErr));
+    }
+  } catch (emailErr) {
+    console.error("[Reject Redeem Email Error]", emailErr);
+  }
+
   return formatRedemption(redemption);
 };
 

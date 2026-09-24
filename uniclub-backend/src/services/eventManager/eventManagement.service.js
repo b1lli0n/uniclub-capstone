@@ -151,7 +151,7 @@ const updateEvent = async (clubId, eventId, payload) => {
   const endTime = payload.end_time ?? event.end_time;
 
   if (startTime >= endTime) {
-    throw getStatusError("start_time must be before end_time", 400);
+    throw getStatusError("Start time must be before end time. Please select a valid event time range.", 400);
   }
 
   const processedPayload = { ...payload };

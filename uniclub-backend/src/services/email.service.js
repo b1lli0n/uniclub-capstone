@@ -395,6 +395,38 @@ const sendRedemptionRejectedEmailToStudent = async ({ toEmail, userName, clubNam
   }
 };
 
+const sendRedemptionSubmittedEmailToStudent = async ({ toEmail, userName, clubName, rewardTitle, pointCost }) => {
+  try {
+    const mailer = getTransporter();
+    const subject = `[UniClub] 🎁 Reward Redemption Request Received: "${rewardTitle}"`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 16px;">
+        <div style="background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); max-width: 550px; margin: 0 auto; border: 1px solid #e2e8f0;">
+          <h2 style="color: #2563eb; margin-top: 0;">🎁 Reward Redemption Request Received</h2>
+          <p>Hello <strong>${userName}</strong>,</p>
+          <p>You have successfully submitted a reward redemption request for <strong>${clubName}</strong>:</p>
+          <div style="background: #eff6ff; padding: 16px 20px; border-radius: 12px; border-left: 4px solid #3b82f6; margin: 20px 0;">
+            <p style="margin: 0 0 6px 0;">🎁 <strong>Reward:</strong> ${rewardTitle}</p>
+            <p style="margin: 0 0 6px 0;">💎 <strong>Point Cost:</strong> <strong style="color: #2563eb;">${pointCost} pts</strong></p>
+            <p style="margin: 0;">⏳ <strong>Status:</strong> Pending Approval from Club Board</p>
+          </div>
+          <p style="color: #475569; font-size: 0.9rem;">📌 <em>You will receive an email notification as soon as the Club Board approves or reviews your request. You can also track the status in the <strong>Redemption History</strong> tab.</em></p>
+        </div>
+      </div>
+    `;
+
+    await mailer.sendMail({
+      from: `"UniClub System" <${process.env.EMAIL_USER || "uniclub2402@gmail.com"}>`,
+      to: toEmail,
+      subject,
+      html,
+    });
+    console.log(`📧 Redemption Submitted Email sent to Student: ${toEmail}`);
+  } catch (error) {
+    console.error("❌ Failed to send redemption submitted email to student:", error.message);
+  }
+};
+
 const sendFeeNotificationEmail = async ({ toEmail, userName, clubName, title, amount, period }) => {
   try {
     const mailer = getTransporter();
@@ -740,6 +772,7 @@ module.exports = {
   sendEventTicketEmail,
   sendEventFeedbackSubmittedEmail,
   sendRedemptionRequestEmailToLeader,
+  sendRedemptionSubmittedEmailToStudent,
   sendRedemptionApprovedEmailToStudent,
   sendRedemptionRejectedEmailToStudent,
   sendFeeNotificationEmail,
