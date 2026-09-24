@@ -11,6 +11,11 @@ function getTransporter() {
   if (emailUser && emailPass) {
     transporter = nodemailer.createTransport({
       service: "gmail",
+      pool: true,
+      maxConnections: 3,
+      maxMessages: 100,
+      rateDelta: 1000,
+      rateLimit: 3,
       auth: {
         user: emailUser,
         pass: emailPass,

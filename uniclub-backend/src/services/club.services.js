@@ -263,7 +263,7 @@ const requestCreateClub = async ({
     slogan: slogan ? slogan.trim() : "",
     category: normalizeCategory(category),
     description: description || "",
-    reason: reason.trim(),
+    reason: (reason ? reason.trim() : (description || club_name || "")),
     logo_url: logo_url.trim(),
     requested_by,
     members: membersList,
@@ -285,25 +285,38 @@ const requestCreateClub = async ({
 
     // 1. Send confirmation receipt email to Requester
     if (requester?.email && !requester.email.toLowerCase().includes("demo")) {
-      sendClubCreationSubmittedEmailToRequester({
-        toEmail: requester.email,
-        requesterName: requester.full_name || "Student",
-        clubName: club_name.trim(),
-        memberCount: uniqueMemberIds.length,
-        expiresAt,
-      }).catch((err) => console.error(`Error sending submission receipt to requester ${requester.email}:`, err.message));
+      try {
+        await sendClubCreationSubmittedEmailToRequester({
+          toEmail: requester.email.trim(),
+          requesterName: requester.full_name || "Student",
+          clubName: club_name.trim(),
+          memberCount: uniqueMemberIds.length,
+          expiresAt,
+        });
+      } catch (err) {
+        console.error(`Error sending submission receipt to requester ${requester.email}:`, err.message);
+      }
     }
 
     // 2. Send invitation emails to real (non-demo) founding members
+    const safeDescription = (reason ? reason.trim() : "") || description || "";
     for (const member of invitedUsers) {
-      if (member.email && !member.email.toLowerCase().includes("demo")) {
-        sendClubCreationMemberInviteEmail({
-          toEmail: member.email,
-          memberName: member.full_name || "Student",
-          requesterName: requester?.full_name || "Founding Student",
-          clubName: club_name.trim(),
-          description: reason.trim() || description || "",
-        }).catch((err) => console.error(`Error sending invite to ${member.email}:`, err.message));
+      if (
+        member?.email &&
+        !member.email.toLowerCase().includes("demo") &&
+        String(member._id) !== String(requested_by)
+      ) {
+        try {
+          await sendClubCreationMemberInviteEmail({
+            toEmail: member.email.trim(),
+            memberName: member.full_name || "Student",
+            requesterName: requester?.full_name || "Founding Student",
+            clubName: club_name.trim(),
+            description: safeDescription,
+          });
+        } catch (err) {
+          console.error(`Error sending invite to ${member.email}:`, err.message);
+        }
       }
     }
   } catch (err) {
