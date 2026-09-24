@@ -34,8 +34,12 @@ function MyRequestsPage() {
     async function loadItems() {
       setLoading(true)
       try {
-        const params = {
-          status: statusFilter !== 'all' ? statusFilter : undefined,
+        const params = {}
+        if (statusFilter !== 'all') {
+          // If filtering by 'approved', invitations on BE use 'accepted'
+          params.status = activeTab === 'received' && statusFilter === 'approved'
+            ? 'accepted'
+            : statusFilter
         }
         const response = activeTab === 'received'
           ? await getReceivedInvitations(params)
@@ -71,7 +75,16 @@ function MyRequestsPage() {
 
   const selectedStatus =
     REQUEST_STATUS_OPTIONS.find((option) => option.value === statusFilter) || REQUEST_STATUS_OPTIONS[0]
-  const visibleItems = activeTab === 'received' ? invitations : requests
+  const rawItems = activeTab === 'received' ? invitations : requests
+  const visibleItems = statusFilter === 'all'
+    ? rawItems
+    : rawItems.filter((item) => {
+        const itemStatus = (item.status || '').toLowerCase()
+        if (statusFilter === 'approved') {
+          return itemStatus === 'approved' || itemStatus === 'accepted'
+        }
+        return itemStatus === statusFilter.toLowerCase()
+      })
   const tabCounts = {
     sent: requests.length,
     received: invitations.length,

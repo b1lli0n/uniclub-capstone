@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const invitationManagementService = require("../../services/member/invitationManagement.service");
 const { getStatusError } = require("../../utils/error");
 
-const ALLOWED_INVITATION_STATUS = ["pending", "accepted", "rejected", "cancelled"];
+const ALLOWED_INVITATION_STATUS = ["pending", "accepted", "approved", "rejected", "cancelled"];
 
 const getReceivedInvitations = async (req, res, next) => {
   try {
@@ -16,7 +16,7 @@ const getReceivedInvitations = async (req, res, next) => {
     if (status && !ALLOWED_INVITATION_STATUS.includes(status)) {
       return next(
         getStatusError(
-          "Invalid status. Allowed values: pending, accepted, rejected, cancelled",
+          "Invalid status. Allowed values: pending, approved, accepted, rejected, cancelled",
           400
         )
       );

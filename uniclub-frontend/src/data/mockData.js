@@ -905,7 +905,7 @@ export const MY_REQUEST_TABS = [
 export const REQUEST_STATUS_OPTIONS = [
   { value: 'all', label: 'All Statuses' },
   { value: 'pending', label: 'Pending' },
-  { value: 'approved', label: 'Approved / Accepted' },
+  { value: 'approved', label: 'Approved' },
   { value: 'rejected', label: 'Rejected' },
   { value: 'expired', label: 'Expired' },
 ]

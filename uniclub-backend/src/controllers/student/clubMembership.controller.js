@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const clubMembershipService = require("../../services/student/clubMembership.service");
 const { getStatusError } = require("../../utils/error");
 
-const ALLOWED_JOIN_REQUEST_STATUS = ["pending", "approved", "rejected", "cancelled"];
+const ALLOWED_JOIN_REQUEST_STATUS = ["pending", "approved", "accepted", "rejected", "cancelled"];
 
 const getClubJoinForm = async (req, res, next) => {
   try {

@@ -21,7 +21,7 @@ export const STATUS_LABELS = {
   pending: 'Pending',
   waiting_member_approval: 'Waiting Member Approval',
   approved: 'Approved',
-  accepted: 'Accepted',
+  accepted: 'Approved',
   rejected: 'Rejected',
   declined: 'Declined',
   cancelled: 'Cancelled',

@@ -16,8 +16,12 @@ const getReceivedInvitations = async (userId, clubId, { status } = {}) => {
     query.club_id = clubId;
   }
 
-  if (status) {
-    query.status = status;
+  if (status && status !== "all") {
+    if (status === "approved" || status === "accepted") {
+      query.status = { $in: ["accepted", "approved"] };
+    } else {
+      query.status = status;
+    }
   }
 
   const regularInvitations = await Invitation.find(query)
@@ -82,9 +86,12 @@ const getReceivedInvitations = async (userId, clubId, { status } = {}) => {
     });
 
     if (status && status !== "all") {
-      creationInvitations = creationInvitations.filter(
-        (inv) => inv.status === status
-      );
+      creationInvitations = creationInvitations.filter((inv) => {
+        if (status === "approved" || status === "accepted") {
+          return inv.status === "accepted" || inv.status === "approved";
+        }
+        return inv.status === status;
+      });
     }
   }
 

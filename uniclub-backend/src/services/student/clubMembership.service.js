@@ -156,8 +156,12 @@ const submitJoinRequest = async (userId, clubId, formId, answers) => {
 const getMyJoinRequests = async (userId, { status } = {}) => {
   const query = { user_id: userId };
 
-  if (status) {
-    query.status = status;
+  if (status && status !== "all") {
+    if (status === "approved" || status === "accepted") {
+      query.status = { $in: ["approved", "accepted"] };
+    } else {
+      query.status = status;
+    }
   }
 
   return JoinRequest.find(query)
