@@ -287,7 +287,7 @@ function AdminDashboardPage({ onLogout }) {
     let cancelled = false
     setClubsLoading(true)
     setClubsError(null)
-    getAdminClubList()
+    getAdminClubList({ limit: 100 })
       .then((res) => {
         if (cancelled) return
         const clubs = (res.data?.clubs || res.clubs || []).map(mapAdminClubFromApi)

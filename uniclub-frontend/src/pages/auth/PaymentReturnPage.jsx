@@ -177,7 +177,8 @@ export default function PaymentReturnPage() {
                 <button
                   type="button"
                   className="club-fee-btn club-fee-btn--receipt"
-                  onClick={() => navigate(`/clubs/my-fees/receipts/${paymentId}`)}
+                  onClick={() => navigate(receipt?.club?._id ? `/clubs/${receipt.club._id}/receipts/${paymentId}` : `/clubs/my-fees/receipts/${paymentId}`)}
+                  id="btn-return-view-receipt"
                 >
                   📄 View Full Receipt Page
                 </button>
@@ -186,53 +187,45 @@ export default function PaymentReturnPage() {
                 type="button"
                 className="club-fee-btn club-fee-btn--receipt"
                 onClick={() => navigate(receipt?.club?._id ? `/clubs/${receipt.club._id}/fees` : '/my-clubs')}
+                id="btn-return-back-fees"
               >
-                Back to My Clubs
+                🏛️ Back to Club Fees
               </button>
             </div>
           </>
         ) : (
           <>
-            <div style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              background: '#ffebeb',
-              color: '#ff3b30',
-              fontSize: '3rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 1.5rem auto'
-            }}>
+            <div className="payment-return-icon-wrap payment-return-icon-wrap--failed" aria-hidden="true">
               ✕
             </div>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1d1d1f', margin: '0 0 0.5rem 0' }}>
-              Payment Failed
+            <h1 className="payment-return-title">
+              Payment Incomplete
             </h1>
-            <p style={{ color: '#86868b', fontSize: '0.95rem', margin: '0 0 2rem 0' }}>
+            <p className="payment-return-sub">
               {message || 'The VNPay transaction was unsuccessful or was cancelled by the user.'}
             </p>
 
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+            <div className="payment-return-actions">
               <button
                 type="button"
                 className="club-fee-btn club-fee-btn--pay"
                 onClick={() => navigate(-1)}
+                id="btn-return-retry"
               >
                 🔄 Try Again
               </button>
               <button
                 type="button"
                 className="club-fee-btn club-fee-btn--receipt"
-                onClick={() => navigate('/my-clubs')}
+                onClick={() => navigate('/clubs/6a3c34121f6805a34580c4b2/fees')}
+                id="btn-return-back"
               >
-                Back to My Clubs
+                🏛️ Back to Club Fees
               </button>
             </div>
           </>
         )}
-      </div>
-    </div>
+      </article>
+    </main>
   )
 }

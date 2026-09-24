@@ -8,6 +8,7 @@ import {
   resendClubInvitation,
   sendClubInvitation,
 } from '../../api/secretaryInvitationManagement.api'
+import { apiRequest, toQueryString } from '../../api/api'
 import { mapClubFromApi, mapClubInvitationFromApi } from '../../api/clubMappers'
 import { CLUB_INVITATION_STATUS_OPTIONS } from '../../data/clubInvitationsData'
 import { useToast } from '../../components/common/notificationContext'
@@ -111,7 +112,15 @@ function ClubInvitationsPage({ clubId }) {
 
   async function createInvitation(event) {
     event.preventDefault()
-    if (!form.invitedUserId.trim() || submitting || !canManageInvitations) return
+    if (!form.invitedUserId?.trim()) {
+      showToast({
+        type: 'warning',
+        title: 'Missing recipient',
+        message: 'Please search and select a student to invite.',
+      })
+      return
+    }
+    if (submitting || !canManageInvitations) return
 
     setSubmitting(true)
     try {
@@ -419,6 +428,55 @@ function InvitationDetail({ invitation, canManage, onClose, onCancel, onResend }
 }
 
 function InvitationForm({ clubName, form, setForm, submitting, onClose, onSubmit }) {
+  const [studentSearch, setStudentSearch] = useState('')
+  const [suggestions, setSuggestions] = useState([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [selectedStudent, setSelectedStudent] = useState(null)
+
+  useEffect(() => {
+    let active = true
+    const delay = setTimeout(async () => {
+      setSearchLoading(true)
+      try {
+        const queryParam = studentSearch.trim() ? { q: studentSearch.trim() } : {}
+        const res = await apiRequest(`/profile/search${toQueryString(queryParam)}`)
+        if (active) {
+          const list = (res.data || []).map((u) => ({
+            value: u.value || u._id,
+            name: u.name || u.full_name,
+            email: u.email,
+            avatarUrl: u.avatarUrl || u.avatar_url || '',
+          }))
+          setSuggestions(list)
+        }
+      } catch (err) {
+        console.error('Failed to search students:', err)
+        if (active) setSuggestions([])
+      } finally {
+        if (active) setSearchLoading(false)
+      }
+    }, studentSearch.trim() ? 250 : 0)
+
+    return () => {
+      active = false
+      clearTimeout(delay)
+    }
+  }, [studentSearch])
+
+  function handleSelectStudent(student) {
+    setSelectedStudent(student)
+    setForm((prev) => ({ ...prev, invitedUserId: student.value }))
+    setStudentSearch('')
+    setShowDropdown(false)
+  }
+
+  function handleClearStudent() {
+    setSelectedStudent(null)
+    setForm((prev) => ({ ...prev, invitedUserId: '' }))
+    setStudentSearch('')
+  }
+
   return (
     <div className="club-invitation-modal" role="dialog" aria-modal="true" aria-labelledby="invitation-form-title">
       <button
@@ -437,33 +495,189 @@ function InvitationForm({ clubName, form, setForm, submitting, onClose, onSubmit
             ×
           </button>
         </header>
-        <label>
-          Recipient user ID
-          <input
-            required
-            value={form.invitedUserId}
-            placeholder="Paste student user ObjectId"
-            onChange={(event) =>
-              setForm((value) => ({ ...value, invitedUserId: event.target.value }))
-            }
-          />
-        </label>
-        <label>
-          Personal message <em>(optional)</em>
+
+        <div style={{ textAlign: 'left' }}>
+          <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.78rem', fontWeight: 900, color: '#6b5a4a', textTransform: 'uppercase' }}>
+            Recipient Student <span style={{ color: '#e11d48' }}>*</span>
+          </label>
+
+          {selectedStudent ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.75rem 1rem',
+              border: '1px solid #ffd2a9',
+              borderRadius: '12px',
+              background: '#fffbf5',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #ffbd7e, #e86b21)',
+                  color: '#fff',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontWeight: 900,
+                  fontSize: '0.8rem',
+                }}>
+                  {selectedStudent.name?.charAt(0)?.toUpperCase() || 'S'}
+                </div>
+                <div>
+                  <strong style={{ display: 'block', color: '#1f2430', fontSize: '0.9rem', fontWeight: 800 }}>
+                    {selectedStudent.name}
+                  </strong>
+                  <span style={{ color: '#6b5a4a', fontSize: '0.78rem' }}>
+                    {selectedStudent.email}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearStudent}
+                style={{
+                  border: 'none',
+                  background: '#ffe4cc',
+                  color: '#c65f00',
+                  borderRadius: '8px',
+                  padding: '0.35rem 0.65rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                Change
+              </button>
+            </div>
+          ) : (
+            <div style={{ position: 'relative', width: '100%' }}>
+              <input
+                type="text"
+                required={!form.invitedUserId}
+                value={studentSearch}
+                placeholder="Search student by name or email..."
+                onChange={(e) => {
+                  setStudentSearch(e.target.value)
+                  setShowDropdown(true)
+                }}
+                onFocus={() => {
+                  setShowDropdown(true)
+                }}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                autoComplete="off"
+                style={{
+                  width: '100%',
+                  minHeight: '44px',
+                  padding: '0 0.85rem',
+                  border: '1px solid #eaded4',
+                  borderRadius: '12px',
+                  background: '#ffffff',
+                  color: '#2f2a3a',
+                  font: 'inherit',
+                  fontSize: '0.86rem',
+                  fontWeight: 650,
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+
+              {showDropdown && (suggestions.length > 0 || searchLoading) && (
+                <ul style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  zIndex: 200,
+                  background: '#ffffff',
+                  border: '1px solid #ffd2a9',
+                  borderRadius: '12px',
+                  margin: '0.35rem 0 0',
+                  padding: '0.35rem 0',
+                  listStyle: 'none',
+                  boxShadow: '0 12px 30px rgba(92, 64, 51, 0.15)',
+                  maxHeight: '220px',
+                  overflowY: 'auto',
+                }}>
+                  {searchLoading && (
+                    <li style={{ padding: '0.65rem 1rem', color: '#64748b', fontSize: '0.82rem' }}>
+                      Searching students...
+                    </li>
+                  )}
+                  {!searchLoading && suggestions.map((opt) => (
+                    <li key={String(opt.value)} style={{ padding: 0 }}>
+                      <button
+                        type="button"
+                        style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '0.65rem 1rem',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.15rem',
+                          transition: 'background 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#fff4e5' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          handleSelectStudent(opt)
+                        }}
+                      >
+                        <span style={{ fontWeight: 800, color: '#1f2430', fontSize: '0.88rem' }}>{opt.name}</span>
+                        <span style={{ color: '#6b5a4a', fontSize: '0.78rem' }}>{opt.email}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+
+
+
+        <div style={{ textAlign: 'left' }}>
+          <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.78rem', fontWeight: 900, color: '#6b5a4a', textTransform: 'uppercase' }}>
+            Personal message <em style={{ fontStyle: 'normal', color: '#999', textTransform: 'none' }}>(optional)</em>
+          </label>
           <textarea
             value={form.message}
-            rows="5"
+            rows={4}
             placeholder="Write a friendly invitation message..."
             onChange={(event) =>
               setForm((value) => ({ ...value, message: event.target.value }))
             }
+            style={{
+              width: '100%',
+              padding: '0.75rem 0.85rem',
+              border: '1px solid #eaded4',
+              borderRadius: '12px',
+              background: '#ffffff',
+              color: '#2f2a3a',
+              font: 'inherit',
+              fontSize: '0.86rem',
+              fontWeight: 650,
+              outline: 'none',
+              resize: 'vertical',
+              boxSizing: 'border-box',
+            }}
           />
-        </label>
+        </div>
+
         <footer>
           <button type="button" className="club-invitation-modal__dismiss" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="club-invitation-modal__primary" disabled={submitting}>
+          <button
+            type="submit"
+            className="club-invitation-modal__primary"
+            disabled={submitting || !form.invitedUserId}
+          >
             {submitting ? 'Sending...' : 'Send invitation'}
           </button>
         </footer>

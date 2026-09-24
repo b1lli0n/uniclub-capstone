@@ -252,11 +252,11 @@ function ClubRewardsPage({ isManager = false }) {
   const { clubId } = useParams()
   const showToast = useToast()
   const confirm = useConfirm()
-  
+
   const [rewards, setRewards] = useState([])
   const [redemptions, setRedemptions] = useState([])
   const [points, setPoints] = useState(0)
-  
+
   const [tab, setTab] = useState('inventory')
   const [query, setQuery] = useState('')
   const [stockFilter, setStockFilter] = useState('all')
@@ -291,7 +291,7 @@ function ClubRewardsPage({ isManager = false }) {
         if (!active) return
         const payload = res.data || {}
         const items = payload.rewards || payload.items || (Array.isArray(payload) ? payload : [])
-        
+
         setRewards(
           items.map((r) => ({
             id: r._id,
@@ -333,7 +333,7 @@ function ClubRewardsPage({ isManager = false }) {
       ])
         .then(([reqRes, histRes]) => {
           if (!active) return
-          
+
           const rawItems = [
             ...(reqRes.data?.redemptions || reqRes.data || []),
             ...(histRes.data?.redemptions || histRes.data || []),
@@ -801,7 +801,7 @@ function ClubRewardsPage({ isManager = false }) {
       )}
 
       {editorOpen && <RewardEditor reward={editorReward} onClose={() => setEditorOpen(false)} onSave={saveReward} />}
-      
+
       {detailReward && (
         <RewardDetail
           reward={detailReward}

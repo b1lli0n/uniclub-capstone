@@ -159,7 +159,13 @@ function createDraft(rule) {
 
 function ClubPointRulesPage({ clubId, isLeader = false }) {
   const showToast = useToast()
-  const [club, setClub] = useState(null)
+  const matchedMock = ALL_CLUBS.find(
+    (item) =>
+      item.id === clubId ||
+      item.title?.toLowerCase().includes('guitar') ||
+      item.name?.toLowerCase().includes('guitar')
+  )
+  const [club, setClub] = useState(matchedMock ? { name: matchedMock.name || matchedMock.title } : null)
   const [isManager, setIsManager] = useState(isLeader)
   const [rulesList, setRulesList] = useState([])
   const [loading, setLoading] = useState(true)
@@ -206,6 +212,8 @@ function ClubPointRulesPage({ clubId, isLeader = false }) {
         const fetchedClub = clubRes?.data || mine?.club_id
         if (fetchedClub) {
           setClub(fetchedClub)
+        } else if (matchedMock) {
+          setClub({ name: matchedMock.name || matchedMock.title })
         }
 
         const userRole = (mine?.role || '').toLowerCase()

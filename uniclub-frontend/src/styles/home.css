@@ -385,6 +385,7 @@ body:has(.home-shell) #root {
     opacity: 0;
     transform: translateY(-6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1012,6 +1013,7 @@ button.home-carousel-card:focus-visible {
     opacity: 0;
     transform: translateY(12px) scale(0.9);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);

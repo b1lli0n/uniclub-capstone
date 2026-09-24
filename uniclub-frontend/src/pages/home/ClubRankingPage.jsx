@@ -79,7 +79,7 @@ function RankingAvatar({ member }) {
 
 function mapApiLeaderboardToRank(m, idx) {
   const user = m.user || {}
-  const points = m.total_points ?? m.monthly_points ?? 0
+  const points = m.monthly_points !== undefined ? m.monthly_points : (m.total_points ?? 0)
   return {
     id: m.membership_id || user._id || `rank-${idx}`,
     userId: String(user._id || ''),
@@ -88,6 +88,8 @@ function mapApiLeaderboardToRank(m, idx) {
     avatarUrl: user.avatar_url || '',
     contribution: points,
     rank: idx + 1,
+    totalPoints: m.total_points ?? 0,
+    monthlyPoints: m.monthly_points ?? 0,
     tone: ['#ff9f2f', '#3b82f6', '#ec4899', '#8b5cf6', '#10b981'][idx % 5],
   }
 }
@@ -149,7 +151,10 @@ function ClubRankingPage({ clubId }) {
 
 
         if (actualClubId) {
-          const lbRes = await getClubLeaderboard(actualClubId).catch(() => ({ data: [] }))
+          const lbRes = await getClubLeaderboard(actualClubId, {
+            month: selectedDate.getMonth() + 1,
+            year: selectedDate.getFullYear(),
+          }).catch(() => ({ data: [] }))
           if (!cancelled && lbRes.data && lbRes.data.length > 0) {
             const sortedList = [...lbRes.data].sort((a, b) => {
               const ptsA = a.total_points ?? a.monthly_points ?? 0
@@ -171,7 +176,7 @@ function ClubRankingPage({ clubId }) {
     return () => {
       cancelled = true
     }
-  }, [clubId])
+  }, [clubId, selectedDate])
 
   async function openMyLogsModal() {
     setLogsModalOpen(true)

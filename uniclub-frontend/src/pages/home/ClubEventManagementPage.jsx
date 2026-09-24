@@ -211,6 +211,8 @@ function mapEventFromApi(apiEvent) {
   }
 }
 
+const mapApiEventToManagedEvent = mapEventFromApi
+
 
 function CustomSelect({ label, value, options, onChange, disabled = false }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -503,8 +505,9 @@ function ClubEventManagementPage({ clubId }) {
         // Fetch fresh events list from backend to ensure data consistency
         getClubEventsForManager(targetClubId)
           .then((fresh) => {
-            if (Array.isArray(fresh)) {
-              setEvents(fresh.map(mapEventFromApi))
+            const list = Array.isArray(fresh) ? fresh : (fresh?.data || [])
+            if (Array.isArray(list)) {
+              setEvents(list.map(mapEventFromApi))
             }
           })
           .catch(() => {})

@@ -25,10 +25,10 @@ describe("BR-24 Join Form Locking Business Rule", () => {
         questions: [{ content: "Why join?" }],
       };
 
-      JoinForm.findOne.mockReturnValue({
+      JoinForm.find.mockReturnValue({
         sort: jest.fn().mockReturnValue({
           populate: jest.fn().mockReturnValue({
-            lean: jest.fn().mockResolvedValue(mockForm),
+            lean: jest.fn().mockResolvedValue([mockForm]),
           }),
         }),
       });
@@ -42,8 +42,8 @@ describe("BR-24 Join Form Locking Business Rule", () => {
 
       const result = await joinFormService.getJoinForm(clubId);
 
-      expect(result.response_count).toBe(3);
-      expect(result.is_locked).toBe(true);
+      expect(result[0].response_count).toBe(3);
+      expect(result[0].is_locked).toBe(true);
     });
 
     test("returns is_locked = false when form has 0 responses", async () => {
@@ -54,10 +54,10 @@ describe("BR-24 Join Form Locking Business Rule", () => {
         questions: [{ content: "Why join?" }],
       };
 
-      JoinForm.findOne.mockReturnValue({
+      JoinForm.find.mockReturnValue({
         sort: jest.fn().mockReturnValue({
           populate: jest.fn().mockReturnValue({
-            lean: jest.fn().mockResolvedValue(mockForm),
+            lean: jest.fn().mockResolvedValue([mockForm]),
           }),
         }),
       });
@@ -71,8 +71,8 @@ describe("BR-24 Join Form Locking Business Rule", () => {
 
       const result = await joinFormService.getJoinForm(clubId);
 
-      expect(result.response_count).toBe(0);
-      expect(result.is_locked).toBe(false);
+      expect(result[0].response_count).toBe(0);
+      expect(result[0].is_locked).toBe(false);
     });
   });
 

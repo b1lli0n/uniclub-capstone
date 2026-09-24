@@ -12,7 +12,7 @@ const getJoinForm = async (clubId) => {
     throw getStatusError("Invalid club ID", 400);
   }
 
-  const form = await JoinForm.findOne({ club_id: clubId })
+  const forms = await JoinForm.find({ club_id: clubId })
     .sort({ created_at: -1 })
     .populate({
       path: "created_by",
@@ -20,13 +20,9 @@ const getJoinForm = async (clubId) => {
     })
     .lean();
 
-  if (!form) {
+  if (!forms || forms.length === 0) {
     throw getStatusError("No join form found for this club", 404);
   }
-
-  const responseCount = await JoinRequest.countDocuments({ form_id: form._id });
-  form.response_count = responseCount;
-  form.is_locked = responseCount > 0;
 
   // Luôn lấy Leader hiện tại của CLB để gán vào form
   const currentPresident = await ClubMember.findOne({
@@ -37,18 +33,23 @@ const getJoinForm = async (clubId) => {
     .populate("user_id", "full_name email avatar_url student_code")
     .lean();
 
-  if (currentPresident) {
-    form.leader = {
-      _id: currentPresident.user_id?._id,
-      member_id: currentPresident._id,
-      full_name: currentPresident.user_id?.full_name,
-      email: currentPresident.user_id?.email,
-      avatar_url: currentPresident.user_id?.avatar_url,
-      student_code: currentPresident.user_id?.student_code,
-    };
+  const leader = currentPresident ? {
+    _id: currentPresident.user_id?._id,
+    member_id: currentPresident._id,
+    full_name: currentPresident.user_id?.full_name,
+    email: currentPresident.user_id?.email,
+    avatar_url: currentPresident.user_id?.avatar_url,
+    student_code: currentPresident.user_id?.student_code,
+  } : null;
+
+  for (const form of forms) {
+    const responseCount = await JoinRequest.countDocuments({ form_id: form._id });
+    form.response_count = responseCount;
+    form.is_locked = responseCount > 0;
+    if (leader) form.leader = leader;
   }
 
-  return form;
+  return forms;
 };
 
 const createJoinForm = async ({ clubId, userId, clubMember, title, description, questions }) => {

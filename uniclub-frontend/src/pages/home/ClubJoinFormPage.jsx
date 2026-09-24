@@ -191,7 +191,7 @@ function ClubJoinFormPage({ clubId }) {
 
   async function submitForm(event) {
     event.preventDefault()
-    
+
     const payload = {
       title: draft.title.trim(),
       description: draft.description.trim(),
@@ -205,16 +205,16 @@ function ClubJoinFormPage({ clubId }) {
       } else {
         response = await createPresidentJoinForm(clubId, payload)
       }
-      
+
       const mapped = mapFormFromApi(response.data)
-      
+
       setForms((items) => {
         if (editorMode === 'edit') {
           return items.map((item) => (item.id === editingFormId ? mapped : item))
         }
         return [mapped, ...items.map(item => ({ ...item, status: 'inactive' }))]
       })
-      
+
       setDetailForm((form) => (form?.id === mapped.id ? mapped : form))
       closeEditor()
       // Display notification when join form is created or updated.
@@ -250,10 +250,10 @@ function ClubJoinFormPage({ clubId }) {
     })
 
     if (!accepted) return
-    
+
     try {
       await togglePresidentJoinFormStatus(clubId, formId, nextStatus)
-      
+
       setForms((items) =>
         items.map((form) => {
           if (form.id === formId) {
@@ -525,7 +525,7 @@ function ClubJoinFormPage({ clubId }) {
               }}>
                 <span style={{ fontSize: '1.2rem' }}>🔒</span>
                 <span>
-                  <strong>Form is locked (BR-24):</strong> This form has received {draft.responseCount} student response{draft.responseCount > 1 ? 's' : ''}.
+                  <strong>Form is locked:</strong> This form has received {draft.responseCount} student response{draft.responseCount > 1 ? 's' : ''}.
                   Questions cannot be modified, added, or removed. You can still update the title and description.
                 </span>
               </div>

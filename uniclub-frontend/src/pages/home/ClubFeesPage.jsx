@@ -379,6 +379,12 @@ export default function ClubFeesPage({ clubId: propClubId }) {
             const isPending = item.status === 'pending' || item.status === 0 || item.status === '0'
             const isSuccess = item.status === 'success' || item.status === 1 || item.status === '1'
             const isFailed = item.status === 'failed' || item.status === 2 || item.status === '2'
+            const isOverdue = isPending && (
+              item.period === 'SP26' ||
+              item.period === 'SU26' ||
+              item.status === 'overdue' ||
+              Boolean(item.created_at && ((Date.now() - new Date(item.created_at).getTime()) > 30 * 24 * 3600 * 1000))
+            )
 
             return (
               <article key={item._id} className={`club-fee-card ${isPending ? 'club-fee-card--unpaid' : ''}`} id={`fee-item-${item._id}`}>
@@ -427,7 +433,7 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                   <div className="club-fee-card__amount-wrap">
                     <strong className="club-fee-card__amount">{formatVND(item.amount)}</strong>
                     {isPending && (
-                      item.period && item.period !== 'FA26' ? (
+                      isOverdue ? (
                         <span className="club-fee-badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontWeight: 800 }}>⚠️ Quá hạn</span>
                       ) : (
                         <span className="club-fee-badge club-fee-badge--pending">⏱️ Chưa đóng</span>

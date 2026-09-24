@@ -54,7 +54,7 @@ const getAllClubs = async ({ category, sortBy, search }) => {
 
   const clubIds = clubs.map((c) => c._id);
 
-  const [memberCounts, eventCounts] = await Promise.all([
+  const [memberCounts, eventCounts, presidentMembers] = await Promise.all([
     ClubMember.aggregate([
       { $match: { club_id: { $in: clubIds }, status: "active" } },
       { $group: { _id: "$club_id", count: { $sum: 1 } } },
@@ -63,6 +63,13 @@ const getAllClubs = async ({ category, sortBy, search }) => {
       { $match: { club_id: { $in: clubIds } } },
       { $group: { _id: "$club_id", count: { $sum: 1 } } },
     ]),
+    ClubMember.find({
+      club_id: { $in: clubIds },
+      role: { $in: ["president", "leader"] },
+      status: "active",
+    })
+      .populate("user_id", "full_name email avatar_url student_code")
+      .lean(),
   ]);
 
   const memberCountMap = new Map(
@@ -71,12 +78,30 @@ const getAllClubs = async ({ category, sortBy, search }) => {
   const eventCountMap = new Map(
     eventCounts.map((item) => [String(item._id), item.count])
   );
+  const presidentMap = new Map();
+  for (const pm of presidentMembers) {
+    if (pm.user_id && !presidentMap.has(String(pm.club_id))) {
+      presidentMap.set(String(pm.club_id), pm.user_id);
+    }
+  }
 
-  return clubs.map((club) => ({
-    ...club,
-    member_count: memberCountMap.get(String(club._id)) || 0,
-    event_count: eventCountMap.get(String(club._id)) || 0,
-  }));
+  return clubs.map((club) => {
+    const leaderUser = club.president_id || presidentMap.get(String(club._id)) || null;
+    const mCount = memberCountMap.get(String(club._id)) || 0;
+    const eCount = eventCountMap.get(String(club._id)) || 0;
+
+    return {
+      ...club,
+      president_id: leaderUser,
+      leader: leaderUser ? leaderUser.full_name : "Unknown",
+      member_count: mCount,
+      event_count: eCount,
+      members_count: mCount,
+      events_count: eCount,
+      members: mCount,
+      events: eCount,
+    };
+  });
 };
 
 
@@ -88,14 +113,35 @@ const getClubById = async (id) => {
     throw error;
   }
 
-  const club = await Club.findOne({ _id: id, status: "active" })
+  let club = await Club.findOne({ _id: id, status: "active" })
     .populate("president_id", "full_name email avatar_url student_code")
     .lean();
+
+  if (!club) {
+    club = await Club.findById(id)
+      .populate("president_id", "full_name email avatar_url student_code")
+      .lean();
+  }
 
   if (!club) {
     const error = new Error("Club not found");
     error.statusCode = 404;
     throw error;
+  }
+
+  let leaderUser = club.president_id;
+  if (!leaderUser) {
+    const presidentMember = await ClubMember.findOne({
+      club_id: id,
+      role: { $in: ["president", "leader"] },
+      status: "active",
+    })
+      .populate("user_id", "full_name email avatar_url student_code")
+      .lean();
+
+    if (presidentMember?.user_id) {
+      leaderUser = presidentMember.user_id;
+    }
   }
 
   const [memberCount, eventCount] = await Promise.all([
@@ -105,8 +151,14 @@ const getClubById = async (id) => {
 
   return {
     ...club,
+    president_id: leaderUser,
+    leader: leaderUser ? leaderUser.full_name : "Unknown",
     member_count: memberCount,
     event_count: eventCount,
+    members_count: memberCount,
+    events_count: eventCount,
+    members: memberCount,
+    events: eventCount,
   };
 };
 

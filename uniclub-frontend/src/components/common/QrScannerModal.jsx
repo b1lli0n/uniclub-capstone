@@ -3,8 +3,36 @@ import { Html5Qrcode } from 'html5-qrcode'
 
 export default function QrScannerModal({ isOpen, onClose, onScanSuccess }) {
   const [errorMsg, setErrorMsg] = useState('')
+  const [cameras, setCameras] = useState([])
+  const [selectedCameraId, setSelectedCameraId] = useState('')
   const html5QrcodeRef = useRef(null)
 
+  // 1. Lấy danh sách toàn bộ camera (Iriun Webcam, Laptop Webcam, etc.)
+  useEffect(() => {
+    if (!isOpen) return
+
+    Html5Qrcode.getCameras()
+      .then((devices) => {
+        if (devices && devices.length > 0) {
+          setCameras(devices)
+          // Tìm camera Iriun / DroidCam / điện thoại trước, nếu không có thì lấy camera ngoài hoặc mặc định
+          const iriunCam = devices.find((d) => /iriun|phone|droidcam|back|rear|external/i.test(d.label))
+          if (iriunCam) {
+            setSelectedCameraId(iriunCam.id)
+          } else if (devices.length > 1) {
+            // Thiết bị cắm ngoài thường nằm ở vị trí thứ 2
+            setSelectedCameraId(devices[1].id)
+          } else {
+            setSelectedCameraId(devices[0].id)
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Cannot enumerate cameras:', err)
+      })
+  }, [isOpen])
+
+  // 2. Khởi động luồng quét QR theo camera được chọn
   useEffect(() => {
     if (!isOpen) return undefined
 
@@ -13,25 +41,30 @@ export default function QrScannerModal({ isOpen, onClose, onScanSuccess }) {
     const html5Qrcode = new Html5Qrcode(scannerId)
     html5QrcodeRef.current = html5Qrcode
 
+    const cameraConfig = selectedCameraId
+      ? selectedCameraId
+      : { facingMode: 'environment' }
+
     // Start camera scanning
-    html5Qrcode.start(
-      { facingMode: 'environment' }, // Back camera
-      {
-        fps: 10,
-        qrbox: { width: 220, height: 220 },
-      },
-      (decodedText) => {
-        // On successful scan
-        onScanSuccess(decodedText)
-        cleanup()
-      },
-      () => {
-        // Verbose errors from scanner are ignored to prevent console cluttering
-      }
-    ).catch((err) => {
-      console.error('Failed to start QR scanner:', err)
-      setErrorMsg('Unable to access camera. Please check your browser camera permissions.')
-    })
+    html5Qrcode
+      .start(
+        cameraConfig,
+        {
+          fps: 15,
+          qrbox: { width: 220, height: 220 },
+        },
+        (decodedText) => {
+          onScanSuccess(decodedText)
+          cleanup()
+        },
+        () => {
+          // Verbose errors from scanner are ignored
+        }
+      )
+      .catch((err) => {
+        console.error('Failed to start QR scanner:', err)
+        setErrorMsg('Không thể truy cập camera. Vui lòng cấp quyền hoặc chọn camera khác bên dưới.')
+      })
 
     function cleanup() {
       if (html5QrcodeRef.current && html5QrcodeRef.current.isScanning) {
@@ -42,7 +75,7 @@ export default function QrScannerModal({ isOpen, onClose, onScanSuccess }) {
     return () => {
       cleanup()
     }
-  }, [isOpen, onScanSuccess])
+  }, [isOpen, selectedCameraId, onScanSuccess])
 
   if (!isOpen) return null
 
@@ -66,10 +99,10 @@ export default function QrScannerModal({ isOpen, onClose, onScanSuccess }) {
       <div
         style={{
           background: '#fff',
-          padding: '2rem',
+          padding: '1.75rem 2rem',
           borderRadius: '16px',
           width: '100%',
-          maxWidth: '400px',
+          maxWidth: '420px',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
           position: 'relative',
           display: 'flex',
@@ -77,15 +110,50 @@ export default function QrScannerModal({ isOpen, onClose, onScanSuccess }) {
           alignItems: 'center',
         }}
       >
-        <h3 style={{ margin: '0 0 0.5rem 0', color: '#111', fontSize: '1.25rem', fontWeight: 600 }}>Scan Check-in QR Code</h3>
-        <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1.5rem', textAlign: 'center' }}>
-          Point your camera at the attendee's ticket QR code to check in
+        <h3 style={{ margin: '0 0 0.4rem 0', color: '#111', fontSize: '1.25rem', fontWeight: 700 }}>
+          📷 Quét mã QR Điểm Danh
+        </h3>
+        <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem', textAlign: 'center' }}>
+          Hướng camera về phía mã QR trên vé sự kiện của sinh viên
         </p>
 
+        {/* Dropdown chọn Camera nếu có nhiều camera (Iriun Webcam / Laptop Webcam) */}
+        {cameras.length > 1 && (
+          <div style={{ width: '100%', marginBottom: '1rem' }}>
+            <label style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+              🎥 Đang dùng Camera:
+            </label>
+            <select
+              value={selectedCameraId}
+              onChange={(e) => setSelectedCameraId(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.55rem 0.75rem',
+                borderRadius: '8px',
+                border: '1.5px solid #ff8e0b',
+                fontSize: '0.88rem',
+                fontWeight: 600,
+                backgroundColor: '#fff7ed',
+                color: '#9a3412',
+                outline: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {cameras.map((cam, idx) => (
+                <option key={cam.id} value={cam.id}>
+                  {cam.label || `Camera ${idx + 1}`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {errorMsg ? (
-          <p style={{ color: '#d32f2f', fontSize: '0.9rem', textAlign: 'center', margin: '1rem 0', lineHeight: 1.4 }}>{errorMsg}</p>
+          <p style={{ color: '#d32f2f', fontSize: '0.9rem', textAlign: 'center', margin: '1rem 0', lineHeight: 1.4 }}>
+            {errorMsg}
+          </p>
         ) : (
-          <div style={{ position: 'relative', width: '260px', height: '260px', marginBottom: '1.5rem' }}>
+          <div style={{ position: 'relative', width: '260px', height: '260px', marginBottom: '1.25rem' }}>
             <div
               id="qr-scanner-element"
               style={{
@@ -106,8 +174,8 @@ export default function QrScannerModal({ isOpen, onClose, onScanSuccess }) {
                 width: '80%',
                 height: '2.5px',
                 backgroundColor: '#ff8e0b',
-                boxShadow: '0 0 8px #ff8e0b',
-                animation: 'scanLaser 2.5s infinite linear',
+                boxShadow: '0 0 10px #ff8e0b',
+                animation: 'scanLaser 2.2s infinite linear',
                 pointerEvents: 'none',
               }}
             />
@@ -118,24 +186,26 @@ export default function QrScannerModal({ isOpen, onClose, onScanSuccess }) {
           type="button"
           onClick={onClose}
           style={{
-            background: '#f5f5f5',
+            background: '#f1f5f9',
             border: 'none',
             padding: '0.65rem 2.5rem',
             borderRadius: '8px',
             cursor: 'pointer',
             fontSize: '0.9rem',
-            fontWeight: 500,
-            color: '#333',
+            fontWeight: 600,
+            color: '#334155',
             transition: 'background 0.2s',
           }}
-          onMouseOver={(e) => (e.target.style.background = '#e0e0e0')}
-          onMouseOut={(e) => (e.target.style.background = '#f5f5f5')}
+          onMouseOver={(e) => (e.target.style.background = '#e2e8f0')}
+          onMouseOut={(e) => (e.target.style.background = '#f1f5f9')}
         >
-          Close Camera
+          Đóng Camera
         </button>
 
         {/* Injecting CSS Keyframe animation dynamically */}
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
           @keyframes scanLaser {
             0% { top: 10%; }
             50% { top: 90%; }
@@ -146,7 +216,9 @@ export default function QrScannerModal({ isOpen, onClose, onScanSuccess }) {
             height: 100% !important;
             object-fit: cover !important;
           }
-        `}} />
+        `,
+          }}
+        />
       </div>
     </div>
   )

@@ -6,15 +6,15 @@ import heroGroup from '../../assets/hero-group.png'
 import '../../styles/login.css'
 
 const MOCK_ACCOUNTS = [
-  { email: 'tynce181041@fpt.edu.vn', label: '👑 Nguyen Ty – Club President / Creator' },
-  { email: 'uniclub2402@gmail.com',  label: '🛡 Admin Student Affairs (uniclub2402@gmail.com)' },
-  { email: 'admin@fpt.edu.vn',       label: '🛡 Nguyen Van Admin – Student Affairs' },
-  { email: 'bangdreamer01@gmail.com', label: '👑 Bui Van Em (bangdreamer01@gmail.com) – President (Guitar Club)' },
-  { email: 'demo35@fpt.edu.vn',      label: '🎪 Nguyen Quoc Khanh (Demo 35) – Event Manager (Guitar Club)' },
-  { email: 'demo33@fpt.edu.vn',      label: '📝 Do Thi Giang (Demo 33) – Secretary (Guitar Club)' },
-  { email: 'demo34@fpt.edu.vn',      label: '💰 Ho Minh Hung (Demo 34) – Treasurer (Guitar Club)' },
-  { email: 'demo36@fpt.edu.vn',      label: '🎸 Tran Thanh Linh (Demo 36) – Member (Guitar Club)' },
-  { email: 'demo4@fpt.edu.vn',       label: '🎵 Phan Mai Quan (Demo 4) – Member / Applicant' },
+  { email: 'tynce181041@fpt.edu.vn',    label: '👑 Nguyen Ty – Club President / Creator' },
+  { email: 'tuanbace161158@fpt.edu.vn', label: '🎓 Bui Anh Tuan (CE161158) – Main Student' },
+  { email: 'bangdreamer01@gmail.com',    label: '👑 Nguyen Bang / Bui Van Em – President (FGC)' },
+  { email: 'khanhnqse180035@fpt.edu.vn', label: '🎪 Nguyen Quoc Khanh (SE180035) – Event Manager (FGC)' },
+  { email: 'giangdtse180033@fpt.edu.vn', label: '📝 Do Thi Giang (SE180033) – Secretary (FGC)' },
+  { email: 'hunghmse180034@fpt.edu.vn',  label: '💰 Ho Minh Hung (SE180034) – Treasurer (FGC)' },
+  { email: 'linhttse180036@fpt.edu.vn',  label: '🎸 Tran Thanh Linh (SE180036) – Member (FGC)' },
+  { email: 'uniclub2402@gmail.com',      label: '🛡 UniClub Student Affairs (uniclub2402@gmail.com)' },
+  { email: 'admin@fpt.edu.vn',           label: '🛡 Nguyen Van Admin – Student Affairs' },
 ]
 
 function FptLogo() {

@@ -3,7 +3,8 @@ const achievementPointsService = require("../../services/member/achievementPoint
 const getLeaderboard = async (req, res, next) => {
   try {
     const { clubId } = req.params;
-    const data = await achievementPointsService.getLeaderboard(clubId);
+    const { month, year } = req.query;
+    const data = await achievementPointsService.getLeaderboard(clubId, { month, year });
 
     return res.status(200).json({
       success: true,
