@@ -138,8 +138,37 @@ const updateEvent = async (clubId, eventId, payload) => {
     throw getStatusError("Cannot update cancelled event", 400);
   }
 
+  // If event is already published (progress_status === completed), allow updating operational status and check_in_status
   if (event.progress_status === "completed") {
-    throw getStatusError("Cannot update an event that is already completed", 400);
+    const allowedKeys = ["status", "operational_status", "check_in_status"];
+    const payloadKeys = Object.keys(payload);
+    const hasCoreFieldChanges = payloadKeys.some((k) => {
+      if (allowedKeys.includes(k)) return false;
+      if (payload[k] === undefined) return false;
+      if (k === "start_time" || k === "end_time") {
+        return new Date(payload[k]).getTime() !== new Date(event[k]).getTime();
+      }
+      return payload[k] !== event[k];
+    });
+
+    if (hasCoreFieldChanges) {
+      throw getStatusError("Cannot update event details because it is already marked as completed. Only operational status can be changed.", 400);
+    }
+
+    if (payload.status || payload.operational_status) {
+      event.status = payload.status || payload.operational_status;
+    }
+    if (payload.check_in_status) {
+      event.check_in_status = payload.check_in_status;
+    }
+    await event.save();
+
+    return Event.findById(event._id)
+      .populate("club_id", "_id name logo_url category status")
+      .populate(CREATED_BY_POPULATE)
+      .select(
+        "_id club_id created_by title description category start_time end_time location is_public capacity status progress_status check_in_status media_uris approval_document_url created_at updated_at"
+      );
   }
 
   if (payload.progress_status === "completed") {
@@ -164,6 +193,10 @@ const updateEvent = async (clubId, eventId, payload) => {
 
   const startTime = payload.start_time ?? event.start_time;
   const endTime = payload.end_time ?? event.end_time;
+
+  if (payload.start_time && new Date(payload.start_time) < new Date()) {
+    throw getStatusError("Event start time cannot be updated to the past. Please choose a future date and time.", 400);
+  }
 
   if (startTime >= endTime) {
     throw getStatusError("Start time must be before end time. Please select a valid event time range.", 400);
@@ -198,8 +231,12 @@ const cancelEvent = async (clubId, eventId) => {
     throw getStatusError("Event is already cancelled", 400);
   }
 
-  if (event.status === "closed") {
-    throw getStatusError("Cannot cancel closed event", 400);
+  if (["completed", "closed"].includes(event.status)) {
+    throw getStatusError("Cannot cancel an event that has already ended or is completed", 400);
+  }
+
+  if (event.status === "ongoing" || (event.start_time && new Date(event.start_time) <= new Date())) {
+    throw getStatusError("Cannot cancel an ongoing event or an event that has already started", 400);
   }
 
   event.status = "cancelled";

@@ -64,7 +64,17 @@ export default function ActivityAttendancePage() {
         if (!active) return
 
         if (activityRes?.data) {
-          setActivity(activityRes.data)
+          const act = activityRes.data
+          setActivity(act)
+          if (act.status === 'coming_soon' || act.status === 'coming soon') {
+            showToast({
+              type: 'warning',
+              title: 'Activity Not Opening',
+              message: 'This activity has not opened yet. Attendance is only permitted when the status is Opening.',
+            })
+            navigate(`/clubs/${clubId}/activity-schedule`)
+            return
+          }
         }
 
         const memberList = attendanceRes?.data?.members || []
@@ -210,7 +220,13 @@ export default function ActivityAttendancePage() {
         <button
           type="button"
           className="activity-attendance__back-btn"
-          onClick={() => navigate(`/clubs/${clubId}/manage-activity-schedule`)}
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1)
+            } else {
+              navigate(`/clubs/${clubId}/manage-activity-schedule`)
+            }
+          }}
         >
           <svg style={{ width: '16px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -220,8 +236,12 @@ export default function ActivityAttendancePage() {
 
         <div className="activity-attendance__title-row">
           <div className="activity-attendance__title-group">
-            <h1>
-              <span>📋</span> {activity?.title || 'Activity Attendance'}
+            <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg style={{ width: '22px', height: '22px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="4" y="4" width="16" height="16" rx="3" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+              {activity?.title || 'Activity Attendance'}
             </h1>
             <div className="activity-attendance__meta-tags">
               <span className="activity-attendance__meta-tag">

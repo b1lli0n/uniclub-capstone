@@ -5,3 +5,5 @@
 .club-finance-table__actions{align-items:center;justify-self:center;flex-direction:column}
 @media(max-width:850px){.club-finance-table__row{grid-template-columns:1fr auto}.club-finance-table__actions{grid-column:1/-1;justify-self:stretch;align-items:flex-start;flex-direction:row}}
 .club-finance-form input[type="date"],.club-finance-form input[type="number"]{color-scheme:light}
+
+.club-finance-modal__panel--detail{overflow:hidden !important;display:flex !important;flex-direction:column !important;}

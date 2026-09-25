@@ -502,7 +502,7 @@ const sendInvitationEmail = async ({ toEmail, userName, clubName, role, message,
     `;
 
     await mailer.sendMail({
-      from: `"UniClub System" <${process.env.EMAIL_USER || "noreply@uniclub.edu.vn"}>`,
+      from: `"UniClub System" <${process.env.EMAIL_USER || "uniclub2402@gmail.com"}>`,
       to: toEmail,
       subject,
       html,

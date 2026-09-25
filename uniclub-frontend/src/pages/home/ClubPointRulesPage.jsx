@@ -14,6 +14,7 @@ import { useToast } from '../../components/common/notificationContext'
 import { TrophyIcon, PlusIcon } from '../../components/common/Icons'
 import Pagination from '../../components/common/Pagination'
 import '../../components/common/Pagination.css'
+import { ALL_CLUBS } from '../../data/mockData'
 import '../../styles/club-point-rules.css'
 
 const RULES_PER_PAGE = 6
@@ -163,7 +164,7 @@ function createDraft(rule) {
 
 function ClubPointRulesPage({ clubId, isPresident = false, isLeader = false }) {
   const showToast = useToast()
-  const matchedMock = ALL_CLUBS.find(
+  const matchedMock = (ALL_CLUBS || []).find(
     (item) =>
       item.id === clubId ||
       item.title?.toLowerCase().includes('guitar') ||

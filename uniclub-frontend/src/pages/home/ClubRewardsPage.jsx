@@ -43,24 +43,82 @@ const STATUS_OPTIONS = [
   { value: 'rejected', label: 'Rejected Only' },
 ]
 
-const EMPTY_REWARD = { title: '', points: '', type: '', stock: '', image: '🎁', description: '' }
+const EMPTY_REWARD = { title: '', points: '', stock: '', image: '', description: '' }
 
 function RewardImage({ src, alt, className }) {
-  const isUrl = src && (src.startsWith('http') || src.startsWith('/'))
+  const isUrl = src && (src.startsWith('http') || src.startsWith('/') || src.startsWith('data:image'))
   if (isUrl) {
     return <img src={src} alt={alt || 'Reward'} className={className} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
   }
   return <span className={className}>{src || '🎁'}</span>
 }
 
-function RewardEditor({ reward, onClose, onSave }) {
+function RewardEditor({ reward, onClose, onSave, showToast }) {
   const [draft, setDraft] = useState(reward || EMPTY_REWARD)
   const change = (field, value) => setDraft((current) => ({ ...current, [field]: value }))
 
+  function handleFileChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      if (showToast) showToast({ type: 'error', message: 'Please select a valid image file (PNG, JPG, WEBP).' })
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      if (showToast) showToast({ type: 'error', message: 'Image file size must be less than 5MB.' })
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        change('image', reader.result)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
   function submit(event) {
     event.preventDefault()
-    if (!draft.title.trim() || !draft.points || draft.stock === '') return
-    onSave({ ...draft, title: draft.title.trim(), points: Number(draft.points), stock: Number(draft.stock) })
+    const trimmedTitle = (draft.title || '').trim()
+    if (!trimmedTitle) {
+      if (showToast) {
+        showToast({
+          type: 'warning',
+          message: 'Please enter a valid reward name (cannot be empty or spaces only).',
+        })
+      }
+      return
+    }
+
+    const pointsNum = Number(draft.points)
+    if (!draft.points || isNaN(pointsNum) || pointsNum < 1) {
+      if (showToast) {
+        showToast({
+          type: 'warning',
+          message: 'Points required must be at least 1 point.',
+        })
+      }
+      return
+    }
+
+    const stockNum = Number(draft.stock)
+    if (draft.stock === '' || draft.stock === null || draft.stock === undefined || isNaN(stockNum) || stockNum < 0) {
+      if (showToast) {
+        showToast({
+          type: 'warning',
+          message: 'Stock quantity must be a non-negative integer (0 or greater).',
+        })
+      }
+      return
+    }
+
+    onSave({
+      ...draft,
+      title: trimmedTitle,
+      points: pointsNum,
+      stock: stockNum,
+      description: (draft.description || '').trim(),
+    })
   }
 
   return (
@@ -72,32 +130,73 @@ function RewardEditor({ reward, onClose, onSave }) {
           <button type="button" onClick={onClose}>×</button>
         </header>
         <label>
-          Reward Name
-          <input value={draft.title} onChange={(event) => change('title', event.target.value)} required placeholder="e.g. Cinema Ticket, Highlands Coffee Voucher..." />
+          Reward Name *
+          <input
+            value={draft.title}
+            onChange={(event) => change('title', event.target.value)}
+            required
+            placeholder="e.g. Cinema Ticket, Highlands Coffee Voucher..."
+          />
         </label>
         <div className="club-rewards-form-grid">
           <label>
-            Points Required
-            <input type="number" min="1" value={draft.points} onChange={(event) => change('points', event.target.value)} required placeholder="e.g. 150" />
+            Points Required *
+            <input
+              type="number"
+              min="1"
+              value={draft.points}
+              onChange={(event) => change('points', event.target.value)}
+              required
+              placeholder="e.g. 150"
+            />
           </label>
           <label>
-            Stock Quantity
-            <input type="number" min="0" value={draft.stock} onChange={(event) => change('stock', event.target.value)} required placeholder="e.g. 20" />
+            Stock Quantity *
+            <input
+              type="number"
+              min="0"
+              value={draft.stock}
+              onChange={(event) => change('stock', event.target.value)}
+              required
+              placeholder="e.g. 20"
+            />
           </label>
         </div>
-        <div className="club-rewards-form-grid">
-          <label>
-            Category / Type
-            <input value={draft.type} onChange={(event) => change('type', event.target.value)} placeholder="e.g. Voucher, Ticket, Merchandise..." />
-          </label>
-          <label>
-            Image URL / Emoji Icon
-            <input value={draft.image} onChange={(event) => change('image', event.target.value)} placeholder="Emoji (🎁) or image URL" />
-          </label>
+        <div className="club-rewards-file-field" style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <span style={{ fontWeight: 600, display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem' }}>
+            Reward Image (Upload from device)
+          </span>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc' }}
+          />
+          {draft.image && (
+            <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <img
+                src={draft.image}
+                alt="Preview"
+                style={{ width: '52px', height: '52px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+              />
+              <button
+                type="button"
+                style={{ fontSize: '0.8rem', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                onClick={() => change('image', '')}
+              >
+                Remove Image
+              </button>
+            </div>
+          )}
         </div>
         <label>
           Detailed Description
-          <textarea rows="3" value={draft.description} onChange={(event) => change('description', event.target.value)} placeholder="Describe how to use this reward, terms and conditions..." />
+          <textarea
+            rows="3"
+            value={draft.description}
+            onChange={(event) => change('description', event.target.value)}
+            placeholder="Describe how to use this reward, terms and conditions..."
+          />
         </label>
         <footer>
           <button type="button" onClick={onClose}>Cancel</button>
@@ -129,17 +228,17 @@ function RewardDetail({ reward, isManager, points, onClose, onRedeem, onEdit, on
             <small>Available Stock: {reward.stock}</small>
             {isManager && onToggleVisibility && (
               <div className="club-reward-card__visibility-toggle" style={{ marginTop: '0.75rem' }}>
-                <label className="club-rewards-switch" title={reward.isVisible ? 'Nhấn để ẩn phần thưởng' : 'Nhấn để hiển thị phần thưởng'}>
+                <label className="club-rewards-switch" title={reward.isVisible ? 'Click to hide reward' : 'Click to show reward'}>
                   <input
                     type="checkbox"
                     checked={Boolean(reward.isVisible)}
                     onChange={() => onToggleVisibility(reward)}
-                    aria-label={`Trạng thái hiển thị: ${reward.isVisible ? 'Hiển thị' : 'Đang ẩn'}`}
+                    aria-label={`Visibility: ${reward.isVisible ? 'Visible' : 'Hidden'}`}
                   />
                   <span className="club-rewards-switch__slider" />
                 </label>
                 <span className={`club-reward-card__visibility-text ${reward.isVisible ? 'is-visible' : 'is-hidden'}`}>
-                  {reward.isVisible ? 'Hiển thị' : 'Đang ẩn'}
+                  {reward.isVisible ? 'Visible' : 'Hidden'}
                 </span>
               </div>
             )}
@@ -742,17 +841,17 @@ function ClubRewardsPage({ isManager = false }) {
                 <small>Available Stock: {reward.stock}</small>
                 {isManager ? (
                   <div className="club-reward-card__visibility-toggle" onClick={(event) => event.stopPropagation()}>
-                    <label className="club-rewards-switch" title={reward.isVisible ? 'Nhấn để ẩn phần thưởng' : 'Nhấn để hiển thị phần thưởng'}>
+                    <label className="club-rewards-switch" title={reward.isVisible ? 'Click to hide reward' : 'Click to show reward'}>
                       <input
                         type="checkbox"
                         checked={Boolean(reward.isVisible)}
                         onChange={() => handleToggleVisibility(reward)}
-                        aria-label={`Trạng thái hiển thị: ${reward.isVisible ? 'Hiển thị' : 'Đang ẩn'}`}
+                        aria-label={`Visibility: ${reward.isVisible ? 'Visible' : 'Hidden'}`}
                       />
                       <span className="club-rewards-switch__slider" />
                     </label>
                     <span className={`club-reward-card__visibility-text ${reward.isVisible ? 'is-visible' : 'is-hidden'}`}>
-                      {reward.isVisible ? 'Hiển thị' : 'Đang ẩn'}
+                      {reward.isVisible ? 'Visible' : 'Hidden'}
                     </span>
                   </div>
                 ) : (
@@ -859,7 +958,7 @@ function ClubRewardsPage({ isManager = false }) {
       </>
       )}
 
-      {editorOpen && <RewardEditor reward={editorReward} onClose={() => setEditorOpen(false)} onSave={saveReward} />}
+      {editorOpen && <RewardEditor reward={editorReward} onClose={() => setEditorOpen(false)} onSave={saveReward} showToast={showToast} />}
 
       {detailReward && (
         <RewardDetail

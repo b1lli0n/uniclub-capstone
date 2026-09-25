@@ -710,14 +710,14 @@ const approveRewardRedemption = async ({
     const studentEmail = resultDoc?.membership_id?.user_id?.email;
     if (studentEmail) {
       const pickupCode = `REDEEM-${resultDoc._id.toString().substring(18).toUpperCase()}`;
-      sendRedemptionApprovedEmailToStudent({
+      await sendRedemptionApprovedEmailToStudent({
         toEmail: studentEmail,
         userName: resultDoc?.membership_id?.user_id?.full_name || "Member",
         clubName: resultDoc?.membership_id?.club_id?.name || "Club",
         rewardTitle: resultDoc?.reward_id?.name || "Reward",
         pointCost: resultDoc?.total_point || resultDoc?.point_cost,
         pickupCode,
-      });
+      }).catch((emailErr) => console.error("[Approve Redeem Email Async Error]", emailErr));
     }
   } catch (emailErr) {
     console.error("[Approve Redeem Email Error]", emailErr);

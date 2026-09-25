@@ -180,6 +180,16 @@ function canManageClubEventFeatures(role = '') {
   )
 }
 
+function canCancelEvent(event) {
+  if (!event) return false
+  if (event.lifecycleStatus === 'cancelled' || event.status === 'cancelled') return false
+  if (event.lifecycleStatus === 'completed' || event.lifecycleStatus === 'closed' || event.status === 'completed' || event.status === 'closed') return false
+  if (event.lifecycleStatus === 'ongoing' || event.status === 'ongoing') return false
+  const start = event.start_time || event.startAt
+  if (start && new Date(start) <= new Date()) return false
+  return true
+}
+
 function mapEventFromApi(apiEvent) {
   if (!apiEvent) return null
   const formattedDate = formatDateVN(apiEvent.start_time)
@@ -207,6 +217,9 @@ function mapEventFromApi(apiEvent) {
     lifecycleStatus: apiEvent.status === 'active' ? 'opening' : (apiEvent.status || 'opening'),
     startAt: formatForInput(apiEvent.start_time),
     endAt: formatForInput(apiEvent.end_time),
+    start_time: apiEvent.start_time,
+    end_time: apiEvent.end_time,
+    wasPublished: apiEvent.progress_status === 'completed',
     imageUrl: resolveEventUploadImage(apiEvent.media_uris || apiEvent.image_url || apiEvent.imageUrl, apiEvent.category),
     approvalDocumentUrl: apiEvent.approval_document_url || '',
     gradient: 'linear-gradient(135deg, #ffce96 0%, #f5b87a 100%)',
@@ -395,14 +408,6 @@ function ClubEventManagementPage({ clubId }) {
   }
 
   async function openUpdateEditor(eventItem) {
-    if (eventItem.publicationStatus === 'complete' || eventItem.progress_status === 'completed') {
-      showToast({
-        type: 'warning',
-        title: 'Event Completed',
-        message: 'Completed events cannot be updated.',
-      })
-      return
-    }
     setEditorMode('update')
     const initialTimelines = detailEvent && detailEvent.id === eventItem.id ? detailEventTimelines : []
     setDraft({ ...eventItem, timeline: initialTimelines })
@@ -561,64 +566,72 @@ function ClubEventManagementPage({ clubId }) {
     const endDate = new Date(draft.endAt)
     const now = new Date()
 
-    if (editorMode === 'create' && startDate < now) {
-      showToast({
-        type: 'warning',
-        title: 'Invalid Start Time',
-        message: 'Event start time cannot be in the past. Please select a future date and time.',
-      })
-      return
-    }
+    let payload = {}
 
-    if (startDate >= endDate) {
-      showToast({
-        type: 'warning',
-        title: 'Invalid Time Range',
-        message: 'Event start time must be before end time. Please select a valid event time range.',
-      })
-      return
-    }
+    if (editorMode === 'update' && draft.wasPublished) {
+      payload = {
+        status: draft.lifecycleStatus || 'opening',
+      }
+    } else {
+      if (startDate < now) {
+        showToast({
+          type: 'warning',
+          title: 'Invalid Start Time',
+          message: 'Event start time cannot be in the past. Please select a future date and time.',
+        })
+        return
+      }
 
-    const payload = {
-      title: trimmedName,
-      description: trimmedDetails || trimmedName,
-      content: trimmedDetails || trimmedName,
-      category: draft.category.trim() || 'Other',
-      location: trimmedLocation,
-      start_time: draft.startAt,
-      end_time: draft.endAt,
-      capacity: Number(draft.participants) || 150,
-      is_public: draft.visibility === 'public',
-      approval_document_url: (draft.approvalDocumentUrl || '').trim(),
-    }
+      if (startDate >= endDate) {
+        showToast({
+          type: 'warning',
+          title: 'Invalid Time Range',
+          message: 'Event start time must be before end time. Please select a valid event time range.',
+        })
+        return
+      }
 
-    if (editorMode === 'update') {
-      if (draft.publicationStatus === 'complete') {
-        let timelineCount = Array.isArray(draft.timeline) ? draft.timeline.length : 0
-        if (timelineCount === 0) {
-          try {
-            const res = await getEventTimelines(draft.id)
-            timelineCount = (res?.data || []).length
-          } catch {
-            timelineCount = 0
+      payload = {
+        title: trimmedName,
+        description: trimmedDetails || trimmedName,
+        content: trimmedDetails || trimmedName,
+        category: draft.category.trim() || 'Other',
+        location: trimmedLocation,
+        start_time: new Date(draft.startAt).toISOString(),
+        end_time: new Date(draft.endAt).toISOString(),
+        capacity: Number(draft.participants) || 150,
+        is_public: draft.visibility === 'public',
+        approval_document_url: (draft.approvalDocumentUrl || '').trim(),
+      }
+
+      if (editorMode === 'update') {
+        if (draft.publicationStatus === 'complete') {
+          let timelineCount = Array.isArray(draft.timeline) ? draft.timeline.length : 0
+          if (timelineCount === 0) {
+            try {
+              const res = await getEventTimelines(draft.id)
+              timelineCount = (res?.data || []).length
+            } catch {
+              timelineCount = 0
+            }
+          }
+
+          if (timelineCount === 0) {
+            showToast({
+              type: 'error',
+              title: 'Timeline Required',
+              message: 'You must add at least one timeline item before completing this event.',
+            })
+            return
           }
         }
-
-        if (timelineCount === 0) {
-          showToast({
-            type: 'error',
-            title: 'Timeline Required',
-            message: 'You must add at least one timeline item before completing this event.',
-          })
-          return
-        }
+        payload.status = draft.lifecycleStatus || 'opening'
+        payload.progress_status = draft.publicationStatus === 'draft' ? 'draft' : 'completed'
       }
-      payload.status = draft.lifecycleStatus || 'opening'
-      payload.progress_status = draft.publicationStatus === 'draft' ? 'draft' : 'completed'
-    }
 
-    if (draft.imageUrl) {
-      payload.media_uris = [draft.imageUrl]
+      if (draft.imageUrl) {
+        payload.media_uris = [draft.imageUrl]
+      }
     }
 
     try {
@@ -691,6 +704,15 @@ function ClubEventManagementPage({ clubId }) {
 
   async function cancelEvent(eventId) {
     const eventItem = events.find((item) => item.id === eventId) || detailEvent
+    if (!canCancelEvent(eventItem)) {
+      showToast({
+        type: 'warning',
+        title: 'Cannot Cancel Event',
+        message: 'Ongoing, past, or completed events cannot be cancelled.',
+      })
+      return
+    }
+
     const accepted = await confirm({
       title: 'Cancel event?',
       message: `Cancel ${eventItem?.name || 'this event'}? Students will see it as cancelled.`,
@@ -913,21 +935,19 @@ function ClubEventManagementPage({ clubId }) {
               <h2>{eventItem.name}</h2>
               <p>{eventItem.description}</p>
               <div className="club-event-management-meta">
-                <span>{formatInputDate(eventItem.startAt)}</span>
-                <span>{formatInputTimeRange(eventItem.startAt, eventItem.endAt)}</span>
+                <span>{formatDateVN(eventItem.start_time || eventItem.startAt)}</span>
+                <span>{formatTimeRange24(eventItem.start_time || eventItem.startAt, eventItem.end_time || eventItem.endAt)}</span>
                 <span>{eventItem.location || 'Campus'}</span>
               </div>
             </div>
 
             <div className="club-event-management-actions">
               <button type="button" onClick={() => setDetailEvent(eventItem)}>View</button>
-              {eventItem.publicationStatus === 'draft' ? (
-                <button type="button" onClick={() => openUpdateEditor(eventItem)}>Update</button>
-              ) : null}
+              <button type="button" onClick={() => openUpdateEditor(eventItem)}>Update</button>
               <button
                 type="button"
                 className="is-danger"
-                disabled={eventItem.lifecycleStatus === 'cancelled'}
+                disabled={!canCancelEvent(eventItem)}
                 onClick={() => cancelEvent(eventItem.id)}
               >
                 Cancel
@@ -975,7 +995,7 @@ function ClubEventManagementPage({ clubId }) {
               </div>
               <div>
                 <span>Start</span>
-                <strong>{formatInputDate(detailEvent.startAt)} - {formatInputTimeRange(detailEvent.startAt, detailEvent.endAt)}</strong>
+                <strong>{formatDateVN(detailEvent.start_time || detailEvent.startAt)} - {formatTimeRange24(detailEvent.start_time || detailEvent.startAt, detailEvent.end_time || detailEvent.endAt)}</strong>
               </div>
               <div>
                 <span>Capacity</span>
@@ -1057,30 +1077,28 @@ function ClubEventManagementPage({ clubId }) {
               )}
             </section>
             <footer>
+              <button type="button" onClick={() => openUpdateEditor(detailEvent)}>Update Event</button>
               {detailEvent.publicationStatus === 'draft' ? (
-                <>
-                  <button type="button" onClick={() => openUpdateEditor(detailEvent)}>Update Event</button>
-                  <button
-                    type="button"
-                    style={{
-                      background: 'linear-gradient(135deg, #16a34a, #15803d)',
-                      color: '#ffffff',
-                      border: 'none',
-                      fontWeight: 600,
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => handleCompleteEvent(detailEvent)}
-                  >
-                    ✓ Complete Event
-                  </button>
-                </>
+                <button
+                  type="button"
+                  style={{
+                    background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: 600,
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => handleCompleteEvent(detailEvent)}
+                >
+                  ✓ Complete Event
+                </button>
               ) : null}
               <button
                 type="button"
                 className="is-danger"
-                disabled={detailEvent.lifecycleStatus === 'cancelled'}
+                disabled={!canCancelEvent(detailEvent)}
                 onClick={() => cancelEvent(detailEvent.id)}
               >
                 Cancel Event
@@ -1107,6 +1125,11 @@ function ClubEventManagementPage({ clubId }) {
             </header>
 
             <div className="club-event-management-editor__section">
+              {draft.wasPublished && (
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '10px 14px', marginBottom: '14px', fontSize: '0.85rem', color: '#1e40af' }}>
+                  ℹ️ This event is already published. You can update its <strong>Operational Status</strong> below (e.g. Opening, Ongoing, Completed, Closed).
+                </div>
+              )}
               <label className="club-event-management-field club-event-management-field--full">
                 <span>Event name *</span>
                 <input

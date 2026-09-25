@@ -24,6 +24,13 @@ import {
   SearchIcon,
 } from '../../components/common/Icons'
 
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'All Statuses' },
+  { value: 'pending', label: 'Unpaid Only' },
+  { value: 'success', label: 'Paid Only' },
+  { value: 'failed', label: 'Failed Only' },
+]
+
 const METHOD_OPTIONS = [
   { value: 'all', label: 'All Methods' },
   { value: 'vnpay', label: 'VNPay Gateway' },
@@ -96,24 +103,40 @@ export default function ClubFeesPage({ clubId: propClubId }) {
     }
   }
 
+  const [allKnownPeriods, setAllKnownPeriods] = useState(['SP26', 'SU26', 'FA26'])
+  const [overallSummary, setOverallSummary] = useState({ unpaidAmount: 0, unpaidCount: 0 })
+
+  useEffect(() => {
+    if (!clubId) return
+    getFeeList(clubId, {}).then((res) => {
+      if (res.data) {
+        const allItems = res.data.items || []
+        const unpaidItems = allItems.filter((i) => i.status === 'pending' || i.status === 0 || i.status === '0')
+        const total = unpaidItems.reduce((sum, i) => sum + (i.amount || 0), 0)
+        setOverallSummary({
+          unpaidAmount: total,
+          unpaidCount: unpaidItems.length,
+        })
+        const foundPeriods = allItems.map((i) => i.period).filter(Boolean)
+        const combined = Array.from(new Set([...foundPeriods, 'SP26', 'SU26', 'FA26'])).sort()
+        setAllKnownPeriods(combined)
+      }
+    }).catch(console.error)
+  }, [clubId])
+
   useEffect(() => {
     loadFees()
   }, [clubId, activeTab, selectedPeriod])
 
-  const periods = useMemo(() => {
-    const list = feesData.items.map((i) => i.period).filter(Boolean)
-    return Array.from(new Set(list))
-  }, [feesData.items])
-
   const periodOptions = useMemo(
     () => [
       { value: '', label: 'All Periods' },
-      ...periods.map((p) => ({ value: p, label: `Period ${p}` })),
+      ...allKnownPeriods.map((p) => ({ value: p, label: `Period ${p}` })),
     ],
-    [periods]
+    [allKnownPeriods]
   )
 
-  // Calculated totals
+  // Calculated totals for current view
   const totalUnpaidAmount = useMemo(() => {
     return feesData.items
       .filter((i) => i.status === 'pending' || i.status === 0 || i.status === '0')
@@ -233,9 +256,9 @@ export default function ClubFeesPage({ clubId: propClubId }) {
 
         <div className="club-fees-hero__summary">
           <span>Outstanding Balance</span>
-          <strong>{formatVND(totalUnpaidAmount)}</strong>
+          <strong>{formatVND(overallSummary.unpaidAmount || totalUnpaidAmount)}</strong>
           <div className="club-fees-hero__summary-sub">
-            {feesData.summary?.unpaid || 0} unpaid invoice{feesData.summary?.unpaid !== 1 ? 's' : ''}
+            {overallSummary.unpaidCount || feesData.summary?.unpaid || 0} unpaid invoice{(overallSummary.unpaidCount || feesData.summary?.unpaid || 0) !== 1 ? 's' : ''}
           </div>
         </div>
       </section>
@@ -360,18 +383,27 @@ export default function ClubFeesPage({ clubId: propClubId }) {
             )}
           </div>
 
+          {/* Status Filter Dropdown */}
+          <div className="club-fees-control-group">
+            <label className="club-fees-control-label">STATUS</label>
+            <CustomSelect
+              value={activeTab === '0' ? 'pending' : activeTab === '1' ? 'success' : activeTab === '2' ? 'failed' : activeTab}
+              onChange={(val) => setActiveTab(val)}
+              options={STATUS_OPTIONS}
+              ariaLabel="Filter by status"
+            />
+          </div>
+
           {/* Period Filter Dropdown */}
-          {periods.length > 0 && (
-            <div className="club-fees-control-group">
-              <label className="club-fees-control-label">PERIOD</label>
-              <CustomSelect
-                value={selectedPeriod}
-                onChange={setSelectedPeriod}
-                options={periodOptions}
-                ariaLabel="Filter by period"
-              />
-            </div>
-          )}
+          <div className="club-fees-control-group">
+            <label className="club-fees-control-label">PERIOD</label>
+            <CustomSelect
+              value={selectedPeriod}
+              onChange={setSelectedPeriod}
+              options={periodOptions}
+              ariaLabel="Filter by period"
+            />
+          </div>
 
           {/* Payment Method Filter */}
           <div className="club-fees-control-group">

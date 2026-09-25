@@ -277,6 +277,10 @@ const saveActivityAttendance = async (clubId, activityId, memberAttendanceList, 
     throw getStatusError("Activity not found", 404);
   }
 
+  if (activity.status === "coming_soon") {
+    throw getStatusError("Attendance cannot be recorded because this activity is in 'coming soon' status and has not opened yet.", 400);
+  }
+
   const adminMember = await ClubMember.findOne({
     club_id: clubId,
     user_id: adminUserId,

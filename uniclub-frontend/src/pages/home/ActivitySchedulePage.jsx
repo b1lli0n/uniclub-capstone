@@ -499,7 +499,6 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                 <p style={{ color: '#64748b', fontWeight: 600 }}>Loading detail...</p>
               ) : (
                 <>
-                  <div className="activity-detail-hero">{selectedActivity.statusEmoji}</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <h2 style={{ fontSize: '24px', fontWeight: '900', margin: 0, color: '#0f172a' }}>
                       {selectedActivity.title}
@@ -581,35 +580,64 @@ function ActivitySchedulePage({ clubId, isSecretary = false }) {
                       }}
                     >
                       <div>
-                        <h4 style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
-                          👥 Member Attendance
+                        <h4 style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <svg style={{ width: '18px', height: '18px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                          </svg>
+                          Member Attendance
                         </h4>
                         <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-                          Take attendance & award meeting points (+30 pts)
+                          {selectedActivity.status === 'coming_soon' || selectedActivity.status === 'coming soon'
+                            ? 'Attendance is locked because activity is not opening yet'
+                            : 'Take attendance & award meeting points (+30 pts)'}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        style={{
-                          padding: '10px 18px',
-                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '12px',
-                          fontWeight: '800',
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
-                          whiteSpace: 'nowrap',
-                        }}
-                        onClick={() => {
-                          const targetId = selectedActivity.id
-                          setSelectedActivity(null)
-                          navigate(`/clubs/${clubId}/manage-activity-schedule/${targetId}/attendance`)
-                        }}
-                      >
-                        Open Attendance Sheet ➔
-                      </button>
+                      {selectedActivity.status === 'coming_soon' || selectedActivity.status === 'coming soon' ? (
+                        <button
+                          type="button"
+                          disabled
+                          style={{
+                            padding: '10px 18px',
+                            background: '#e2e8f0',
+                            color: '#94a3b8',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontWeight: '800',
+                            fontSize: '13px',
+                            cursor: 'not-allowed',
+                            whiteSpace: 'nowrap',
+                          }}
+                          title="Activity is Coming Soon. Attendance is only available once Opening."
+                        >
+                          🔒 Not Opening Yet
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          style={{
+                            padding: '10px 18px',
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontWeight: '800',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                            whiteSpace: 'nowrap',
+                          }}
+                          onClick={() => {
+                            const targetId = selectedActivity.id
+                            setSelectedActivity(null)
+                            navigate(`/clubs/${clubId}/manage-activity-schedule/${targetId}/attendance`)
+                          }}
+                        >
+                          Open Attendance Sheet ➔
+                        </button>
+                      )}
                     </div>
                   )}
                 </>

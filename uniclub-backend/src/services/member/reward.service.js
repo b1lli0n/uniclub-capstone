@@ -225,7 +225,7 @@ const redeemReward = async ({ clubId, rewardId, userId }) => {
     }
 
     if (leaderEmail) {
-      sendRedemptionRequestEmailToLeader({
+      await sendRedemptionRequestEmailToLeader({
         leaderEmail,
         userName: userDoc?.full_name || "UniClub Student",
         clubName: club?.name || "Club",
@@ -235,7 +235,7 @@ const redeemReward = async ({ clubId, rewardId, userId }) => {
     }
 
     if (userDoc?.email) {
-      sendRedemptionSubmittedEmailToStudent({
+      await sendRedemptionSubmittedEmailToStudent({
         toEmail: userDoc.email,
         userName: userDoc.full_name || "Member",
         clubName: club?.name || "Club",

@@ -818,10 +818,21 @@ function EventDetailPage() {
   return (
     <div className="event-detail-page">
       <div className="event-detail-shell">
-        <Link className="event-detail-back" to={clubId ? `/clubs/${clubId}` : '/'}>
+        <button
+          type="button"
+          className="event-detail-back"
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1)
+            } else {
+              navigate(clubId ? `/clubs/${clubId}` : '/events')
+            }
+          }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', padding: 0 }}
+        >
           <span aria-hidden="true">&lt;</span>
-          {clubId ? 'Back to club' : 'Back to home'}
-        </Link>
+          {clubId ? 'Back to club' : 'Back'}
+        </button>
 
         <div className="event-detail-layout">
           <main className="event-detail-main">

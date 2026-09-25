@@ -128,7 +128,7 @@ function ProtectedLayout({
     else if (screen === 'create-club') navigate('/create-club')
     else if (screen === 'clubs') navigate('/clubs')
     else if (screen === 'events') navigate('/events')
-    else if (screen === 'club-detail') navigate(clubId ? `/clubs/${clubId}` : '/clubs')
+    else if (screen === 'overview' || screen === 'club-detail') navigate(clubId ? `/clubs/${clubId}` : '/clubs')
     else if (screen === 'club-ranking') navigate(clubId ? `/clubs/${clubId}/ranking` : '/club-ranking')
     else if (screen === 'point-rules' && clubId) navigate(`/clubs/${clubId}/point-rules`)
     else if (screen === 'point-rules') navigate('/my-clubs')
@@ -426,7 +426,13 @@ function ClubDetailRoute() {
         <ClubDetailPage
           key={clubId}
           clubId={clubId}
-          onBack={() => navigate('/clubs')}
+          onBack={() => {
+            if (window.history.length > 1) {
+              navigate(-1)
+            } else {
+              navigate('/clubs')
+            }
+          }}
         />
       )}
     </ClubRoute>
@@ -782,6 +788,7 @@ function AppRouter() {
       <Route path="/clubs/:clubId/manage-events" element={<ClubEventManagementRoute />} />
       <Route path="/clubs/:clubId/attendance" element={<ClubAttendanceRoute />} />
       <Route path="/clubs/:clubId/point-rules" element={<ClubPointRulesRoute />} />
+      <Route path="/point-rules" element={<Navigate to="/my-clubs" replace />} />
       <Route path="/clubs/:clubId/rewards" element={<ClubRewardsRoute />} />
       <Route path="/clubs/:clubId/activity-schedule" element={<ClubActivityScheduleRoute />} />
       <Route path="/clubs/:clubId/manage-activity-schedule" element={<ClubManageActivityScheduleRoute />}/>

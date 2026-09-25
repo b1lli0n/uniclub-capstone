@@ -197,7 +197,17 @@ function ClubEventsPage() {
   return (
     <div className="club-events-page">
       <section className="club-events-hero">
-        <button type="button" className="club-events-back" onClick={() => navigate(`/clubs/${club._id || club.id}`)}>
+        <button
+          type="button"
+          className="club-events-back"
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1)
+            } else {
+              navigate(`/clubs/${club._id || club.id}`)
+            }
+          }}
+        >
           <span aria-hidden="true">&lt;</span>
           Back to club
         </button>

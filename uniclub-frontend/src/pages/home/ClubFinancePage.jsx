@@ -166,33 +166,33 @@ function ClubFinancePage({ clubId, userRole }) {
     const rawTitle = typeof form.title === 'string' ? form.title : String(form.title || '')
     const trimmedTitle = rawTitle.trim()
     if (!trimmedTitle) {
-      newErrors.title = 'Vui lòng nhập tên giao dịch (không được để trống hoặc chỉ chứa khoảng trắng).'
+      newErrors.title = 'Please enter transaction title (cannot be empty or whitespace only).'
     }
 
     const rawAmount = String(form.amount ?? '').trim()
     const parsedAmount = Number(rawAmount)
     if (!rawAmount) {
-      newErrors.amount = 'Vui lòng nhập số tiền (không được để trống hoặc chỉ chứa khoảng trắng).'
+      newErrors.amount = 'Please enter amount (cannot be empty or whitespace only).'
     } else if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      newErrors.amount = 'Số tiền phải là số lớn hơn 0.'
+      newErrors.amount = 'Amount must be a positive number greater than 0.'
     }
 
     const rawPeriod = typeof form.period === 'string' ? form.period : String(form.period || '')
     const trimmedPeriod = rawPeriod.trim().toUpperCase()
     if (!trimmedPeriod) {
-      newErrors.period = 'Vui lòng nhập học kỳ (không được để trống hoặc chỉ chứa khoảng trắng).'
+      newErrors.period = 'Please enter academic period (cannot be empty or whitespace only).'
     }
 
     const rawDate = typeof form.dateInput === 'string' ? form.dateInput : String(form.dateInput || '')
     const trimmedDate = rawDate.trim()
     if (!trimmedDate) {
-      newErrors.dateInput = 'Vui lòng chọn ngày giao dịch.'
+      newErrors.dateInput = 'Please select a transaction date.'
     }
 
     const rawDesc = typeof form.description === 'string' ? form.description : String(form.description || '')
     const trimmedDesc = rawDesc.trim()
     if (!trimmedDesc) {
-      newErrors.description = 'Vui lòng nhập mô tả chi tiết (không được để trống hoặc chỉ chứa khoảng trắng).'
+      newErrors.description = 'Please enter detailed description (cannot be empty or whitespace only).'
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -200,7 +200,7 @@ function ClubFinancePage({ clubId, userRole }) {
       const firstErrorMessage = Object.values(newErrors)[0]
       showToast({
         type: 'error',
-        title: 'Lỗi nhập liệu',
+        title: 'Validation Error',
         message: firstErrorMessage,
       })
       return
@@ -222,15 +222,15 @@ function ClubFinancePage({ clubId, userRole }) {
         await createTransactionRequest(clubId, payload)
         showToast({
           type: 'success',
-          title: 'Tạo yêu cầu thành công',
-          message: 'Yêu cầu giao dịch mới đã được tạo thành công!',
+          title: 'Request Created',
+          message: 'New transaction request created successfully!',
         })
       } else {
         await updateTransactionRequest(clubId, formTarget.id, payload)
         showToast({
           type: 'success',
-          title: 'Cập nhật thành công',
-          message: 'Yêu cầu giao dịch đã được cập nhật thành công!',
+          title: 'Request Updated',
+          message: 'Transaction request updated successfully!',
         })
       }
       setFormTarget(null)
@@ -238,18 +238,18 @@ function ClubFinancePage({ clubId, userRole }) {
     } catch (err) {
       showToast({
         type: 'error',
-        title: 'Lỗi lưu giao dịch',
-        message: err.message || 'Thao tác không thành công',
+        title: 'Save Failed',
+        message: err.message || 'Failed to save transaction request',
       })
     }
   }
 
   async function handleApprove(item) {
     const accepted = await confirm({
-      title: 'Duyệt yêu cầu giao dịch',
-      message: `Bạn có chắc chắn muốn duyệt yêu cầu "${item.title}"?`,
-      confirmText: 'Duyệt yêu cầu',
-      cancelText: 'Hủy',
+      title: 'Approve Transaction Request',
+      message: `Are you sure you want to approve request "${item.title}"?`,
+      confirmText: 'Approve Request',
+      cancelText: 'Cancel',
       tone: 'warning',
     })
     if (!accepted) return
@@ -258,25 +258,25 @@ function ClubFinancePage({ clubId, userRole }) {
       await updateTransactionRequest(clubId, item.id, { status: 1 })
       showToast({
         type: 'success',
-        title: 'Đã duyệt yêu cầu',
-        message: `Chủ nhiệm đã duyệt yêu cầu "${item.title}" thành công!`,
+        title: 'Request Approved',
+        message: `President approved transaction request "${item.title}" successfully!`,
       })
       loadData()
     } catch (err) {
       showToast({
         type: 'error',
-        title: 'Lỗi duyệt giao dịch',
-        message: err.message || 'Lỗi khi duyệt giao dịch',
+        title: 'Approval Failed',
+        message: err.message || 'Failed to approve transaction request',
       })
     }
   }
 
   async function handleReject(item) {
     const accepted = await confirm({
-      title: 'Từ chối yêu cầu giao dịch',
-      message: `Bạn có chắc chắn muốn từ chối yêu cầu "${item.title}"?`,
-      confirmText: 'Từ chối',
-      cancelText: 'Hủy',
+      title: 'Reject Transaction Request',
+      message: `Are you sure you want to reject request "${item.title}"?`,
+      confirmText: 'Reject Request',
+      cancelText: 'Cancel',
       tone: 'danger',
     })
     if (!accepted) return
@@ -285,15 +285,15 @@ function ClubFinancePage({ clubId, userRole }) {
       await updateTransactionRequest(clubId, item.id, { status: 2 })
       showToast({
         type: 'warning',
-        title: 'Đã từ chối',
-        message: `Chủ nhiệm đã từ chối yêu cầu "${item.title}".`,
+        title: 'Request Rejected',
+        message: `President rejected transaction request "${item.title}".`,
       })
       loadData()
     } catch (err) {
       showToast({
         type: 'error',
-        title: 'Lỗi từ chối giao dịch',
-        message: err.message || 'Lỗi khi từ chối giao dịch',
+        title: 'Rejection Failed',
+        message: err.message || 'Failed to reject transaction request',
       })
     }
   }
@@ -379,8 +379,8 @@ function ClubFinancePage({ clubId, userRole }) {
     URL.revokeObjectURL(url)
     showToast({
       type: 'success',
-      title: 'Xuất báo cáo thành công',
-      message: 'Báo cáo tài chính đã được tải xuống dưới dạng bảng Excel (.xls).',
+      title: 'Export Successful',
+      message: 'Financial report downloaded as Excel spreadsheet (.xls).',
     })
   }
 
@@ -483,10 +483,10 @@ function TransactionDetail({ item, clubId, isPresident, handleApprove, handleRej
 
   const handleCollectCash = async (paymentId, memberName) => {
     const accepted = await confirm({
-      title: 'Xác nhận thu tiền mặt',
-      message: `Xác nhận đã thu tiền mặt từ thành viên "${memberName}"? Trạng thái sẽ được cập nhật thành đã thanh toán.`,
-      confirmText: 'Xác nhận',
-      cancelText: 'Hủy',
+      title: 'Confirm Cash Collection',
+      message: `Confirm cash collection from member "${memberName}"? Status will be updated to paid.`,
+      confirmText: 'Confirm',
+      cancelText: 'Cancel',
       tone: 'warning',
     })
     if (!accepted) return
@@ -496,15 +496,15 @@ function TransactionDetail({ item, clubId, isPresident, handleApprove, handleRej
       await payWithCash({ club_id: clubId, payment_id: paymentId })
       showToast({
         type: 'success',
-        title: 'Thu tiền thành công',
-        message: `Đã ghi nhận thu tiền mặt từ thành viên "${memberName}".`,
+        title: 'Cash Collected Successfully',
+        message: `Recorded cash collection from member "${memberName}".`,
       })
       await reloadDetail()
     } catch (err) {
       showToast({
         type: 'error',
-        title: 'Lỗi thu tiền mặt',
-        message: err.message || 'Lỗi khi xác nhận thu tiền mặt',
+        title: 'Collection Failed',
+        message: err.message || 'Failed to record cash collection',
       })
     } finally {
       setCollectingId(null)
@@ -532,7 +532,7 @@ function TransactionDetail({ item, clubId, isPresident, handleApprove, handleRej
   const percentage = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0
 
   return (
-    <FinanceModal title="Transaction detail" onClose={onClose}>
+    <FinanceModal title="Transaction detail" onClose={onClose} panelClassName="club-finance-modal__panel--detail">
       <div className="club-finance-detail" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
         <div className="club-finance-detail__title">
           <span className={`club-finance-type club-finance-type--${item.type}`}>

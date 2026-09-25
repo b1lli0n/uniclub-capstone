@@ -101,7 +101,13 @@ export default function ClubReceiptDetailPage({ clubId: propClubId }) {
         <button
           type="button"
           className="club-fee-btn club-fee-btn--receipt"
-          onClick={() => navigate(clubId || receipt?.club?._id ? `/clubs/${clubId || receipt?.club?._id}/fees` : '/my-fees')}
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1)
+            } else {
+              navigate(clubId || receipt?.club?._id ? `/clubs/${clubId || receipt?.club?._id}/fees` : '/my-fees')
+            }
+          }}
           id="btn-receipt-back"
         >
           ← Back to Fees
