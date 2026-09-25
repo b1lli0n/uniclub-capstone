@@ -218,12 +218,7 @@ function MyClubsPage({ onSelectClub }) {
 
     const query = search.trim().toLowerCase()
     if (query) {
-      result = result.filter(
-        (club) =>
-          club.name.toLowerCase().includes(query) ||
-          club.description.toLowerCase().includes(query) ||
-          club.membershipRole.toLowerCase().includes(query),
-      )
+      result = result.filter((club) => club.name.toLowerCase().includes(query))
     }
 
     if (sort === 'name-asc') {
@@ -310,7 +305,7 @@ function MyClubsPage({ onSelectClub }) {
               </span>
               <input
                 type="search"
-                placeholder="Search your clubs or role..."
+                placeholder="Search here ..."
                 value={search}
                 onChange={handleSearchChange}
                 aria-label="Search my clubs"

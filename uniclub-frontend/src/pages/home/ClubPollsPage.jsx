@@ -6,6 +6,7 @@ import {
   getClubPolls,
   getPollDetail,
   createPoll as createPollApi,
+  updatePoll as updatePollApi,
   votePoll as votePollApi,
   closePoll as closePollApi,
 } from '../../api/poll.api'
@@ -175,7 +176,7 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
     return polls.filter(
       (poll) =>
         (statusFilter === 'all' || poll.status === statusFilter) &&
-        (!query || [poll.title, poll.description].some((value) => value.toLowerCase().includes(query)))
+        (!query || (poll.title && poll.title.toLowerCase().includes(query)))
     )
   }, [polls, search, statusFilter])
 
@@ -239,7 +240,21 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
         notify('Poll created successfully.')
         await loadPolls()
       } else {
+        const votes = totalVotes(formMode)
+        const hasVotes = votes > 0 || (Number(formMode.voters) || 0) > 0 || (Array.isArray(formMode.rawVotes) && formMode.rawVotes.length > 0)
+        if (hasVotes) {
+          notify('Cannot edit poll because members have already voted.')
+          return
+        }
+        const payload = {
+          title: form.title.trim(),
+          description: form.description.trim(),
+          options,
+        }
+        const pollId = formMode.id || formMode._id
+        await updatePollApi(clubId, pollId, payload)
         notify('Poll updated successfully.')
+        await loadPolls()
       }
       setFormMode(null)
     } catch (err) {
@@ -375,7 +390,7 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search polls..."
+            placeholder="Search here ..."
           />
         </label>
         <div role="tablist" aria-label="Filter poll status">

@@ -586,6 +586,14 @@ function ScrollToTop() {
   return null
 }
 
+function FeIdCallbackHandler() {
+  useEffect(() => {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || 'https://uniclub-backend-amxq.onrender.com/api'
+    window.location.href = `${apiBase}/auth/callback${window.location.search}`
+  }, [])
+  return <RouteLoading message="Connecting to FEID..." subtitle="Completing authentication with FPT Education ID..." />
+}
+
 function AppRouter() {
   const navigate = useNavigate()
   const isAuthenticated = Boolean(localStorage.getItem('token'))
@@ -637,6 +645,8 @@ function AppRouter() {
       />
 
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      <Route path="/FeIdLoginCallback" element={<FeIdCallbackHandler />} />
+      <Route path="/feidlogincallback" element={<FeIdCallbackHandler />} />
 
       <Route
         path="/"

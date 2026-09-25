@@ -72,12 +72,14 @@ const getEventDetail = async ({ eventId, currentUser }) => {
   }
 
   // If event is in draft mode, only club managers can view details
+  const clubId = event.club_id?._id || event.club_id;
+
   if (event.progress_status === "draft") {
     let canViewDraft = false;
-    if (currentUser?.id) {
+    if (currentUser?.id && clubId) {
       const membership = await ClubMember.findOne({
         user_id: currentUser.id,
-        club_id: event.club_id._id || event.club_id,
+        club_id: clubId,
         status: "active",
       });
       if (
@@ -100,11 +102,13 @@ const getEventDetail = async ({ eventId, currentUser }) => {
       throw getStatusError("Authentication required to view private event details", 401);
     }
 
-    const membership = await ClubMember.findOne({
-      user_id: currentUser.id,
-      club_id: event.club_id._id || event.club_id,
-      status: "active",
-    });
+    const membership = clubId
+      ? await ClubMember.findOne({
+          user_id: currentUser.id,
+          club_id: clubId,
+          status: "active",
+        })
+      : null;
 
     if (!membership) {
       throw getStatusError("This is a private event. Only club members can view details.", 403);

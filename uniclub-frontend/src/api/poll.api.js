@@ -32,3 +32,11 @@ export function closePoll(clubId, pollId) {
     method: 'PATCH',
   })
 }
+
+/** Update a poll (President / Secretary) - only allowed when no votes */
+export function updatePoll(clubId, pollId, data) {
+  return apiRequest(`/secretary/clubs/${clubId}/polls/${pollId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}

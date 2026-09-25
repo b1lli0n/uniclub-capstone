@@ -225,10 +225,8 @@ function ClubAttendancePage({ clubId }) {
     const keyword = query.trim().toLowerCase()
     if (!keyword) return selectedAttendance
 
-    return selectedAttendance.filter(
-      (item) =>
-        item.memberName.toLowerCase().includes(keyword) ||
-        item.email.toLowerCase().includes(keyword)
+    return selectedAttendance.filter((item) =>
+      item.memberName.toLowerCase().includes(keyword)
     )
   }, [query, selectedAttendance])
 
@@ -531,7 +529,7 @@ function ClubAttendancePage({ clubId }) {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by name or email..."
+              placeholder="Search here ..."
             />
           </label>
         </header>

@@ -249,7 +249,7 @@ async function listFeeOfUser(userId, options = {}) {
       })
       .populate({
         path: 'transaction_id',
-        select: 'title category description type'
+        select: 'title category description type status'
       })
       .lean(),
     Payment.countDocuments(query),
@@ -258,12 +258,61 @@ async function listFeeOfUser(userId, options = {}) {
     Payment.countDocuments({ ...countQueryBase, status: PAYMENT_STATUS.FAILED })
   ])
 
+  const visibleItems = items.filter((item) => {
+    // If payment is tied to a transaction, only show to member if transaction is approved
+    if (item.transaction_id && typeof item.transaction_id === 'object') {
+      const s = item.transaction_id.status
+      if (s !== undefined && s !== null && s !== 'approved' && s !== 1) {
+        return false
+      }
+    }
+    return true
+  })
+
+  // Batch find fallback transactions for any items where transaction wasn't populated or has no title
+  const missingTxnItems = visibleItems.filter((it) => {
+    const txn = it.transaction_id && typeof it.transaction_id === 'object' ? it.transaction_id : {}
+    return !txn.title
+  })
+
+  let fallbackTxnMap = {}
+  if (missingTxnItems.length > 0) {
+    const clubIds = missingTxnItems
+      .map((it) => it.membership_id?.club_id?._id || it.membership_id?.club_id)
+      .filter(Boolean)
+    const periods = missingTxnItems.map((it) => it.period).filter(Boolean)
+
+    if (clubIds.length > 0 && periods.length > 0) {
+      const foundTxns = await Transaction.find({
+        club_id: { $in: clubIds },
+        period: { $in: periods },
+        type: 'income',
+        status: 'approved'
+      }).lean()
+
+      foundTxns.forEach((t) => {
+        const key = `${t.club_id}_${t.period}`
+        if (!fallbackTxnMap[key]) {
+          fallbackTxnMap[key] = t
+        }
+      })
+    }
+  }
+
   return {
-    items: items.map((item) => {
+    items: visibleItems.map((item) => {
       const club = item.membership_id?.club_id || null
+      const clubIdStr = club?._id ? String(club._id) : String(club || '')
+      const txn = item.transaction_id && typeof item.transaction_id === 'object' && item.transaction_id.title ? item.transaction_id : (fallbackTxnMap[`${clubIdStr}_${item.period}`] || {})
+      const fallbackTxn = fallbackTxnMap[`${clubIdStr}_${item.period}`] || {}
+
+      const title = txn.title || fallbackTxn.title || (item.order_info && !item.order_info.startsWith('Payment for') ? item.order_info : null) || `Hội phí kỳ ${item.period}`
+      const description = txn.description || fallbackTxn.description || `Phí sinh hoạt định kỳ ${item.period} của CLB`
 
       return {
         ...item,
+        title,
+        description,
         club_id: club?._id || null,
         club_name: club?.name || null,
         club_logo: club?.logo_url || null
@@ -271,7 +320,7 @@ async function listFeeOfUser(userId, options = {}) {
     }),
     page,
     limit,
-    total,
+    total: visibleItems.length,
     summary: {
       unpaid: unpaid_count,
       paid: paid_count,

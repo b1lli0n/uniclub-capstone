@@ -68,8 +68,7 @@ export default function AdminEventRequestsTab() {
     let list = requests.filter((item) => {
       if (!query) return true;
       const title = (item.title || '').toLowerCase();
-      const clubName = (item.club_id?.name || '').toLowerCase();
-      return title.includes(query) || clubName.includes(query);
+      return title.includes(query);
     });
 
     if (sortMode === 'pending') {
@@ -297,7 +296,7 @@ export default function AdminEventRequestsTab() {
           </span>
           <input
             type="search"
-            placeholder="Search event title or club..."
+            placeholder="Search here ..."
             aria-label="Search event requests"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

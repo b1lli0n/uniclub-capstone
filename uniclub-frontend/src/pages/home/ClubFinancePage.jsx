@@ -82,6 +82,7 @@ function ClubFinancePage({ clubId, userRole }) {
   const [selected, setSelected] = useState(null)
   const [formTarget, setFormTarget] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [fieldErrors, setFieldErrors] = useState({})
 
   const isPresident = userRole === 'president' || userRole === 'leader'
 
@@ -125,7 +126,7 @@ function ClubFinancePage({ clubId, userRole }) {
   const displayed = useMemo(() => transactions.filter((item) => {
     const matchesFilter = filter === 'all' || item.status === filter || item.type === filter
     const normalized = query.trim().toLowerCase()
-    return matchesFilter && (!normalized || [item.title, item.period, item.referenceCode, item.description, item.createdBy].some((value) => value && value.toLowerCase().includes(normalized)))
+    return matchesFilter && (!normalized || (item.title && item.title.toLowerCase().includes(normalized)))
   }), [transactions, query, filter])
 
   const totalPages = Math.max(1, Math.ceil(displayed.length / TRANSACTIONS_PER_PAGE))
@@ -135,20 +136,86 @@ function ClubFinancePage({ clubId, userRole }) {
     return displayed.slice(startIndex, startIndex + TRANSACTIONS_PER_PAGE)
   }, [displayed, currentPage])
 
-  function openCreate() { setForm(EMPTY_FORM); setFormTarget('create') }
-  function openEdit(item) { setForm({ title: item.title, type: item.type, period: item.period || 'FA26', amount: String(item.amount), dateInput: item.dateInput, description: item.description }); setSelected(null); setFormTarget(item) }
+  function openCreate() {
+    setForm(EMPTY_FORM)
+    setFieldErrors({})
+    setFormTarget('create')
+  }
+
+  function openEdit(item) {
+    setForm({
+      title: item.title || '',
+      type: item.type || 'income',
+      period: item.period || 'FA26',
+      amount: String(item.amount ?? ''),
+      dateInput: item.dateInput || '',
+      description: item.description || '',
+    })
+    setFieldErrors({})
+    setSelected(null)
+    setFormTarget(item)
+  }
 
   async function saveRequest(event) {
-    event.preventDefault()
-    const payload = {
-      title: form.title.trim(),
-      type: form.type === 'income' ? 'income' : 'expense',
-      period: form.period ? form.period.trim().toUpperCase() : 'FA26',
-      amount: Number(form.amount),
-      transaction_date: form.dateInput,
-      description: form.description.trim()
+    if (event && event.preventDefault) {
+      event.preventDefault()
     }
-    if (!payload.title || !payload.amount || !payload.transaction_date) return
+
+    const newErrors = {}
+
+    const rawTitle = typeof form.title === 'string' ? form.title : String(form.title || '')
+    const trimmedTitle = rawTitle.trim()
+    if (!trimmedTitle) {
+      newErrors.title = 'Vui lòng nhập tên giao dịch (không được để trống hoặc chỉ chứa khoảng trắng).'
+    }
+
+    const rawAmount = String(form.amount ?? '').trim()
+    const parsedAmount = Number(rawAmount)
+    if (!rawAmount) {
+      newErrors.amount = 'Vui lòng nhập số tiền (không được để trống hoặc chỉ chứa khoảng trắng).'
+    } else if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      newErrors.amount = 'Số tiền phải là số lớn hơn 0.'
+    }
+
+    const rawPeriod = typeof form.period === 'string' ? form.period : String(form.period || '')
+    const trimmedPeriod = rawPeriod.trim().toUpperCase()
+    if (!trimmedPeriod) {
+      newErrors.period = 'Vui lòng nhập học kỳ (không được để trống hoặc chỉ chứa khoảng trắng).'
+    }
+
+    const rawDate = typeof form.dateInput === 'string' ? form.dateInput : String(form.dateInput || '')
+    const trimmedDate = rawDate.trim()
+    if (!trimmedDate) {
+      newErrors.dateInput = 'Vui lòng chọn ngày giao dịch.'
+    }
+
+    const rawDesc = typeof form.description === 'string' ? form.description : String(form.description || '')
+    const trimmedDesc = rawDesc.trim()
+    if (!trimmedDesc) {
+      newErrors.description = 'Vui lòng nhập mô tả chi tiết (không được để trống hoặc chỉ chứa khoảng trắng).'
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors)
+      const firstErrorMessage = Object.values(newErrors)[0]
+      showToast({
+        type: 'error',
+        title: 'Lỗi nhập liệu',
+        message: firstErrorMessage,
+      })
+      return
+    }
+
+    setFieldErrors({})
+
+    const payload = {
+      title: trimmedTitle,
+      type: form.type === 'income' ? 'income' : 'expense',
+      period: trimmedPeriod || 'FA26',
+      amount: parsedAmount,
+      transaction_date: trimmedDate,
+      description: trimmedDesc,
+    }
 
     try {
       if (formTarget === 'create') {
@@ -232,14 +299,88 @@ function ClubFinancePage({ clubId, userRole }) {
   }
 
   function exportReport() {
-    const headers = ['Reference', 'Title', 'Type', 'Period', 'Amount', 'Date', 'Status', 'Requested By', 'Approved By']
-    const rows = transactions.map((item) => [item.referenceCode, item.title, item.type, item.period, item.amount, item.date, item.status, item.createdBy, item.approvedBy])
-    const blob = new Blob([[headers, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' })
-    const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `${clubId}-financial-report.csv`; link.click(); URL.revokeObjectURL(url)
+    const headers = ['Mã tham chiếu', 'Tên giao dịch', 'Loại', 'Kỳ', 'Số tiền (VNĐ)', 'Ngày giao dịch', 'Trạng thái', 'Người tạo', 'Người duyệt']
+    const rowsHtml = transactions.map((item) => {
+      const typeLabel = item.type === 'income' ? 'Thu' : 'Chi'
+      const statusText = statusLabel[item.status] || item.status
+      const formattedAmount = (Number(item.amount) || 0).toLocaleString('vi-VN')
+      return `
+        <tr>
+          <td style="border:1px solid #cbd5e1;padding:8px;mso-number-format:'\\@';">${item.referenceCode || ''}</td>
+          <td style="border:1px solid #cbd5e1;padding:8px;">${item.title || ''}</td>
+          <td style="border:1px solid #cbd5e1;padding:8px;text-align:center;">${typeLabel}</td>
+          <td style="border:1px solid #cbd5e1;padding:8px;text-align:center;">${item.period || ''}</td>
+          <td style="border:1px solid #cbd5e1;padding:8px;text-align:right;">${formattedAmount}</td>
+          <td style="border:1px solid #cbd5e1;padding:8px;text-align:center;">${item.date || ''}</td>
+          <td style="border:1px solid #cbd5e1;padding:8px;text-align:center;">${statusText}</td>
+          <td style="border:1px solid #cbd5e1;padding:8px;">${item.createdBy || ''}</td>
+          <td style="border:1px solid #cbd5e1;padding:8px;">${item.approvedBy || ''}</td>
+        </tr>`
+    }).join('')
+
+    const totalIncome = transactions
+      .filter((t) => t.type === 'income' && t.status === 'approved')
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
+    const totalExpense = transactions
+      .filter((t) => t.type === 'expense' && t.status === 'approved')
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
+    const balance = totalIncome - totalExpense
+
+    const htmlContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta http-equiv="content-type" content="application/vnd.ms-excel; charset=UTF-8">
+        <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Báo cáo tài chính</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+        <style>
+          table { border-collapse: collapse; width: 100%; font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; }
+          th { background-color: #f1f5f9; color: #1e293b; font-weight: bold; border: 1px solid #cbd5e1; padding: 10px; }
+          td { border: 1px solid #cbd5e1; padding: 8px; }
+          .title { font-size: 18px; font-weight: bold; text-align: center; padding: 15px; color: #0f172a; }
+          .summary { font-weight: bold; background-color: #f8fafc; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr><td colspan="9" class="title">BÁO CÁO TÀI CHÍNH - ${clubName || 'CLB'}</td></tr>
+          <tr><td colspan="9" style="text-align:center;color:#64748b;padding-bottom:15px;">Ngày xuất: ${new Date().toLocaleDateString('vi-VN')}</td></tr>
+          <thead>
+            <tr>
+              ${headers.map((h) => `<th>${h}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+            <tr class="summary">
+              <td colspan="4" style="text-align:right;font-weight:bold;padding:10px;">Tổng thu đã duyệt:</td>
+              <td style="text-align:right;font-weight:bold;color:#16a34a;padding:10px;">+${totalIncome.toLocaleString('vi-VN')} đ</td>
+              <td colspan="4"></td>
+            </tr>
+            <tr class="summary">
+              <td colspan="4" style="text-align:right;font-weight:bold;padding:10px;">Tổng chi đã duyệt:</td>
+              <td style="text-align:right;font-weight:bold;color:#dc2626;padding:10px;">-${totalExpense.toLocaleString('vi-VN')} đ</td>
+              <td colspan="4"></td>
+            </tr>
+            <tr class="summary">
+              <td colspan="4" style="text-align:right;font-weight:bold;padding:10px;">Số dư hiện tại:</td>
+              <td style="text-align:right;font-weight:bold;color:#2563eb;padding:10px;">${balance.toLocaleString('vi-VN')} đ</td>
+              <td colspan="4"></td>
+            </tr>
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `
+    const blob = new Blob(['\uFEFF' + htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${clubId || 'club'}-bao-cao-tai-chinh.xls`
+    link.click()
+    URL.revokeObjectURL(url)
     showToast({
       type: 'success',
-      title: 'Xuất báo cáo',
-      message: 'Báo cáo tài chính đã được tải xuống dạng CSV.',
+      title: 'Xuất báo cáo thành công',
+      message: 'Báo cáo tài chính đã được tải xuống dưới dạng bảng Excel (.xls).',
     })
   }
 
@@ -254,7 +395,7 @@ function ClubFinancePage({ clubId, userRole }) {
         </div>
         <label className="club-finance-search">
           <SearchIcon size={16} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, period, reference or requester..." />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search here ..." />
         </label>
       </header>
       <div className="club-finance-filters">
@@ -308,7 +449,17 @@ function ClubFinancePage({ clubId, userRole }) {
       />
     </section>
     {selected && <TransactionDetail item={selected} clubId={clubId} isPresident={isPresident} handleApprove={handleApprove} handleReject={handleReject} onClose={() => setSelected(null)} onEdit={() => openEdit(selected)} />}
-    {formTarget && <TransactionForm item={formTarget === 'create' ? null : formTarget} form={form} setForm={setForm} onClose={() => setFormTarget(null)} onSubmit={saveRequest} />}
+    {formTarget && (
+      <TransactionForm
+        item={formTarget === 'create' ? null : formTarget}
+        form={form}
+        setForm={setForm}
+        fieldErrors={fieldErrors}
+        setFieldErrors={setFieldErrors}
+        onClose={() => setFormTarget(null)}
+        onSubmit={saveRequest}
+      />
+    )}
   </main>
 }
 
@@ -530,21 +681,31 @@ function TransactionDetail({ item, clubId, isPresident, handleApprove, handleRej
   )
 }
 
-function TransactionForm({ item, form, setForm, onClose, onSubmit }) {
-  const change = (key, value) => setForm((current) => ({ ...current, [key]: value }))
+function TransactionForm({ item, form, setForm, fieldErrors, setFieldErrors, onClose, onSubmit }) {
+  const change = (key, value) => {
+    setForm((current) => ({ ...current, [key]: value }))
+    if (fieldErrors && fieldErrors[key] && setFieldErrors) {
+      setFieldErrors((prev) => ({ ...prev, [key]: null }))
+    }
+  }
   const openDatePicker = (event) => event.currentTarget.showPicker?.()
 
   return (
     <FinanceModal title={item ? 'Update transaction request' : 'Create transaction request'} onClose={onClose}>
-      <form className="club-finance-form" onSubmit={onSubmit}>
+      <form noValidate className="club-finance-form" onSubmit={onSubmit}>
         <label>
           Transaction title
           <input
-            required
             value={form.title}
             onChange={(event) => change('title', event.target.value)}
             placeholder="e.g. Thu tien phi sinh hoat CLB"
+            style={fieldErrors?.title ? { borderColor: '#e53e3e', background: '#fff5f5' } : undefined}
           />
+          {fieldErrors?.title && (
+            <span style={{ color: '#e53e3e', fontSize: '0.72rem', fontWeight: 600, marginTop: '2px', textTransform: 'none' }}>
+              {fieldErrors.title}
+            </span>
+          )}
         </label>
         <div>
           <label>
@@ -557,34 +718,49 @@ function TransactionForm({ item, form, setForm, onClose, onSubmit }) {
           <label>
             Amount (VND)
             <input
-              required
-              min="1"
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={form.amount}
               onChange={(event) => change('amount', event.target.value)}
               placeholder="0"
+              style={fieldErrors?.amount ? { borderColor: '#e53e3e', background: '#fff5f5' } : undefined}
             />
+            {fieldErrors?.amount && (
+              <span style={{ color: '#e53e3e', fontSize: '0.72rem', fontWeight: 600, marginTop: '2px', textTransform: 'none' }}>
+                {fieldErrors.amount}
+              </span>
+            )}
           </label>
         </div>
         <div>
           <label>
             Period (Học kỳ)
             <input
-              required
               value={form.period}
               onChange={(event) => change('period', event.target.value)}
               placeholder="e.g. FA26, SP26, SU26"
+              style={fieldErrors?.period ? { borderColor: '#e53e3e', background: '#fff5f5' } : undefined}
             />
+            {fieldErrors?.period && (
+              <span style={{ color: '#e53e3e', fontSize: '0.72rem', fontWeight: 600, marginTop: '2px', textTransform: 'none' }}>
+                {fieldErrors.period}
+              </span>
+            )}
           </label>
           <label>
             Transaction date
             <input
-              required
               type="date"
               value={form.dateInput}
               onClick={openDatePicker}
               onChange={(event) => change('dateInput', event.target.value)}
+              style={fieldErrors?.dateInput ? { borderColor: '#e53e3e', background: '#fff5f5' } : undefined}
             />
+            {fieldErrors?.dateInput && (
+              <span style={{ color: '#e53e3e', fontSize: '0.72rem', fontWeight: 600, marginTop: '2px', textTransform: 'none' }}>
+                {fieldErrors.dateInput}
+              </span>
+            )}
           </label>
         </div>
         <label>
@@ -594,7 +770,13 @@ function TransactionForm({ item, form, setForm, onClose, onSubmit }) {
             rows="3"
             onChange={(event) => change('description', event.target.value)}
             placeholder="Mô tả chi tiết mục đích thu / chi của giao dịch..."
+            style={fieldErrors?.description ? { borderColor: '#e53e3e', background: '#fff5f5' } : undefined}
           />
+          {fieldErrors?.description && (
+            <span style={{ color: '#e53e3e', fontSize: '0.72rem', fontWeight: 600, marginTop: '2px', textTransform: 'none' }}>
+              {fieldErrors.description}
+            </span>
+          )}
         </label>
         <footer>
           <button type="button" onClick={onClose}>Cancel</button>

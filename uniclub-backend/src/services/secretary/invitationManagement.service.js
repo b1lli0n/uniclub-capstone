@@ -42,7 +42,11 @@ const getInvitationList = async (clubId, { status } = {}) => {
   const query = { club_id: clubId };
 
   if (status) {
-    query.status = status;
+    if (status === "declined" || status === "rejected") {
+      query.status = "rejected";
+    } else {
+      query.status = status;
+    }
   }
 
   return populateInvitation(

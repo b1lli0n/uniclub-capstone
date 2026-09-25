@@ -291,17 +291,11 @@ function EventsPage() {
 
     if (statusFilter !== 'all') {
       result = result.filter((event) => event.status === statusFilter || (statusFilter === 'coming_soon' && event.status === 'coming soon'))
-    } else {
-      result = result.filter((event) => event.status !== 'closed' && event.status !== 'cancelled')
     }
 
     const query = search.trim().toLowerCase()
     if (query) {
-      result = result.filter(
-        (event) =>
-          event.name.toLowerCase().includes(query) ||
-          event.description.toLowerCase().includes(query),
-      )
+      result = result.filter((event) => event.name.toLowerCase().includes(query))
     }
 
     if (sort === 'name-asc') {
@@ -403,7 +397,7 @@ function EventsPage() {
               </span>
               <input
                 type="search"
-                placeholder="Search by name or description..."
+                placeholder="Search here ..."
                 value={search}
                 onChange={handleSearchChange}
                 aria-label="Search events"

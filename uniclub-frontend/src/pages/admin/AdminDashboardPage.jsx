@@ -1076,7 +1076,7 @@ function AdminDashboardPage({ onLogout }) {
             </span>
             <input
               type="search"
-              placeholder="Search clubs"
+              placeholder="Search here ..."
               aria-label="Search active clubs"
               value={clubSearchQuery}
               onChange={(event) => setClubSearchQuery(event.target.value)}
@@ -1670,7 +1670,7 @@ function AdminDashboardPage({ onLogout }) {
                   </span>
                   <input
                     type="search"
-                    placeholder="Search by club name or category..."
+                    placeholder="Search here ..."
                     aria-label="Search registrations"
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}

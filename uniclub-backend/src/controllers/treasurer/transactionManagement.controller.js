@@ -5,7 +5,7 @@ const { getCurrentSemesterCode } = require("../../utils/semester.helper");
 
 const parseRequiredText = (value, fieldName, maxLength) => {
   if (typeof value !== "string" || !value.trim()) {
-    throw getStatusError(`${fieldName} is required`, 400);
+    throw getStatusError(`${fieldName} is required and cannot be empty or whitespace`, 400);
   }
   const text = value.trim();
   if (text.length > maxLength) throw getStatusError(`${fieldName} is too long`, 400);
@@ -23,8 +23,8 @@ const parseOptionalPeriod = (value, dateRef) => {
 
 const parseAmount = (value) => {
   const amount = Number(value);
-  if (!Number.isFinite(amount) || amount < 0) {
-    throw getStatusError("amount must be a non-negative number", 400);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw getStatusError("amount must be greater than 0", 400);
   }
   return amount;
 };

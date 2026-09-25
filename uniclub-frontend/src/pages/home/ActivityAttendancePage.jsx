@@ -171,8 +171,7 @@ export default function ActivityAttendancePage() {
     return members.filter((m) => {
       const matchesSearch =
         !searchQuery ||
-        m.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        m.email?.toLowerCase().includes(searchQuery.toLowerCase())
+        m.name?.toLowerCase().includes(searchQuery.toLowerCase())
 
       if (!matchesSearch) return false
 
@@ -303,7 +302,7 @@ export default function ActivityAttendancePage() {
           </svg>
           <input
             type="text"
-            placeholder="Search member by name or email..."
+            placeholder="Search here ..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />

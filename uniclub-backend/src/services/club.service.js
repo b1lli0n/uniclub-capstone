@@ -653,35 +653,13 @@ const getClubCreationRequestList = async ({ query = {} }) => {
 
   const filter = {};
 
-  // Search by club name, category, reason, and description
+  // Search by club name only
   if (search?.trim()) {
     const keyword = search.trim();
-    filter.$or = [
-      {
-        club_name: {
-          $regex: keyword,
-          $options: "i",
-        },
-      },
-      {
-        category: {
-          $regex: keyword,
-          $options: "i",
-        },
-      },
-      {
-        reason: {
-          $regex: keyword,
-          $options: "i",
-        },
-      },
-      {
-        description: {
-          $regex: keyword,
-          $options: "i",
-        },
-      },
-    ];
+    filter.club_name = {
+      $regex: keyword,
+      $options: "i",
+    };
   }
 
   // Explicit category filter if provided

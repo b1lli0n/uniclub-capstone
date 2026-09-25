@@ -129,15 +129,12 @@ export default function ClubFeesPage({ clubId: propClubId }) {
   const sortedItems = useMemo(() => {
     let list = [...feesData.items]
 
-    // Text search filter (title, period, club_name, reference code, id)
+    // Text search filter (title / name only)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim()
       list = list.filter((i) => {
-        const orderMatch = (i.order_info || '').toLowerCase().includes(q)
-        const periodMatch = (i.period || '').toLowerCase().includes(q)
-        const clubMatch = (i.club_name || '').toLowerCase().includes(q)
-        const idMatch = (i._id || '').toLowerCase().includes(q)
-        return orderMatch || periodMatch || clubMatch || idMatch
+        const title = (i.title || i.transaction_id?.title || i.order_info || '').toLowerCase()
+        return title.includes(q)
       })
     }
 
@@ -346,7 +343,7 @@ export default function ClubFeesPage({ clubId: propClubId }) {
               id="club-fees-search-input"
               type="text"
               className="club-fees-search__input"
-              placeholder="Search by fee title, period, club..."
+              placeholder="Search here ..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               aria-label="Search fees"
@@ -451,6 +448,12 @@ export default function ClubFeesPage({ clubId: propClubId }) {
               Boolean(item.created_at && ((Date.now() - new Date(item.created_at).getTime()) > 30 * 24 * 3600 * 1000))
             )
 
+            const feeTitle = (item.title && !item.title.startsWith('Payment for'))
+              ? item.title
+              : (item.transaction_id?.title || (item.order_info && !item.order_info.startsWith('Payment for') ? item.order_info : `Hội phí kỳ ${item.period}`))
+            const feeDesc = item.description || item.transaction_id?.description || `Phí sinh hoạt định kỳ ${item.period} của CLB`
+            const feeDate = formatDate(item.created_at)
+
             return (
               <article key={item._id} className={`club-fee-card ${isPending ? 'club-fee-card--unpaid' : ''}`} id={`fee-item-${item._id}`}>
                 {/* Left Side: Avatar & Details */}
@@ -468,15 +471,17 @@ export default function ClubFeesPage({ clubId: propClubId }) {
                   <div className="club-fee-card__details">
                     <div className="club-fee-card__header-row">
                       <h2 className="club-fee-card__title">
-                        {item.order_info || `Membership Fee - ${item.period}`}
+                        {feeTitle}
                       </h2>
                       <span className="club-fee-card__period-tag">Period {item.period}</span>
                     </div>
 
                     <div className="club-fee-card__meta">
-                      <span>Club: <strong>{item.club_name || 'UniClub'}</strong></span>
+                      <span className="club-fee-card__desc" style={{ color: '#4b5563', maxWidth: '420px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {feeDesc}
+                      </span>
                       <span>•</span>
-                      <span>Created: {formatDate(item.created_at)}</span>
+                      <span>{feeDate}</span>
                       {item.paid_at && (
                         <>
                           <span>•</span>
@@ -652,8 +657,20 @@ export default function ClubFeesPage({ clubId: propClubId }) {
             {/* Invoice Breakdown */}
             <div className="club-fees-summary-box">
               <div className="club-fees-summary-row">
+                <span>Fee Title:</span>
+                <strong>
+                  {(selectedPayment.title && !selectedPayment.title.startsWith('Payment for'))
+                    ? selectedPayment.title
+                    : (selectedPayment.transaction_id?.title || (selectedPayment.order_info && !selectedPayment.order_info.startsWith('Payment for') ? selectedPayment.order_info : `Hội phí kỳ ${selectedPayment.period}`))}
+                </strong>
+              </div>
+              <div className="club-fees-summary-row">
                 <span>Description:</span>
-                <strong>{selectedPayment.order_info || `Membership Fee ${selectedPayment.period}`}</strong>
+                <span>{selectedPayment.description || selectedPayment.transaction_id?.description || `Phí sinh hoạt định kỳ ${selectedPayment.period} của CLB`}</span>
+              </div>
+              <div className="club-fees-summary-row">
+                <span>Created Date:</span>
+                <span>{formatDate(selectedPayment.created_at)}</span>
               </div>
               <div className="club-fees-summary-row">
                 <span>Period:</span>

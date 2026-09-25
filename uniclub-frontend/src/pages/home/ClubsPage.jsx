@@ -330,7 +330,7 @@ function ClubsPage({ onSelectClub }) {
               </span>
               <input
                 type="search"
-                placeholder="Search by name..."
+                placeholder="Search here ..."
                 value={search}
                 onChange={handleSearchChange}
                 aria-label="Search clubs"

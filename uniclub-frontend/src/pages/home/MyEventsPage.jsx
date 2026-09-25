@@ -313,13 +313,11 @@ export default function MyEventsPage() {
           return false
         }
 
-        // Search Query (Event Title, Club Name, Location)
+        // Search Query (Event Title only)
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim()
           const titleMatch = (event.title || '').toLowerCase().includes(q)
-          const clubMatch = (club.name || '').toLowerCase().includes(q)
-          const locMatch = (event.location || '').toLowerCase().includes(q)
-          if (!titleMatch && !clubMatch && !locMatch) return false
+          if (!titleMatch) return false
         }
 
         return true
@@ -495,7 +493,7 @@ export default function MyEventsPage() {
               id="my-events-search-input"
               type="text"
               className="my-events-search__input"
-              placeholder="Search event title, club, location..."
+              placeholder="Search here ..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               aria-label="Search registered events"

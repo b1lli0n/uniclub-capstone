@@ -161,12 +161,7 @@ function ClubEventsPage() {
       .filter((event) => visibility === 'all' || (event.visibility || 'public') === visibility)
       .filter((event) => {
         if (!query) return true
-
-        return (
-          event.name.toLowerCase().includes(query) ||
-          event.description.toLowerCase().includes(query) ||
-          (event.location || '').toLowerCase().includes(query)
-        )
+        return event.name.toLowerCase().includes(query)
       })
   }, [events, isClubMember, search, visibility])
 
@@ -238,14 +233,19 @@ function ClubEventsPage() {
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search events..."
+            placeholder="Search here ..."
           />
         </label>
       </section>
 
       <section className="club-events-list" aria-label={`${club.name} events`}>
         {paginatedEvents.map((event) => (
-          <article key={event.id} className="club-events-card">
+          <article
+            key={event.id}
+            className="club-events-card club-events-card--clickable"
+            style={{ cursor: 'pointer' }}
+            onClick={() => navigate(`/events/${event.id}`)}
+          >
             <div className="club-events-card__media" style={{ '--event-gradient': event.gradient, position: 'relative', overflow: 'hidden' }}>
               {event.imageUrl ? (
                 <img src={event.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }} />
@@ -277,7 +277,10 @@ function ClubEventsPage() {
               type="button"
               className="club-events-card__action"
               aria-label={`View ${event.name}`}
-              onClick={() => navigate(`/clubs/${club._id || club.id}/events/${event.id}`)}
+              onClick={(e) => {
+                e.stopPropagation()
+                navigate(`/events/${event.id}`)
+              }}
             >
               <ArrowIcon />
             </button>

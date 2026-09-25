@@ -1,4 +1,16 @@
 {
+  "redirects": [
+    {
+      "source": "/FeIdLoginCallback",
+      "destination": "https://uniclub-backend-amxq.onrender.com/api/auth/callback",
+      "permanent": false
+    },
+    {
+      "source": "/feidlogincallback",
+      "destination": "https://uniclub-backend-amxq.onrender.com/api/auth/callback",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

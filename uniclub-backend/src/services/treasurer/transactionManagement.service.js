@@ -76,23 +76,30 @@ const createTransactionRequest = async (clubId, userId, payload) => {
   await assertActiveClub(clubId);
 
   const creatorMember = await ClubMember.findOne({ club_id: clubId, user_id: userId, status: "active" });
+  const isPresident = creatorMember && ["president", "leader"].includes(creatorMember.role);
+
+  // If creator is president or leader, automatically approve without requiring secondary approval
+  const status = isPresident ? "approved" : (payload.status !== undefined ? payload.status : "pending");
+  const approvedBy = isPresident ? (creatorMember ? creatorMember._id : userId) : null;
 
   const transaction = await Transaction.create({
     club_id: clubId,
     created_by: creatorMember ? creatorMember._id : userId,
     ...payload,
-    status: payload.status !== undefined ? payload.status : "pending",
-    approved_by: null,
+    status,
+    approved_by: approvedBy,
   });
 
-  // IF TYPE IS INCOME:
-  // Generate pending Payment records for ALL active members of the club & send Email Notification!
-  const isIncome = payload.type === "income" || Number(payload.type) === 0;
-  if (isIncome) {
+  // ONLY IF TRANSACTION IS APPROVED AND INCOME:
+  // Generate pending Payment records for active members & send Email Notification!
+  const isIncome = transaction.type === "income" || Number(transaction.type) === 0;
+  const isApproved = transaction.status === "approved" || transaction.status === 1;
+
+  if (isApproved && isIncome) {
     try {
       const activeMembers = await ClubMember.find({ club_id: clubId, status: "active" });
       const period = transaction.period;
-      const amount = payload.amount || 0;
+      const amount = transaction.amount || 0;
 
       const paymentDocs = activeMembers.map((m) => ({
         membership_id: m._id,
@@ -101,7 +108,7 @@ const createTransactionRequest = async (clubId, userId, payload) => {
         amount,
         status: "pending",
         payment_method: "vnpay",
-        order_info: `Payment for ${period}`,
+        order_info: transaction.title || transaction.description || `Hội phí kỳ ${period}`,
       }));
 
       if (paymentDocs.length > 0) {
@@ -121,7 +128,7 @@ const createTransactionRequest = async (clubId, userId, payload) => {
                 toEmail: m.user_id.email,
                 userName: m.user_id.full_name || "Member",
                 clubName: m.club_id?.name || "Club",
-                title: payload.description || period,
+                title: transaction.title || transaction.description || period,
                 amount,
                 period,
               }).catch((e) => console.error("[Fee Email Error]", e));
@@ -159,29 +166,52 @@ const updateTransactionRequest = async (clubId, transactionId, userId, payload) 
 
   await transaction.save();
 
-  // If approved and type is income, generate payment records for active members
+  // If approved and type is income, generate payment records and notify active members if not already done
   const isIncome = transaction.type === "income" || Number(transaction.type) === 0;
   const isApproved = transaction.status === "approved" || transaction.status === 1;
   if (isApproved && isIncome) {
     try {
-      const activeMembers = await ClubMember.find({ club_id: clubId, status: "active" });
-      const period = transaction.period;
-      const amount = transaction.amount || 0;
+      const existingPaymentsCount = await Payment.countDocuments({ transaction_id: transaction._id });
+      if (existingPaymentsCount === 0) {
+        const activeMembers = await ClubMember.find({ club_id: clubId, status: "active" });
+        const period = transaction.period;
+        const amount = transaction.amount || 0;
 
-      const paymentDocs = activeMembers.map((m) => ({
-        membership_id: m._id,
-        transaction_id: transaction._id,
-        period,
-        amount,
-        status: "pending",
-        payment_method: "vnpay",
-        order_info: `Payment for ${period}`,
-      }));
+        const paymentDocs = activeMembers.map((m) => ({
+          membership_id: m._id,
+          transaction_id: transaction._id,
+          period,
+          amount,
+          status: "pending",
+          payment_method: "vnpay",
+          order_info: transaction.title || transaction.description || `Hội phí kỳ ${period}`,
+        }));
 
-      if (paymentDocs.length > 0) {
-        await Payment.insertMany(paymentDocs, { ordered: false }).catch((err) =>
-          console.log("[Payment Hook Note] Duplicate payments ignored:", err.message)
-        );
+        if (paymentDocs.length > 0) {
+          await Payment.insertMany(paymentDocs, { ordered: false }).catch((err) =>
+            console.log("[Payment Hook Note] Duplicate payments ignored:", err.message)
+          );
+        }
+
+        // Send email to active members upon approval
+        ClubMember.find({ club_id: clubId, status: "active" })
+          .populate("user_id")
+          .populate("club_id")
+          .then((members) => {
+            members.forEach((m) => {
+              if (m.user_id && m.user_id.email) {
+                sendFeeNotificationEmail({
+                  toEmail: m.user_id.email,
+                  userName: m.user_id.full_name || "Member",
+                  clubName: m.club_id?.name || "Club",
+                  title: transaction.title || transaction.description || period,
+                  amount,
+                  period,
+                }).catch((e) => console.error("[Fee Email Error on approval]", e));
+              }
+            });
+          })
+          .catch((e) => console.error("[Fee Populate Error]", e));
       }
     } catch (err) {
       console.error("Error creating member payment items for approved income transaction:", err);

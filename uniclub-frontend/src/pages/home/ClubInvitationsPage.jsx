@@ -13,6 +13,7 @@ import { mapClubFromApi, mapClubInvitationFromApi, formatRoleLabel } from '../..
 import { CLUB_INVITATION_STATUS_OPTIONS } from '../../data/clubInvitationsData'
 import { useToast } from '../../components/common/notificationContext'
 import { MailIcon } from '../../components/common/Icons'
+import CustomSelect from '../../components/common/CustomSelect'
 import Pagination from '../../components/common/Pagination'
 import '../../styles/club-invitations.css'
 
@@ -30,6 +31,7 @@ function ClubInvitationsPage({ clubId }) {
   const [club, setClub] = useState(null)
   const [canManageInvitations, setCanManageInvitations] = useState(false)
   const [invitations, setInvitations] = useState([])
+  const [totalPendingCount, setTotalPendingCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
   const [search, setSearch] = useState('')
@@ -48,7 +50,11 @@ function ClubInvitationsPage({ clubId }) {
     const response = await getClubInvitations(clubId, {
       status: nextStatus !== 'all' ? nextStatus : undefined,
     })
-    setInvitations((response.data || []).map((item) => mapClubInvitationFromApi(item)))
+    const mapped = (response.data || []).map((item) => mapClubInvitationFromApi(item))
+    setInvitations(mapped)
+    if (nextStatus === 'all') {
+      setTotalPendingCount(mapped.filter((item) => item.status === 'pending').length)
+    }
   }
 
   useEffect(() => {
@@ -57,12 +63,9 @@ function ClubInvitationsPage({ clubId }) {
     async function loadPageData() {
       setLoading(true)
       try {
-        const [clubResponse, myClubsResponse, invitationsResponse] = await Promise.all([
+        const [clubResponse, myClubsResponse] = await Promise.all([
           getClubById(clubId),
           getMyClubs(),
-          getClubInvitations(clubId, {
-            status: statusFilter !== 'all' ? statusFilter : undefined,
-          }),
         ])
 
         if (cancelled) return
@@ -74,11 +77,33 @@ function ClubInvitationsPage({ clubId }) {
           return String(id) === String(clubId)
         })
         const role = membership?.role?.toLowerCase()
-        setCanManageInvitations(role === 'secretary' || role === 'president' || role === 'leader')
+        const canManage = role === 'secretary' || role === 'president' || role === 'leader'
+        setCanManageInvitations(canManage)
 
-        setInvitations(
-          (invitationsResponse.data || []).map((item) => mapClubInvitationFromApi(item)),
-        )
+        if (canManage) {
+          try {
+            const invitationsResponse = await getClubInvitations(clubId, {
+              status: statusFilter !== 'all' ? statusFilter : undefined,
+            })
+            if (!cancelled) {
+              const mapped = (invitationsResponse.data || []).map((item) => mapClubInvitationFromApi(item))
+              setInvitations(mapped)
+              if (statusFilter === 'all') {
+                setTotalPendingCount(mapped.filter((item) => item.status === 'pending').length)
+              }
+            }
+          } catch (invErr) {
+            console.error('Failed to load invitations:', invErr)
+            if (!cancelled) {
+              setInvitations([])
+              showToast({
+                type: 'error',
+                title: 'Load failed',
+                message: invErr.message || 'Could not load invitations.',
+              })
+            }
+          }
+        }
       } catch (error) {
         console.error(error)
         if (!cancelled) {
@@ -106,9 +131,7 @@ function ClubInvitationsPage({ clubId }) {
     const query = search.trim().toLowerCase()
     return invitations.filter((invitation) => {
       if (!query) return true
-      return [invitation.recipientName, invitation.recipientEmail].some((value) =>
-        value.toLowerCase().includes(query),
-      )
+      return invitation.recipientName.toLowerCase().includes(query)
     })
   }, [invitations, search])
 
@@ -119,7 +142,10 @@ function ClubInvitationsPage({ clubId }) {
     return visibleInvitations.slice(startIndex, startIndex + INVITATIONS_PER_PAGE)
   }, [visibleInvitations, currentPage])
 
-  const pendingCount = invitations.filter((item) => item.status === 'pending').length
+  const pendingCount =
+    statusFilter === 'all'
+      ? invitations.filter((item) => item.status === 'pending').length
+      : totalPendingCount
 
   function openCreateModal() {
     setForm(EMPTY_FORM)
@@ -273,22 +299,18 @@ function ClubInvitationsPage({ clubId }) {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search recipient name or email..."
+            placeholder="Search here ..."
           />
         </label>
-        <div className="club-invitations-filters" role="tablist" aria-label="Filter invitation status">
-          {CLUB_INVITATION_STATUS_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              role="tab"
-              aria-selected={statusFilter === option.value}
-              className={statusFilter === option.value ? 'is-active' : undefined}
-              onClick={() => setStatusFilter(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="club-invitations-status-dropdown-wrap">
+          <CustomSelect
+            value={statusFilter}
+            onChange={(value) => setStatusFilter(value)}
+            options={CLUB_INVITATION_STATUS_OPTIONS}
+            align="right"
+            className="club-invitations-status-select"
+            ariaLabel="Filter invitation status"
+          />
         </div>
       </section>
 

@@ -163,7 +163,7 @@ const reviewJoinRequest = async (presidentId, clubId, requestId, { status, revie
             amount: trans.amount || 0,
             status: "pending",
             payment_method: "vnpay",
-            order_info: `Payment for ${trans.period}`,
+            order_info: trans.title || trans.description || `Hội phí kỳ ${trans.period}`,
           });
         }
       }

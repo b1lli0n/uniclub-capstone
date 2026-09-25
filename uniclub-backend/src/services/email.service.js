@@ -1,3 +1,4 @@
+require("dotenv").config();
 const nodemailer = require("nodemailer");
 
 let transporter = null;
@@ -5,17 +6,14 @@ let transporter = null;
 function getTransporter() {
   if (transporter) return transporter;
 
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
+  const emailUser = (process.env.EMAIL_USER || "uniclub2402@gmail.com").trim();
+  const emailPass = (process.env.EMAIL_PASS || "").trim();
 
   if (emailUser && emailPass) {
     transporter = nodemailer.createTransport({
-      service: "gmail",
-      pool: true,
-      maxConnections: 3,
-      maxMessages: 100,
-      rateDelta: 1000,
-      rateLimit: 3,
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
       auth: {
         user: emailUser,
         pass: emailPass,
@@ -58,7 +56,7 @@ const sendApprovedEmail = async ({ toEmail, userName, clubName }) => {
     `;
 
     await mailer.sendMail({
-      from: `"UniClub System" <${process.env.EMAIL_USER || "noreply@uniclub.edu.vn"}>`,
+      from: `"UniClub System" <${process.env.EMAIL_USER || "uniclub2402@gmail.com"}>`,
       to: toEmail,
       subject,
       html,
@@ -89,7 +87,7 @@ const sendRejectedEmail = async ({ toEmail, userName, clubName, reviewNote }) =>
     `;
 
     await mailer.sendMail({
-      from: `"UniClub System" <${process.env.EMAIL_USER || "noreply@uniclub.edu.vn"}>`,
+      from: `"UniClub System" <${process.env.EMAIL_USER || "uniclub2402@gmail.com"}>`,
       to: toEmail,
       subject,
       html,

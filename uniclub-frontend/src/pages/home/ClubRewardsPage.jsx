@@ -472,7 +472,7 @@ function ClubRewardsPage({ isManager = false }) {
 
   const visibleRewards = useMemo(() => {
     let result = rewards.filter((reward) => {
-      const search = `${reward.title} ${reward.type || ''}`.toLowerCase().includes(query.toLowerCase())
+      const search = reward.title.toLowerCase().includes(query.toLowerCase())
       return search && (isManager || reward.isVisible)
     })
 
@@ -680,7 +680,7 @@ function ClubRewardsPage({ isManager = false }) {
           <div className="club-rewards-controls">
             <input
               type="search"
-              placeholder="Search rewards..."
+              placeholder="Search here ..."
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               aria-label="Search rewards"
