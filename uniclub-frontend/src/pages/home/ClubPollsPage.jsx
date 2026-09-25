@@ -252,9 +252,29 @@ function ClubPollsPage({ clubId, canManagePolls: propCanManagePolls, userRole })
           options,
         }
         const pollId = formMode.id || formMode._id
-        await updatePollApi(clubId, pollId, payload)
+        const isMock = String(pollId).startsWith('poll-') || !/^[0-9a-fA-F]{24}$/.test(String(clubId))
+        if (isMock) {
+          setPolls((prev) =>
+            prev.map((p) =>
+              String(p.id) === String(pollId)
+                ? {
+                    ...p,
+                    title: payload.title,
+                    description: payload.description,
+                    options: payload.options.map((optText, idx) => ({
+                      id: `opt-${idx}-${Date.now()}`,
+                      label: optText,
+                      votes: 0,
+                    })),
+                  }
+                : p
+            )
+          )
+        } else {
+          await updatePollApi(clubId, pollId, payload)
+          await loadPolls()
+        }
         notify('Poll updated successfully.')
-        await loadPolls()
       }
       setFormMode(null)
     } catch (err) {

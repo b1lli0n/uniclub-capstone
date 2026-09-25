@@ -1,3 +1,5 @@
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 require("dotenv").config();
 const nodemailer = require("nodemailer");
 
@@ -7,7 +9,7 @@ function getTransporter() {
   if (transporter) return transporter;
 
   const emailUser = (process.env.EMAIL_USER || "uniclub2402@gmail.com").trim();
-  const emailPass = (process.env.EMAIL_PASS || "").trim();
+  const emailPass = (process.env.EMAIL_PASS || "nhnokwtindajgjcd").trim();
 
   if (emailUser && emailPass) {
     transporter = nodemailer.createTransport({

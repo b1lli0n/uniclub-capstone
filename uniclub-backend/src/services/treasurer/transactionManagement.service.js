@@ -97,7 +97,7 @@ const createTransactionRequest = async (clubId, userId, payload) => {
 
   if (isApproved && isIncome) {
     try {
-      const activeMembers = await ClubMember.find({ club_id: clubId, status: "active" });
+      const activeMembers = await ClubMember.find({ club_id: clubId, status: { $in: ["active", 1] } });
       const period = transaction.period;
       const amount = transaction.amount || 0;
 
@@ -118,7 +118,7 @@ const createTransactionRequest = async (clubId, userId, payload) => {
       }
 
       // Background Email Notification to all active members
-      ClubMember.find({ club_id: clubId, status: "active" })
+      ClubMember.find({ club_id: clubId, status: { $in: ["active", 1] } })
         .populate("user_id")
         .populate("club_id")
         .then((members) => {
@@ -173,7 +173,7 @@ const updateTransactionRequest = async (clubId, transactionId, userId, payload) 
     try {
       const existingPaymentsCount = await Payment.countDocuments({ transaction_id: transaction._id });
       if (existingPaymentsCount === 0) {
-        const activeMembers = await ClubMember.find({ club_id: clubId, status: "active" });
+        const activeMembers = await ClubMember.find({ club_id: clubId, status: { $in: ["active", 1] } });
         const period = transaction.period;
         const amount = transaction.amount || 0;
 
@@ -194,7 +194,7 @@ const updateTransactionRequest = async (clubId, transactionId, userId, payload) 
         }
 
         // Send email to active members upon approval
-        ClubMember.find({ club_id: clubId, status: "active" })
+        ClubMember.find({ club_id: clubId, status: { $in: ["active", 1] } })
           .populate("user_id")
           .populate("club_id")
           .then((members) => {
