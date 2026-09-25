@@ -23,7 +23,6 @@ const RULE_COLORS = ['blue', 'indigo', 'purple', 'pink']
 const DEFAULT_ACTION_OPTIONS = [
   { value: '', label: '-- Select Action Type --' },
   { value: 'checkin', label: 'Event Check-in' },
-  { value: 'attendance', label: 'Event Attendance' },
   { value: 'feedback', label: 'Feedback Submission' },
   { value: 'meeting', label: 'Meeting Attendance' },
   { value: 'volunteer', label: 'Volunteer Work' },
@@ -42,7 +41,7 @@ const DEFAULT_DRAFT = {
 }
 
 function RuleIcon({ type }) {
-  if (type === 'checkin' || type === 'attendance') {
+  if (type === 'checkin') {
     return (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />

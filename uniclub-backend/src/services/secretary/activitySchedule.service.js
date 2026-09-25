@@ -324,23 +324,13 @@ const saveActivityAttendance = async (clubId, activityId, memberAttendanceList, 
     );
 
     if (checked && !wasAlreadyAttended) {
-      let awardRes = await awardRewardPoints({
+      const awardRes = await awardRewardPoints({
         clubId,
         userId: actualUserId,
         actionTypeCode: "meeting",
         eventId: activityId,
         presidentId: adminUserId,
       });
-
-      if (awardRes && !awardRes.success && awardRes.reason === "rule_not_found") {
-        awardRes = await awardRewardPoints({
-          clubId,
-          userId: actualUserId,
-          actionTypeCode: "attendance",
-          eventId: activityId,
-          presidentId: adminUserId,
-        });
-      }
 
       if (awardRes && awardRes.success) {
         awardedCount += 1;

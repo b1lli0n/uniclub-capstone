@@ -199,26 +199,15 @@ const updateAttendanceStatus = async ({
     if (status === "attended" && !wasAlreadyAttended) {
       try {
         const { awardRewardPoints } = require("./pointsAward.helper");
-        let awardRes = await awardRewardPoints({
+        await awardRewardPoints({
           clubId: event.club_id,
           userId: registration.user_id,
           actionTypeCode: "checkin",
           eventId: event._id,
           presidentId: userId,
         });
-
-        // Only fallback to "attendance" if "checkin" rule was NOT FOUND (not if limit reached or already awarded)
-        if (awardRes && !awardRes.success && awardRes.reason === "rule_not_found") {
-          await awardRewardPoints({
-            clubId: event.club_id,
-            userId: registration.user_id,
-            actionTypeCode: "attendance",
-            eventId: event._id,
-            presidentId: userId,
-          });
-        }
       } catch (err) {
-        console.error("[Points Hook] Failed to award attendance points:", err);
+        console.error("[Points Hook] Failed to award check-in points:", err);
       }
     }
 
