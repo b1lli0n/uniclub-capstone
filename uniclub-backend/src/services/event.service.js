@@ -233,21 +233,12 @@ const registerForEvent = async ({ eventId, userId, userEmail }) => {
 
   // Points award hook
   try {
-    let awardRes = await awardRewardPoints({
+    await awardRewardPoints({
       clubId: event.club_id,
       userId,
       actionTypeCode: "register_event",
       eventId: event._id,
     });
-
-    if (awardRes && !awardRes.success && awardRes.reason === "rule_not_found") {
-      await awardRewardPoints({
-        clubId: event.club_id,
-        userId,
-        actionTypeCode: "attendance",
-        eventId: event._id,
-      });
-    }
   } catch (ptsErr) {
     console.error("Points award error on registration:", ptsErr);
   }
